@@ -73,8 +73,8 @@ add_library(az_obj OBJECT
 set_property(TARGET az_obj PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(az_obj PUBLIC
+	${PROJECT_SOURCE_DIR}
 	${CMAKE_SOURCE_DIR}/arikkei
-	${CMAKE_SOURCE_DIR}/az
 )
 
 add_library(az STATIC
