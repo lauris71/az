@@ -15,6 +15,10 @@ typedef struct _AZIFEntry AZIFEntry;
 extern "C" {
 #endif
 
+/**
+ * @brief Superclass of all implementations
+ * 
+ */
 struct _AZImplementation {
 	unsigned int type;
 };

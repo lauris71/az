@@ -23,6 +23,10 @@ typedef struct _AZFunctionClass AZFunctionClass;
 extern "C" {
 #endif
 
+/** @defgroup function Function interface
+ *  A callable interface
+ */
+
 struct _AZFunctionSignature {
 	/* Return type */
 	uint32_t ret_type;
@@ -45,10 +49,18 @@ unsigned int az_function_signature_is_assignable_to (const AZFunctionSignature *
 
 void az_function_signature_delete(AZFunctionSignature* sig);
 
+/** @ingroup function
+ * @brief Abtract interface
+ * 
+ */
 struct _AZFunctionInstance {
 	AZFunctionSignature *signature;
 };
 
+/** @ingroup function
+ * @brief Implementation superclass
+ * 
+ */
 struct _AZFunctionClass {
 	AZInterfaceClass interface_class;
 };
@@ -61,10 +73,23 @@ struct _AZFunctionImplementation {
 
 const AZFunctionSignature *az_function_get_signature (const AZFunctionImplementation *impl, AZFunctionInstance *inst);
 
-/* First value is this (if applicable) */
+/** @ingroup function
+ *  First value is this (if applicable)
+ */
 unsigned int az_function_invoke (const AZFunctionImplementation *impl, AZFunctionInstance *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
 unsigned int az_function_convert_args_in_place (const AZFunctionImplementation *impl, AZFunctionInstance *inst, const AZImplementation *arg_impls[], AZValue *arg_vals[]);
 
+/** @ingroup function
+ * @brief Invoke function using packed arguments
+ * 
+ * @param impl 
+ * @param inst 
+ * @param this_val 
+ * @param ret_val 
+ * @param args 
+ * @param check_types 
+ * @return unsigned int 
+ */
 unsigned int az_function_invoke_packed (const AZFunctionImplementation *impl, AZFunctionInstance *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types);
 
 /* Helper */
@@ -82,6 +107,16 @@ unsigned int az_instance_invoke_function (const AZImplementation *impl, void *in
  * fixme: This should be changed
  */
 
+/** @ingroup function
+ * @brief Invoke function interface
+ * 
+ * @param impl 
+ * @param inst 
+ * @param ret_impl 
+ * @param ret_val 
+ * @param ... 
+ * @return unsigned int 
+ */
 unsigned int az_function_invoke_va (const AZFunctionImplementation *impl, AZFunctionInstance *inst, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
 unsigned int az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, AZFunctionInstance *inst, const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
 unsigned int az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);

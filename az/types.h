@@ -18,6 +18,10 @@
 extern "C" {
 #endif
 
+/** @defgroup types AZ types
+ *  The basic type access
+ */
+
 #define AZ_TYPE_MASK 0x00ffffff
 #define AZ_TYPE_INDEX(t) ((t) & AZ_TYPE_MASK)
 
@@ -70,25 +74,46 @@ az_type_get_class (unsigned int type)
 #define az_type_get_impl AZ_IMPL_FROM_TYPE
 #endif
 
+/** @ingroup types
+ * @brief Get parent primitive type
+ * 
+ * @param type the query type
+ * @return the parent primitive (AZ_TYPE_BOOLEAN - AZ_TYPE_BLOCK) or AZ_TYPE_NONE for invalid type 
+ */
 unsigned int az_type_get_parent_primitive (unsigned int type);
 
+/** @ingroup types
+ * @brief Checks whether the given type is a subtype of another
+ * 
+ * @param type the type that is checked
+ * @param test the type tested against
+ * @return 1 if type is a subtype of test, 0 if not or if either type is invalid
+ */
 unsigned int az_type_is_a (unsigned int type, unsigned int test);
+
+/** @ingroup types
+ * @brief Checks whether the given type implements an interface type
+ * 
+ * @param type the type that is checked
+ * @param test the interface type tested against
+ * @return 1 if type implements test, 0 if not or if either type is invalid
+ */
 unsigned int az_type_implements (unsigned int type, unsigned int test);
-/**
- * @brief tests whether type can be assigned to a variable
+/** @ingroup types
+ * @brief Checks whether a value of certain type can be assigned to a variable of given type
  * 
  * True if:
- *   type is test
- *   type implements test
- *   type is NONE and test is ANY/BLOCK
+ * - type is test
+ * - type implements test
+ * - type is NONE and test is ANY or BLOCK
  * 
- * @param type the query
- * @param test the type to be tested against
- * @return true if type can be assigned
+ * @param type the type that is checked
+ * @param test the type of variable to be tested against
+ * @return 1 if type can be assigned, 0 if not or if either type is invalid
  */
 unsigned int az_type_is_assignable_to (unsigned int type, unsigned int test);
 /**
- * @brief tests whether type can automatically be converted
+ * @brief Checks whether a value of certain type can automatically be converted
  * 
  * True if:
  *   type is test
@@ -96,7 +121,7 @@ unsigned int az_type_is_assignable_to (unsigned int type, unsigned int test);
  * 
  * @param type the query
  * @param test the type to be tested against
- * @return true if type can be converted
+ * @return 1 if type can be converted
  */
 unsigned int az_type_is_convertible_to (unsigned int type, unsigned int test);
 

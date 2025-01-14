@@ -9,7 +9,20 @@ PROJECT(az)
 SET(CMAKE_VERBOSE_MAKEFILE ON)
 SET(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
 
+find_package(Doxygen)
+
 add_subdirectory(az)
+
+if( DOXYGEN_FOUND )
+    configure_file(${PROJECT_SOURCE_DIR}/etc/Doxyfile.in Doxyfile @ONLY )
+    add_custom_target(docs ALL
+        Doxygen::doxygen Doxyfile
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating API documentation with Doxygen" VERBATIM
+    )
+#    install(DIRECTORY ${CMAKE_BINARY_DIR}/doc/ DESTINATION ${CMAKE_INSTALL_DOCDIR} )
+#    install(DIRECTORY doc/ DESTINATION ${CMAKE_INSTALL_DOCDIR} )
+endif()
 
 #if(BUILD_TESTING)
 #  add_subdirectory(tests)
