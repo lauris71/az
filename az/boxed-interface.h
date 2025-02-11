@@ -42,15 +42,22 @@ AZBoxedInterface *az_boxed_interface_new_from_impl_instance (const AZImplementat
 AZBoxedInterface *az_boxed_interface_new_from_object (AZObject *obj, unsigned int type);
 
 ARIKKEI_INLINE void
-az_boxed_interface_ref (AZBoxedInterface *astr)
+az_boxed_interface_ref(AZBoxedInterface *astr)
 {
 	az_reference_ref (&astr->reference);
 }
 
 ARIKKEI_INLINE void
-az_boxed_interface_unref (AZBoxedInterface *astr)
+az_boxed_interface_unref(AZBoxedInterface *astr)
 {
 	az_reference_unref (&az_boxed_interface_class->reference_class, &astr->reference);
+}
+
+ARIKKEI_INLINE void
+az_boxed_interface_unbox(const AZImplementation **impl, void **inst) {
+	AZBoxedInterface *boxed = (AZBoxedInterface *) *inst;
+	*impl = boxed->impl;
+	*inst = boxed->inst;
 }
 
 #ifdef AZ_INTERNAL

@@ -2,11 +2,12 @@
 #define __AZ_TYPES_H__
 
 /*
-* A run-time type library
-*
-* Copyright (C) Lauris Kaplinski 2016
-*/
-
+ * A run-time type library
+ *
+ * Copyright (C) 2016-2025 Lauris Kaplinski <lauris@kaplinski.com>
+ * 
+ * Licensed under GNU General Public License version 3 or any later version.
+ */
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -152,10 +153,23 @@ unsigned int az_deserialize_value (const AZImplementation *impl, AZValue *value,
 /* If len > 0 writes the terminating 0 */
 unsigned int az_instance_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
 
-/*
- * Frontend to az_register_class
- * Get new typecode, allocate and initialize a class structure
- * Return registered class
+/** @ingroup types
+ * @brief Get new typecode, allocate and initialize a class structure
+ * 
+ * Gets a new typecode, initializes its class to the minimal functional state and then calls class_init,
+ * where a more specialized setup (e.g. registering interfaces and fields) should be done. The final setup
+ * is performed only after class_init returns (and thus the interfaces and fields are known).
+ * 
+ * @param type pointer where the typecode will be written
+ * @param name the name of the new class
+ * @param parent_type the parent typecode
+ * @param class_size the size of the class
+ * @param instance_size  the size of the instance
+ * @param flags type flags
+ * @param class_init a callback for initialzaton of the class
+ * @param instance_init a callback for the intialization of an instance
+ * @param instance_finalize a callback for the finalization of an instance
+ * @return allocated and initialized class
  */
 
 AZClass *az_register_type (unsigned int *type, const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
@@ -163,10 +177,27 @@ AZClass *az_register_type (unsigned int *type, const unsigned char *name, unsign
 	void (*instance_init) (const AZImplementation *, void *),
 	void (*instance_finalize) (const AZImplementation *, void *));
 
-/*
-* Pass arguments to class_init (for composite types)
-*/
-
+/** @ingroup types
+ * @brief Get new typecode, allocate and initialize a class structure
+ * 
+ * Gets a new typecode, initializes its class to the minimal functional state and then calls class_init,
+ * where a more specialized setup (e.g. registering interfaces and fields) should be done. The final setup
+ * is performed only after class_init returns (and thus the interfaces and fields are known).
+ * Unlike az_register_type this method allows passing extra parameter to the class_init method.
+ * It is used to build composite classes (e.g. reference of another type). 
+ * 
+ * @param type pointer where the typecode will be written
+ * @param name the name of the new class
+ * @param parent_type the parent typecode
+ * @param class_size the size of the class
+ * @param instance_size  the size of the instance
+ * @param flags type flags
+ * @param class_init a callback for initialzaton of the class
+ * @param instance_init a callback for the intialization of an instance
+ * @param instance_finalize a callback for the finalization of an instance
+ * @param data extra parameter to the class_init function
+ * @return allocated and initialized class
+ */
 AZClass *az_register_composite_type (unsigned int *type, const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
 	void (*class_init) (AZClass *, void *),
 	void (*instance_init) (const AZImplementation *, void *),

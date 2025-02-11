@@ -13,9 +13,9 @@ find_package(Doxygen)
 
 add_subdirectory(az)
 
-if( DOXYGEN_FOUND )
+if(DOXYGEN_FOUND)
     configure_file(${PROJECT_SOURCE_DIR}/etc/Doxyfile.in Doxyfile @ONLY )
-    add_custom_target(docs ALL
+    add_custom_target(elea-docs ALL
         Doxygen::doxygen Doxyfile
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API documentation with Doxygen" VERBATIM
@@ -27,3 +27,5 @@ endif()
 #if(BUILD_TESTING)
 #  add_subdirectory(tests)
 #endif()
+
+set(HAS_AZ true PARENT_SCOPE)

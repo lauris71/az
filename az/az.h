@@ -4,7 +4,9 @@
 /*
  * A run-time type library
  *
- * Copyright (C) Lauris Kaplinski 2016-2020
+ * Copyright (C) 2016-2025 Lauris Kaplinski <lauris@kaplinski.com>
+ * 
+ * Licensed under GNU General Public License version 3 or any later version.
  */
 
 #include <az/base.h>
@@ -117,9 +119,12 @@ typedef struct _AZFunctionInstance AZFunctionInstance;
 /* Execution context */
 typedef struct _AZContext AZContext;
 
-/*
- * Initialize type system
- * If AZ_SAFETY_CHECKS is set it is called automatically
+/**
+ * @brief Initialize type system
+ * 
+ * If AZ_SAFETY_CHECKS is set during the compilation of the library, it is called automatically
+ * whenever any type is accessed
+ * 
  * It is safe to call it more than once
  */
 

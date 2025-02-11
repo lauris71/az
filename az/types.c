@@ -1,10 +1,12 @@
 #define __AZ_TYPES_C__
 
 /*
-* A run-time type library
-*
-* Copyright (C) Lauris Kaplinski 2016
-*/
+ * A run-time type library
+ *
+ * Copyright (C) 2016-2025 Lauris Kaplinski <lauris@kaplinski.com>
+ * 
+ * Licensed under GNU General Public License version 3 or any later version.
+ */
 
 #include <assert.h>
 #include <stdlib.h>
