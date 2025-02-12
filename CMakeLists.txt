@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 
-set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED YES)
 
 PROJECT(az)
@@ -28,4 +28,7 @@ endif()
 #  add_subdirectory(tests)
 #endif()
 
-set(HAS_AZ true PARENT_SCOPE)
+# If this is part of another project, inform the parent build system
+if(NOT PROJECT_IS_TOP_LEVEL)
+  set(HAS_ARIKKEI true PARENT_SCOPE)
+endif()

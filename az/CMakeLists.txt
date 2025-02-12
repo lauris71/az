@@ -65,19 +65,14 @@ set(AZ_SOURCES
 	weak-reference.c
 )
 
-add_library(az_obj OBJECT
+add_library(az STATIC
 	${AZ_HEADERS}
 	${AZ_SOURCES}
 )
 
-set_property(TARGET az_obj PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET az PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-target_include_directories(az_obj PUBLIC
+target_include_directories(az PUBLIC
 	${PROJECT_SOURCE_DIR}
 	${CMAKE_SOURCE_DIR}/arikkei
-)
-
-add_library(az STATIC
-    ${AZ_HEADERS}
-    $<TARGET_OBJECTS:az_obj>
 )
