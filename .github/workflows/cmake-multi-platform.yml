@@ -78,3 +78,24 @@ jobs:
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest --build-config ${{ matrix.build_type }}
+  pages:
+    name: Deploy pages
+    if: github.repository == 'lauris71/az' && contains(github.ref, 'master')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      run: sudo apt update -qq && sudo apt install --no-install-recommends -y doxygen
+    - name: Build docs
+      run: |
+        cmake -B build -S .
+        cmake --build build --target az-docs
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./build/az/docs
+        force_orphan: true

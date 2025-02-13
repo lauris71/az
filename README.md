@@ -74,7 +74,7 @@ Class contains the type definition of data "what these bits of instance are".
 
 All classes are itself implementations (thus they can contain virtual methods and virtual data). For standalone instances this is all the polymorphism needed. But for interfaces the distinction is important.
 
-Interfaces are implemented (in different ways) inside other instances. All implementations of the same interface have the same base type information (class), and thus part of their polymorphic data has to be specified by the implementation of the containing instance. Normally this is done by embedding interface implementation insde the containing implementation (or class).
+Interfaces are implemented (in different ways) inside other instances. All implementations of the same interface have the same base type information (class), and thus part of their polymorphic data has to be specified by the implementations. Normally this is done by embedding interface implementation insde the implementation (or class) of the containing type.
 
 Which virtual methods of interface belong to the class and which to the implementation depends on the semantics of the interface and methods.
 
@@ -97,26 +97,26 @@ Which virtual methods of interface belong to the class and which to the implemen
 - Object
 
 ### Boxed value
-Boxed value contains the type (i.e. pointer to an Implementation) and instance (i.e. the actual bits) of a value type inside reference.
+Boxed value contains the type (i.e. pointer to an implementation) and instance (i.e. the actual bits) of a value type inside reference.
 
 These are needed to retrieve a value of unknown size (e.g. reading a property with "Any" type)
 
 ### Boxed interface
-Boxed interface contains value (i.e. pointer to the implementation and the value) of the containing instance and an interface (i.e. pointer to the implementation and pointer to the intance) implemented in the former.
+Boxed interface contains value (i.e. pointer to the implementation and the value) of the containing instance and an interface (i.e. pointer to the implementation and pointer to the isntance) implemented in the former.
 
-Interfaces are "owned" by the containing instance. Thus methods cannot extend the lifecycle of interface beyond the duration of the instance. But in many situations one may want to extend it – e.g. to create a collection of interfaces.
+Interfaces are "owned" by the containing instance. Thus methods cannot extend the lifecycle of an interface beyond the duration of the instance. But in many situations one may want to extend it – e.g. to create a collection of interfaces.
 
 Unless the external application logic dictates that the interfaces remain valid during the existence of such collection, boxed interface can be used instead. Boxed interface contains the value of owner and thus also the interface of interest. The interface is directly accessible (does not need to be queried if the instance type layout is not familiar to the caller).
 
 ### Object
-Object is a special reference type that "knows" it’s class (i.e. has a pointer to the class inside instance). Thus, unlike other non-final types, objects can be accessed simply by value without the need of specifying implementation.
+Object is a special reference type that "knows" it’s class (i.e. has a pointer to the class inside instance). Thus, unlike other non-final types, objects can be accessed simply by instance without the need of specifying implementation.
 
 ## Specifying instances
 All classes are assigned integer type values. These integer values are usually used instead of class pointers to specify a type.
 
 All implementations contain type value as the first member, thus class can always be obtained from an implementation.
 
-Data is generally accessed by specifying its implementation and instance of implementation and value.
+Data is generally accessed by specifying its implementation and instance or implementation and value.
 
     my_type_do_something(const AZImplementation *impl, void *inst);
     my_type_do_something_else(const AZImplementation *impl, AZValue *val);
@@ -129,7 +129,7 @@ To retreve polymorphic data, both implementaton and value has to be retrieved (i
 
 If type is final, implementation can be omitted in methods.
 
-If a method does not use polymorphic parts of data, implementation can be omitted
+If a method does not use polymorphic parts of data, implementation can be omitted.
 
 Object types contain class as the first memeber, thus methods of objects do not have to specify implementation.
 
