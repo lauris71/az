@@ -127,6 +127,13 @@ unsigned int az_type_is_assignable_to (unsigned int type, unsigned int test);
 unsigned int az_type_is_convertible_to (unsigned int type, unsigned int test);
 
 /* Basic constructor frontends */
+/**
+ * @brief Initialize a new instance
+ * 
+ * Initializes a new instance by calling recursively all superclass and interface constructors
+ * @param inst pointer to instance
+ * @param type instance type
+ */
 void az_instance_init (void *inst, unsigned int type);
 void az_instance_finalize (void *inst, unsigned int type);
 /* Initialize a new implementation for interface */
