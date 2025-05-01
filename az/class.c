@@ -22,6 +22,34 @@
 #endif
 #include <az/string.h>
 
+static unsigned int
+az_ifaces_self_reserve(unsigned int n_ifaces)
+{
+	unsigned int next = az_ifaces_self_len;
+	if ((next + n_ifaces) > az_ifaces_self_size) {
+		az_ifaces_self_size = az_ifaces_self_size << 2;
+		if ((next + n_ifaces) > az_ifaces_self_size) az_ifaces_self_size = next + n_ifaces;
+		if (az_ifaces_self_size < 64) az_ifaces_self_size = 64;
+		az_ifaces_self = (AZIFEntry *) realloc(az_ifaces_self, az_ifaces_self_size * sizeof(AZIFEntry));
+	}
+	az_ifaces_self_len += n_ifaces;
+	return next;
+}
+
+static unsigned int
+az_ifaces_all_reserve(unsigned int n_ifaces)
+{
+	unsigned int next = az_ifaces_all_len;
+	if ((next + n_ifaces) > az_ifaces_all_size) {
+		az_ifaces_all_size = az_ifaces_all_size << 2;
+		if ((next + n_ifaces) > az_ifaces_all_size) az_ifaces_all_size = next + n_ifaces;
+		if (az_ifaces_all_size < 256) az_ifaces_all_size = 256;
+		az_ifaces_all = (AZIFEntry *) realloc(az_ifaces_all, az_ifaces_all_size * sizeof(AZIFEntry));
+	}
+	az_ifaces_all_len += n_ifaces;
+	return next;
+}
+
 static void az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsigned int class_size, unsigned int instance_size, unsigned int flags, const uint8_t *name);
 
 static unsigned char zero_val[16] = { 0 };
@@ -174,7 +202,7 @@ az_class_new_with_type (unsigned int type, unsigned int parent_type, unsigned in
 	az_classes[AZ_TYPE_INDEX(type)] = klass;
 	/* We have to use class flags here because of parent chaining */
 	az_types[type].flags = klass->flags;
-	az_types[type].parent = parent_type;
+	az_types[type].pidx = parent_type;
 	return klass;
 }
 
@@ -190,27 +218,12 @@ az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsig
 		/* Overwrite values from supertype */
 		klass->flags &= ~AZ_CLASS_IS_ABSTRACT;
 		klass->parent = parent_class;
-		klass->n_parent_types = 0;
-		klass->n_interfaces_self = 0;
-		klass->interfaces_self = NULL;
-		klass->n_interfaces_all = 0;
-		klass->interfaces_all = NULL;
+		klass->n_ifaces_self = 0;
+		klass->ifaces_self = 0;
 #ifdef AZ_HAS_PROPERTIES
 		klass->n_properties_self = 0;
 		klass->properties_self = NULL;
 #endif
-		/* Build type chain */
-		while (parent_class) {
-			klass->n_parent_types += 1;
-			parent_class = parent_class->parent;
-		}
-		klass->parent_types = (unsigned int *) malloc (klass->n_parent_types * sizeof (unsigned int));
-		i = 0;
-		parent_class = AZ_CLASS_FROM_TYPE(parent);
-		while (parent_class) {
-			klass->parent_types[i++] = parent_class->implementation.type;
-			parent_class = parent_class->parent;
-		}
 	}
 	klass->implementation.type = type;
 	klass->flags |= flags;
@@ -231,17 +244,17 @@ az_class_init_recursive (AZClass* klass, AZClass* new_class)
 {
 	if (klass->parent) az_class_init_recursive (klass->parent, new_class);
 	if (klass->init_recursive) {
-            klass->init_recursive (new_class);
-        }
+        klass->init_recursive (new_class);
+    }
 }
 
 void
-az_class_set_num_interfaces (AZClass *klass, unsigned int ninterfaces)
+az_class_set_num_interfaces (AZClass *klass, unsigned int n_ifaces)
 {
-	klass->n_interfaces_self = ninterfaces;
-	klass->interfaces_self = (AZIFEntry *) malloc (ninterfaces * sizeof (AZIFEntry));
+	klass->n_ifaces_self = n_ifaces;
+	klass->ifaces_self = az_ifaces_self_reserve(n_ifaces);
 #ifdef AZ_SAFETY_CHECKS
-        memset (klass->interfaces_self, 0, ninterfaces * sizeof (AZIFEntry));
+        memset (az_ifaces_self + klass->ifaces_self, 0, n_ifaces * sizeof (AZIFEntry));
 #endif
 }
 
@@ -249,14 +262,14 @@ void
 az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type, unsigned int impl_offset, unsigned int inst_offset)
 {
 	arikkei_return_if_fail (klass != NULL);
-	arikkei_return_if_fail (idx < klass->n_interfaces_self);
+	arikkei_return_if_fail (idx < klass->n_ifaces_self);
 	arikkei_return_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE));
 #ifdef AZ_SAFETY_CHECKS
-        arikkei_return_if_fail (!klass->interfaces_self[idx].type);
+        arikkei_return_if_fail (!az_ifaces_self[klass->ifaces_self + idx].type);
 #endif
-	klass->interfaces_self[idx].type = type;
-	klass->interfaces_self[idx].impl_offset = impl_offset;
-	klass->interfaces_self[idx].inst_offset = inst_offset;
+	az_ifaces_self[klass->ifaces_self + idx].type = type;
+	az_ifaces_self[klass->ifaces_self + idx].impl_offset = impl_offset;
+	az_ifaces_self[klass->ifaces_self + idx].inst_offset = inst_offset;
 	/* For standalone types implementation is in class and should be initialized */
 	/* For interface types sub-implementation is inside implementation and should be initialized later */
 	/* fixme: The correct way to do this is to create two methods: */
@@ -269,7 +282,7 @@ az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type,
 void
 az_class_post_init (AZClass *klass)
 {
-	unsigned int i, idx;
+	unsigned int i;
 	/* fixme: think proper algorithm */
 	if (!klass->alignment) {
 		if (az_type_is_a (klass->implementation.type, AZ_TYPE_BLOCK) && !(klass->flags & AZ_CLASS_IS_ABSTRACT) && klass->instance_size) {
@@ -284,8 +297,8 @@ az_class_post_init (AZClass *klass)
 	arikkei_return_if_fail (((!klass->value_size && !klass->alignment) || klass->alignment) && (klass->alignment <= 16));
 	arikkei_return_if_fail (!(klass->alignment & (klass->alignment - 1)));
 #ifdef AZ_SAFETY_CHECKS
-	for (i = 0; i < klass->n_interfaces_self; i++) {
-            if (!klass->interfaces_self[i].type) {
+	for (i = 0; i < klass->n_ifaces_self; i++) {
+            if (!az_ifaces_self[klass->ifaces_self + i].type) {
                 fprintf (stderr, "az_class_post_init: Klass %s interface %u is not defined\n", klass->name, i);
             }
         }
@@ -297,33 +310,28 @@ az_class_post_init (AZClass *klass)
 	}
 #endif
 #endif
-	/* Count interfaces */
-	if (klass->parent) klass->n_interfaces_all = klass->parent->n_interfaces_all;
-	klass->n_interfaces_all += klass->n_interfaces_self;
-	for (i = 0; i < klass->n_interfaces_self; i++) {
-		AZClass *sub_class = AZ_CLASS_FROM_TYPE(klass->interfaces_self[i].type);
-		klass->n_interfaces_all += sub_class->n_interfaces_all;
-	}
-	if (klass->n_interfaces_all) {
-		idx = 0;
-		klass->interfaces_all = (AZIFEntry *) malloc (klass->n_interfaces_all * sizeof (AZIFEntry));
-		if (klass->parent && klass->parent->n_interfaces_all) {
-			memcpy (klass->interfaces_all, klass->parent->interfaces_all, klass->parent->n_interfaces_all * sizeof (AZIFEntry));
-			idx = klass->parent->n_interfaces_all;
+	if (klass->n_ifaces_self) {
+		/* Count all interfaces */
+		klass->n_ifaces_all = klass->parent->n_ifaces_all;
+		for (i = 0; i < klass->n_ifaces_self; i++) {
+			AZClass *iface_class = AZ_CLASS_FROM_TYPE(az_ifaces_self[klass->ifaces_self + i].type);
+			klass->n_ifaces_all += (1 + iface_class->n_ifaces_all);
 		}
-		for (i = 0; i < klass->n_interfaces_self; i++) {
-			AZClass *sub_class = AZ_CLASS_FROM_TYPE(klass->interfaces_self[i].type);
-			unsigned int j;
-			klass->interfaces_all[idx].type = klass->interfaces_self[i].type;
-			klass->interfaces_all[idx].impl_offset = klass->interfaces_self[i].impl_offset;
-			klass->interfaces_all[idx].inst_offset = klass->interfaces_self[i].inst_offset;
+		klass->ifaces_all = az_ifaces_all_reserve(klass->n_ifaces_all);
+		unsigned int idx = klass->ifaces_all;
+		for (i = 0; i < klass->n_ifaces_self; i++) {
+			AZClass *iface_class = AZ_CLASS_FROM_TYPE(az_ifaces_self[klass->ifaces_self + i].type);
+			az_ifaces_all[idx] = az_ifaces_self[klass->ifaces_self + i];
 			idx += 1;
-			for (j = 0; j < sub_class->n_interfaces_all; j++) {
-				klass->interfaces_all[idx].type = sub_class->interfaces_all[j].type;
-				klass->interfaces_all[idx].impl_offset = klass->interfaces_self[i].impl_offset + sub_class->interfaces_all[j].impl_offset;
-				klass->interfaces_all[idx].inst_offset = klass->interfaces_self[i].inst_offset + sub_class->interfaces_all[j].inst_offset;
+			for (unsigned int j = 0; j < iface_class->n_ifaces_all; j++) {
+				az_ifaces_all[idx].type = az_ifaces_all[iface_class->ifaces_all + j].type;
+				az_ifaces_all[idx].impl_offset = az_ifaces_self[klass->ifaces_self + i].impl_offset + az_ifaces_all[iface_class->ifaces_all + j].impl_offset;
+				az_ifaces_all[idx].inst_offset = az_ifaces_self[klass->ifaces_self + i].inst_offset + az_ifaces_all[iface_class->ifaces_all + j].inst_offset;
 				idx += 1;
 			}
+		}
+		if (klass->parent->n_ifaces_all) {
+			memcpy (&az_ifaces_all[idx], &az_ifaces_all[klass->parent->ifaces_all], klass->parent->n_ifaces_all * sizeof (AZIFEntry *));
 		}
 	}
 	/* Calculate aligned size */

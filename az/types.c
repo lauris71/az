@@ -91,9 +91,11 @@ az_type_is_a (unsigned int type, unsigned int test)
 #endif
 	if (!type) return 0;
 	if (type == test) return 1;
-	klass = AZ_CLASS_FROM_TYPE(type);
-	for (i = 0; i < klass->n_parent_types; i++) {
-		if (klass->parent_types[i] == test) return 1;
+	test = AZ_TYPE_INDEX(test);
+	uint32_t idx = az_types[AZ_TYPE_INDEX(type)].pidx;
+	while (idx) {
+		if (idx == test) return 1;
+		idx = az_types[idx].pidx;
 	}
 	return 0;
 }
@@ -331,11 +333,11 @@ az_get_interface (const AZImplementation *impl, void *inst, unsigned int if_type
 		return impl;
 	}
 	AZClass *klass = AZ_CLASS_FROM_TYPE(impl->type);
-	for (i = 0; i < klass->n_interfaces_all; i++) {
-		sub_impl = (AZImplementation *) ((char *) impl + klass->interfaces_all[i].impl_offset);
+	for (i = 0; i < klass->n_ifaces_all; i++) {
+		sub_impl = (AZImplementation *) ((char *) impl + az_ifaces_all[klass->ifaces_all + i].impl_offset);
 		/* If this interface is of requested type we are done */
 		if (az_type_is_a (sub_impl->type, if_type)) {
-			if (if_inst) *if_inst = (char *) inst + klass->interfaces_all[i].inst_offset;
+			if (if_inst) *if_inst = (char *) inst + az_ifaces_all[klass->ifaces_all + i].inst_offset;
 			return sub_impl;
 		}
 	}
@@ -445,10 +447,10 @@ instance_init_recursive (const AZClass *klass, const AZImplementation *impl, voi
 		instance_init_recursive (klass->parent, impl, inst, zeroed);
 	}
 	/* Interfaces */
-	for (i = 0; i < klass->n_interfaces_self; i++) {
-		AZClass *sub_class = AZ_CLASS_FROM_TYPE(klass->interfaces_self[i].type);
-		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + klass->interfaces_self[i].impl_offset);
-		void *sub_inst = (void *) ((char *) inst + klass->interfaces_self[i].inst_offset);
+	for (i = 0; i < klass->n_ifaces_self; i++) {
+		AZClass *sub_class = AZ_CLASS_FROM_TYPE(az_ifaces_self[klass->ifaces_self + i].type);
+		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + az_ifaces_self[klass->ifaces_self + i].impl_offset);
+		void *sub_inst = (void *) ((char *) inst + az_ifaces_self[klass->ifaces_self + i].inst_offset);
 		if (!zeroed && (sub_class->flags & AZ_CLASS_ZERO_MEMORY)) memset (sub_inst, 0, sub_class->instance_size);
 		instance_init_recursive (sub_class, sub_impl, sub_inst, zeroed || (sub_class->flags & AZ_CLASS_ZERO_MEMORY));
 	}
@@ -470,10 +472,10 @@ instance_finalize_recursive (const AZClass *klass, const AZImplementation *impl,
 {
 	unsigned int i;
 	if (klass->instance_finalize) klass->instance_finalize (impl, inst);
-	for (i = 0; i < klass->n_interfaces_self; i++) {
-		AZClass *sub_class = AZ_CLASS_FROM_TYPE(klass->interfaces_self[i].type);
-		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + klass->interfaces_self[i].impl_offset);
-		void *sub_inst = (void *) ((char *) inst + klass->interfaces_self[i].inst_offset);
+	for (i = 0; i < klass->n_ifaces_self; i++) {
+		AZClass *sub_class = AZ_CLASS_FROM_TYPE(az_ifaces_self[klass->ifaces_self + i].type);
+		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + az_ifaces_self[klass->ifaces_self + i].impl_offset);
+		void *sub_inst = (void *) ((char *) inst + az_ifaces_self[klass->ifaces_self + i].inst_offset);
 		instance_finalize_recursive (sub_class, sub_impl, sub_inst);
 	}
 	if (klass->parent && (AZ_TYPE_INDEX(klass->parent->implementation.type) >= AZ_NUM_PRIMITIVE_TYPES)) {
@@ -491,14 +493,14 @@ implementation_init_recursive (AZInterfaceClass *iface_class, AZImplementation *
 		implementation_init_recursive ((AZInterfaceClass *) klass->parent, impl);
 	}
 	/* Init subimplementations */
-	for (i = 0; i < klass->n_interfaces_self; i++) {
-		AZInterfaceClass *sub_class = (AZInterfaceClass *) AZ_CLASS_FROM_TYPE(klass->interfaces_self[i].type);
-		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + klass->interfaces_self[i].impl_offset);
+	for (i = 0; i < klass->n_ifaces_self; i++) {
+		AZInterfaceClass *sub_class = (AZInterfaceClass *) AZ_CLASS_FROM_TYPE(az_ifaces_self[klass->ifaces_self + i].type);
+		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + az_ifaces_self[klass->ifaces_self + i].impl_offset);
 		/* fixme: Why do we zero implementation? (Lauris) */
 		//if (sub_class->klass.flags & AZ_CLASS_ZERO_MEMORY) {
 		//	memset (sub_impl, 0, sub_class->implementation_size);
 		//}
-		sub_impl->type = klass->interfaces_self[i].type;
+		sub_impl->type = az_ifaces_self[klass->ifaces_self + i].type;
 		implementation_init_recursive (sub_class, sub_impl);
 	}
 	/* Implementation itself */
@@ -528,9 +530,9 @@ az_lookup_property (const AZClass *klass, const AZImplementation *impl, void *in
 		}
 	}
 	/* interfaces */
-	for (i = 0; i < (int) klass->n_interfaces_self; i++) {
-		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + klass->interfaces_self[i].impl_offset);
-		void *sub_inst = (void *) ((char *) inst + klass->interfaces_self[i].inst_offset);
+	for (i = 0; i < (int) klass->n_ifaces_self; i++) {
+		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + az_ifaces_self[klass->ifaces_self + i].impl_offset);
+		void *sub_inst = (void *) ((char *) inst + az_ifaces_self[klass->ifaces_self + i].inst_offset);
 		/* Check properties of this interface */
 		result = az_lookup_property (AZ_CLASS_FROM_TYPE(sub_impl->type), sub_impl, sub_inst, key, def_class, def_impl, def_inst, prop);
 		if (result >= 0) return result;
@@ -563,9 +565,9 @@ az_lookup_function (const AZClass *klass, const AZImplementation *impl, void *in
 		}
 	}
 	/* interfaces */
-	for (i = 0; i < ( int) klass->n_interfaces_self; i++) {
-		AZImplementation *c_impl = (AZImplementation *) ((char *) impl + klass->interfaces_self[i].impl_offset);
-		void *c_inst = (void *) ((char *) inst + klass->interfaces_self[i].inst_offset);
+	for (i = 0; i < ( int) klass->n_ifaces_self; i++) {
+		AZImplementation *c_impl = (AZImplementation *) ((char *) impl + az_ifaces_self[klass->ifaces_self + i].impl_offset);
+		void *c_inst = (void *) ((char *) inst + az_ifaces_self[klass->ifaces_self + i].inst_offset);
 		/* Check properties of this interface */
 		result = az_lookup_function (AZ_CLASS_FROM_TYPE(c_impl->type), c_impl, c_inst, key, sig, def_class, def_impl, def_inst, prop);
 		if (result >= 0) return result;

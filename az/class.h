@@ -4,10 +4,8 @@
 /*
 * A run-time type library
 *
-* Copyright (C) Lauris Kaplinski 2016
+* Copyright (C) Lauris Kaplinski 2016-2025
 */
-
-typedef struct _AZIFEntry AZIFEntry;
 
 #include <az/types.h>
 
@@ -21,12 +19,6 @@ extern "C" {
  */
 struct _AZImplementation {
 	unsigned int type;
-};
-
-struct _AZIFEntry {
-	unsigned int type;
-	unsigned int impl_offset;
-	unsigned int inst_offset;
 };
 
 /* Class flags */
@@ -60,16 +52,12 @@ struct _AZClass {
 
 	AZClass *parent;
 
-	/* Type chain (descending, from parent to any) */
-	unsigned int n_parent_types;
-	unsigned int *parent_types;
-
+	uint16_t n_ifaces_self;
+	uint16_t n_ifaces_all;
 	/* Interfaces implemented here */
-	unsigned int n_interfaces_self;
-	AZIFEntry *interfaces_self;
+	unsigned int ifaces_self;
 	/* Interface chain (ascending, interface then sub-interfaces */
-	unsigned int n_interfaces_all;
-	AZIFEntry *interfaces_all;
+	unsigned int ifaces_all;
 
 #ifdef AZ_HAS_PROPERTIES
 	unsigned int n_properties_self;

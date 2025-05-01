@@ -27,11 +27,18 @@ extern "C" {
 #define AZ_TYPE_INDEX(t) ((t) & AZ_TYPE_MASK)
 
 typedef struct _AZTypeInfo AZTypeInfo;
+typedef struct _AZIFEntry AZIFEntry;
 
 struct _AZTypeInfo {
 	uint32_t flags;
 	/* Parent INDEX */
-	uint32_t parent;
+	uint32_t pidx;
+};
+
+struct _AZIFEntry {
+	uint32_t type;
+	uint16_t impl_offset;
+	uint16_t inst_offset;
 };
 
 /* C array of all defined classes */

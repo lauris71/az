@@ -317,6 +317,34 @@ any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, co
 	return 1;
 }
 
+static AZClass AnyClass = {
+	AZ_TYPE_ANY, AZ_CLASS_IS_ABSTRACT,
+	NULL,
+	0, 0, 0, 0,
+	0, NULL,
+	(const uint8_t *) "any",
+	0, sizeof(AZClass), 0, 0, 0,
+	NULL, NULL,
+	NULL, NULL, NULL,
+	NULL, NULL, any_to_string,
+	any_get_property, NULL
+};
+
+unsigned int AnyType[] = { AZ_TYPE_ANY };
+
+static AZClass BooleanClass = {
+	AZ_TYPE_ANY, AZ_CLASS_IS_VALUE | AZ_CLASS_IS_FINAL,
+	&AnyClass,
+	0, 0, 0, 0,
+	0, NULL,
+	(const uint8_t *) "boolean",
+	4, sizeof(AZClass), 4, 4, 4,
+	NULL, NULL,
+	NULL, NULL, NULL,
+	serialize_boolean, deserialize_boolean, boolean_to_string,
+	NULL, NULL
+};
+
 void
 az_init_primitive_classes (void)
 {
