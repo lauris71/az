@@ -37,7 +37,7 @@ static AZInterfaceClass *interface_class = NULL;
 void
 az_init_interface_class (void)
 {
-	interface_class = (AZInterfaceClass *) az_class_new_with_type (AZ_TYPE_INTERFACE, AZ_TYPE_BLOCK, sizeof (AZInterfaceClass), 0, AZ_CLASS_IS_ABSTRACT, (const uint8_t *) "interface");
+	interface_class = (AZInterfaceClass *) az_class_new_with_type (AZ_TYPE_INTERFACE, AZ_TYPE_BLOCK, sizeof (AZInterfaceClass), 0, AZ_FLAG_ABSTRACT, (const uint8_t *) "interface");
 	interface_class->klass.flags |= AZ_CLASS_IS_INTERFACE;
 	interface_class->implementation_size = sizeof (AZImplementation);
 }

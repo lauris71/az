@@ -34,7 +34,7 @@ unsigned int
 az_object_get_type (void)
 {
 	if (!object_type) {
-		az_register_type (&object_type, (const unsigned char *) "AZObject", AZ_TYPE_REFERENCE, sizeof (AZObjectClass), sizeof (AZObject), AZ_CLASS_IS_ABSTRACT | AZ_CLASS_ZERO_MEMORY,
+		az_register_type (&object_type, (const unsigned char *) "AZObject", AZ_TYPE_REFERENCE, sizeof (AZObjectClass), sizeof (AZObject), AZ_FLAG_ABSTRACT | AZ_CLASS_ZERO_MEMORY,
 			(void (*) (AZClass *)) object_class_init,
 			(void (*) (const AZImplementation *, void *)) object_init,
 			NULL);

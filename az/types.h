@@ -14,7 +14,6 @@
 
 #include <az/az.h>
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -65,8 +64,8 @@ unsigned int az_num_classes = 0;
 #define AZ_TYPE_IS_REFERENCE(t) (AZ_TYPE_FLAGS(t) & AZ_CLASS_IS_REFERENCE)
 #define AZ_TYPE_IS_INTERFACE(t) (AZ_TYPE_FLAGS(t) & AZ_CLASS_IS_INTERFACE)
 #define AZ_TYPE_IS_BLOCK(t) (AZ_TYPE_FLAGS(t) & AZ_CLASS_IS_BLOCK)
-#define AZ_TYPE_IS_VALUE(t) (AZ_TYPE_FLAGS(t) & AZ_CLASS_IS_VALUE)
-#define AZ_TYPE_IS_FINAL(t) (AZ_TYPE_FLAGS(t) & AZ_CLASS_IS_FINAL)
+#define AZ_TYPE_IS_VALUE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_VALUE)
+#define AZ_TYPE_IS_FINAL(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_FINAL)
 
 #ifdef AZ_SAFETY_CHECKS
 ARIKKEI_INLINE AZClass *

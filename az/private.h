@@ -23,19 +23,11 @@ void arikkei_check_integrity (void);
 #endif
 
 #ifndef __AZ_TYPES_C__
-/* Interfaces declared in specific class */
-extern AZIFEntry *az_ifaces_self;
-extern unsigned int az_ifaces_self_len;
-extern unsigned int az_ifaces_self_size;
 /* All interfaces for specific class starting from base class, first interface then sub-interfaces */
 extern AZIFEntry *az_ifaces_all;
 extern unsigned int az_ifaces_all_len;
 extern unsigned int az_ifaces_all_size;
 #else
-AZIFEntry *az_ifaces_self = NULL;
-unsigned int az_ifaces_self_len = 0;
-unsigned int az_ifaces_self_size = 0;
-
 AZIFEntry *az_ifaces_all;
 unsigned int az_ifaces_all_len;
 unsigned int az_ifaces_all_size;

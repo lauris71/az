@@ -56,7 +56,7 @@ ARIKKEI_INLINE void *
 az_reference_of_get_instance (AZReferenceOfClass *ref_klass, AZReferenceOf *ref)
 {
 	AZClass *inst_class = az_type_get_class (ref_klass->instance_type);
-	unsigned int pos = ((unsigned int) sizeof (AZReferenceOf) + inst_class->alignment - 1) & ~(inst_class->alignment - 1);
+	unsigned int pos = ((unsigned int) sizeof (AZReferenceOf) + inst_class->alignment) & ~inst_class->alignment;
 	return (AZValue *) ((char *) (ref) + pos);
 }
 

@@ -282,6 +282,7 @@ struct _PrimitiveDef {
 	unsigned int is_final;
 	unsigned int is_value;
 	unsigned int instance_size;
+	unsigned int alignment;
 	const char *name;
 	unsigned int (*serialize) (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx);
 	unsigned int (*deserialize) (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
@@ -289,24 +290,24 @@ struct _PrimitiveDef {
 };
 
 struct _PrimitiveDef defs[] = {
-	{ AZ_TYPE_NONE, AZ_TYPE_NONE, 0, 0, 0, 0, NULL, NULL, NULL, NULL },
-	{ AZ_TYPE_ANY, AZ_TYPE_NONE, 1, 0, 0, 0, "any", NULL, NULL, any_to_string },
-	{ AZ_TYPE_BOOLEAN, AZ_TYPE_ANY, 0, 1, 1, 4, "boolean", serialize_boolean, deserialize_boolean, boolean_to_string },
-	{ AZ_TYPE_INT8, AZ_TYPE_ANY, 0, 1, 1, 1, "int8", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_UINT8, AZ_TYPE_ANY, 0, 1, 1, 1, "uint8", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_INT16, AZ_TYPE_ANY, 0, 1, 1, 2, "int16", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_UINT16, AZ_TYPE_ANY, 0, 1, 1, 2, "uint16", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_INT32, AZ_TYPE_ANY, 0, 1, 1, 4, "int32", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_UINT32, AZ_TYPE_ANY, 0, 1, 1, 4, "uint32", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_INT64, AZ_TYPE_ANY, 0, 1, 1, 8, "int64", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_UINT64, AZ_TYPE_ANY, 0, 1, 1, 8, "uint64", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_FLOAT, AZ_TYPE_ANY, 0, 1, 1, 4, "float", serialize_int, deserialize_int, float_to_string },
-	{ AZ_TYPE_DOUBLE, AZ_TYPE_ANY, 0, 1, 1, 8, "double", serialize_int, deserialize_int, double_to_string },
-	{ AZ_TYPE_COMPLEX_FLOAT, AZ_TYPE_ANY, 0, 1, 1, 8, "complex float", serialize_complex_float, deserialize_complex_float, complex_float_to_string },
-	{ AZ_TYPE_COMPLEX_DOUBLE, AZ_TYPE_ANY, 0, 1, 1, 16, "complex double", serialize_complex_double, deserialize_complex_double, complex_double_to_string },
-	{ AZ_TYPE_POINTER, AZ_TYPE_ANY, 0, 0, 1, 8, "pointer", serialize_int, deserialize_int, pointer_to_string },
-	{ AZ_TYPE_STRUCT, AZ_TYPE_ANY, 1, 0, 1, 0, "struct", NULL, NULL, NULL },
-	{ AZ_TYPE_BLOCK, AZ_TYPE_ANY, 1, 0, 0, 0, "block", NULL, NULL, NULL }
+	{ AZ_TYPE_NONE, AZ_TYPE_NONE, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL },
+	{ AZ_TYPE_ANY, AZ_TYPE_NONE, 1, 0, 0, 0, 0, "any", NULL, NULL, any_to_string },
+	{ AZ_TYPE_BOOLEAN, AZ_TYPE_ANY, 0, 1, 1, 4, 3, "boolean", serialize_boolean, deserialize_boolean, boolean_to_string },
+	{ AZ_TYPE_INT8, AZ_TYPE_ANY, 0, 1, 1, 1, 0, "int8", serialize_int, deserialize_int, int_to_string_any },
+	{ AZ_TYPE_UINT8, AZ_TYPE_ANY, 0, 1, 1, 1, 0, "uint8", serialize_int, deserialize_int, int_to_string_any },
+	{ AZ_TYPE_INT16, AZ_TYPE_ANY, 0, 1, 1, 2, 1, "int16", serialize_int, deserialize_int, int_to_string_any },
+	{ AZ_TYPE_UINT16, AZ_TYPE_ANY, 0, 1, 1, 2, 1, "uint16", serialize_int, deserialize_int, int_to_string_any },
+	{ AZ_TYPE_INT32, AZ_TYPE_ANY, 0, 1, 1, 4, 3, "int32", serialize_int, deserialize_int, int_to_string_any },
+	{ AZ_TYPE_UINT32, AZ_TYPE_ANY, 0, 1, 1, 4, 3, "uint32", serialize_int, deserialize_int, int_to_string_any },
+	{ AZ_TYPE_INT64, AZ_TYPE_ANY, 0, 1, 1, 8, 7, "int64", serialize_int, deserialize_int, int_to_string_any },
+	{ AZ_TYPE_UINT64, AZ_TYPE_ANY, 0, 1, 1, 8, 7, "uint64", serialize_int, deserialize_int, int_to_string_any },
+	{ AZ_TYPE_FLOAT, AZ_TYPE_ANY, 0, 1, 1, 4, 3, "float", serialize_int, deserialize_int, float_to_string },
+	{ AZ_TYPE_DOUBLE, AZ_TYPE_ANY, 0, 1, 1, 8, 7, "double", serialize_int, deserialize_int, double_to_string },
+	{ AZ_TYPE_COMPLEX_FLOAT, AZ_TYPE_ANY, 0, 1, 1, 8, 7, "complex float", serialize_complex_float, deserialize_complex_float, complex_float_to_string },
+	{ AZ_TYPE_COMPLEX_DOUBLE, AZ_TYPE_ANY, 0, 1, 1, 16, 7, "complex double", serialize_complex_double, deserialize_complex_double, complex_double_to_string },
+	{ AZ_TYPE_POINTER, AZ_TYPE_ANY, 0, 0, 1, 8, 7, "pointer", serialize_int, deserialize_int, pointer_to_string },
+	{ AZ_TYPE_STRUCT, AZ_TYPE_ANY, 1, 0, 1, 0, 3, "struct", NULL, NULL, NULL },
+	{ AZ_TYPE_BLOCK, AZ_TYPE_ANY, 1, 0, 0, 0, 7, "block", NULL, NULL, NULL }
 };
 
 static unsigned int
@@ -318,12 +319,12 @@ any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, co
 }
 
 static AZClass AnyClass = {
-	AZ_TYPE_ANY, AZ_CLASS_IS_ABSTRACT,
+	AZ_TYPE_ANY, AZ_FLAG_ABSTRACT,
 	NULL,
-	0, 0, 0, 0,
+	0, 0, {0}, {0},
 	0, NULL,
 	(const uint8_t *) "any",
-	0, sizeof(AZClass), 0, 0, 0,
+	0, sizeof(AZClass), 0, 0,
 	NULL, NULL,
 	NULL, NULL, NULL,
 	NULL, NULL, any_to_string,
@@ -333,12 +334,12 @@ static AZClass AnyClass = {
 unsigned int AnyType[] = { AZ_TYPE_ANY };
 
 static AZClass BooleanClass = {
-	AZ_TYPE_ANY, AZ_CLASS_IS_VALUE | AZ_CLASS_IS_FINAL,
+	AZ_TYPE_ANY, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
 	&AnyClass,
-	0, 0, 0, 0,
+	0, 0, {0}, {0},
 	0, NULL,
 	(const uint8_t *) "boolean",
-	4, sizeof(AZClass), 4, 4, 4,
+	3, sizeof(AZClass), 4, 4,
 	NULL, NULL,
 	NULL, NULL, NULL,
 	serialize_boolean, deserialize_boolean, boolean_to_string,
@@ -352,16 +353,16 @@ az_init_primitive_classes (void)
 	for (i = AZ_TYPE_ANY; i <= AZ_TYPE_BLOCK; i++) {
 		unsigned int flags = 0;
 		assert (defs[i].type == i);
-		if (defs[i].is_abstract) flags |= AZ_CLASS_IS_ABSTRACT;
-		if (defs[i].is_final) flags |= AZ_CLASS_IS_FINAL;
-		if (defs[i].is_value) flags |= AZ_CLASS_IS_VALUE;
+		if (defs[i].is_abstract) flags |= AZ_FLAG_ABSTRACT;
+		if (defs[i].is_final) flags |= AZ_FLAG_FINAL;
+		if (defs[i].is_value) flags |= AZ_FLAG_VALUE;
 		if (i == AZ_TYPE_BLOCK) flags |= AZ_CLASS_IS_BLOCK;
 		AZClass *klass = az_class_new_with_type (defs[i].type, defs[i].parent, sizeof (AZClass), defs[i].instance_size, flags, (const uint8_t *) defs[i].name);
 		if (i == AZ_TYPE_ANY) {
 			klass->value_size = 0;
 			klass->get_property = any_get_property;
 		}
-		klass->alignment = defs[i].instance_size;
+		klass->alignment = defs[i].alignment;
 		klass->serialize = defs[i].serialize;
 		klass->deserialize = defs[i].deserialize;
 		if (defs[i].to_string) klass->to_string = defs[i].to_string;

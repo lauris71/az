@@ -34,7 +34,7 @@ az_value_array_get_type (void)
 {
 	static unsigned int type = 0;
 	if (!type) {
-		az_register_type (&type, (const unsigned char *) "AZValueArray", AZ_TYPE_BLOCK, sizeof (AZValueArrayClass), sizeof (AZValueArray), AZ_CLASS_IS_FINAL,
+		az_register_type (&type, (const unsigned char *) "AZValueArray", AZ_TYPE_BLOCK, sizeof (AZValueArrayClass), sizeof (AZValueArray), AZ_FLAG_FINAL,
 			(void (*) (AZClass *)) value_array_class_init,
 			(void (*) (const AZImplementation *, void *)) value_array_init,
 			(void (*) (const AZImplementation *, void *)) value_array_finalize);
@@ -278,7 +278,7 @@ az_packed_value_array_get_type (void)
 {
 	static unsigned int type = 0;
 	if (!type) {
-		az_register_type (&type, (const unsigned char *) "AZPackedValueArray", AZ_TYPE_REFERENCE, sizeof (AZPackedValueArrayClass), sizeof (AZPackedValueArray), AZ_CLASS_IS_FINAL | AZ_CLASS_ZERO_MEMORY,
+		az_register_type (&type, (const unsigned char *) "AZPackedValueArray", AZ_TYPE_REFERENCE, sizeof (AZPackedValueArrayClass), sizeof (AZPackedValueArray), AZ_FLAG_FINAL | AZ_CLASS_ZERO_MEMORY,
 			(void (*) (AZClass *)) packed_value_array_class_init,
 			NULL,
 			(void (*) (const AZImplementation *, void *)) packed_value_array_finalize);
@@ -289,7 +289,7 @@ az_packed_value_array_get_type (void)
 static void
 packed_value_array_class_init (AZPackedValueArrayClass *klass)
 {
-	klass->reference_klass.klass.alignment = 16;
+	klass->reference_klass.klass.alignment = 15;
 	az_class_set_num_interfaces ((AZClass *) klass, 1);
 	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET (AZPackedValueArrayClass, list_implementation), 0);
 	az_class_set_num_properties ((AZClass *) klass, NUM_PROPERTIES);

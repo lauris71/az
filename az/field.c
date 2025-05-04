@@ -21,8 +21,7 @@ static AZClass *field_class = NULL;
 void
 az_init_field_class (void)
 {
-	field_class = az_class_new_with_type (AZ_TYPE_FIELD, AZ_TYPE_BLOCK, sizeof (AZClass), sizeof (AZField), AZ_CLASS_IS_FINAL, (const uint8_t *) "field");
-	field_class->alignment = 8;
+	field_class = az_class_new_with_type (AZ_TYPE_FIELD, AZ_TYPE_BLOCK, sizeof (AZClass), sizeof (AZField), AZ_FLAG_FINAL, (const uint8_t *) "field");
 }
 
 void

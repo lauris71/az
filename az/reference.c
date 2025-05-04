@@ -15,7 +15,7 @@
 #include <az/reference.h>
 
 #ifdef AZ_MT_REFERENCES
-#include <libarikkei/arikkei-threads.h>
+#include <arikkei/arikkei-threads.h>
 #endif
 
 #ifdef AZ_MT_REFERENCES
@@ -87,7 +87,7 @@ az_reference_drop (AZReferenceClass *klass, AZReference *ref)
 			if (klass->dispose) klass->dispose (klass, ref);
 			az_instance_delete (klass->klass.implementation.type, ref);
 		} else {
-                        ref->refcount -= 1;
+            ref->refcount -= 1;
 			AZ_REFERENCE_UNLOCK ();
 		}
 	}
@@ -127,8 +127,7 @@ reference_instance_init (AZReferenceClass *klass, void *instance)
 void
 az_init_reference_class (void)
 {
-	reference_class = (AZReferenceClass *) az_class_new_with_type (AZ_TYPE_REFERENCE, AZ_TYPE_BLOCK, sizeof (AZReferenceClass), sizeof (AZReference), AZ_CLASS_IS_ABSTRACT | AZ_CLASS_IS_REFERENCE, (const uint8_t *) "reference");
-	reference_class->klass.alignment = 8;
+	reference_class = (AZReferenceClass *) az_class_new_with_type (AZ_TYPE_REFERENCE, AZ_TYPE_BLOCK, sizeof (AZReferenceClass), sizeof (AZReference), AZ_FLAG_ABSTRACT | AZ_CLASS_IS_REFERENCE, (const uint8_t *) "reference");
 	reference_class->klass.instance_init = (void (*) (const AZImplementation *, void *)) reference_instance_init;
 #ifdef AZ_MT_REFERENCES
 	mtx_init (&mutex, mtx_plain);

@@ -32,7 +32,7 @@ az_array_of_get_type (unsigned int element_type)
 		unsigned int len = (unsigned int) strlen ((const char *) element_class->name);
 		unsigned char *name = malloc (len + 8);
 		sprintf ((char *) name, "ArrayOf%s", element_class->name);
-		az_register_composite_type (&subtypes[element_type], name, AZ_TYPE_STRUCT, sizeof (AZArrayOfClass), sizeof (AZArrayOf), AZ_CLASS_IS_ABSTRACT,
+		az_register_composite_type (&subtypes[element_type], name, AZ_TYPE_STRUCT, sizeof (AZArrayOfClass), sizeof (AZArrayOf), AZ_FLAG_ABSTRACT,
 			(void (*) (AZClass *, void *)) array_of_class_init,
 			(void (*) (const AZImplementation *, void *)) array_of_instance_init,
 			(void (*) (const AZImplementation *, void *)) array_of_instance_finalize,

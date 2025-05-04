@@ -43,7 +43,7 @@ unsigned int
 az_object_list_get_type (void)
 {
 	if (!object_list_type) {
-		az_register_type (&object_list_type, (const unsigned char *) "AZObjectList", AZ_TYPE_BLOCK, sizeof (AZObjectListClass), sizeof (AZObjectList), AZ_CLASS_ZERO_MEMORY | AZ_CLASS_IS_FINAL,
+		az_register_type (&object_list_type, (const unsigned char *) "AZObjectList", AZ_TYPE_BLOCK, sizeof (AZObjectListClass), sizeof (AZObjectList), AZ_CLASS_ZERO_MEMORY | AZ_FLAG_FINAL,
 			(void (*) (AZClass *)) object_list_class_init,
 			(void (*) (const AZImplementation *, void *)) object_list_init,
 			(void (*) (const AZImplementation *, void *)) object_list_finalize);

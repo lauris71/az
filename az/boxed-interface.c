@@ -37,7 +37,7 @@ boxed_interface_to_string (const AZImplementation *impl, void *inst, unsigned ch
 void
 az_init_boxed_interface_class (void)
 {
-	az_boxed_interface_class = (AZBoxedInterfaceClass *) az_class_new_with_type (AZ_TYPE_BOXED_INTERFACE, AZ_TYPE_REFERENCE, sizeof (AZBoxedInterfaceClass), 0, AZ_CLASS_IS_FINAL, (const uint8_t *) "boxed interface");
+	az_boxed_interface_class = (AZBoxedInterfaceClass *) az_class_new_with_type (AZ_TYPE_BOXED_INTERFACE, AZ_TYPE_REFERENCE, sizeof (AZBoxedInterfaceClass), 0, AZ_FLAG_FINAL, (const uint8_t *) "boxed interface");
 	az_boxed_interface_class->reference_class.klass.to_string = boxed_interface_to_string;
 }
 

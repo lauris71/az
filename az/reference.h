@@ -12,7 +12,7 @@
  * Single global mutex is created for all reference types
  */
 
-#define _AZ_MT_REFERENCES
+#define AZ_MT_REFERENCES
 
 typedef struct _AZReferenceClass AZReferenceClass;
 

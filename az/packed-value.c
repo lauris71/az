@@ -23,8 +23,8 @@ static AZClass *value_class = NULL;
 void
 az_init_packed_value_class (void)
 {
-	value_class = az_class_new_with_type (AZ_TYPE_PACKED_VALUE, AZ_TYPE_BLOCK, sizeof (AZClass), sizeof (AZPackedValue), AZ_CLASS_IS_FINAL | AZ_CLASS_ZERO_MEMORY, (const uint8_t *) "value");
-	value_class->alignment = 16;
+	value_class = az_class_new_with_type (AZ_TYPE_PACKED_VALUE, AZ_TYPE_BLOCK, sizeof (AZClass), sizeof (AZPackedValue), AZ_FLAG_FINAL | AZ_CLASS_ZERO_MEMORY, (const uint8_t *) "value");
+	value_class->alignment = 15;
 }
 
 void
@@ -197,7 +197,7 @@ az_packed_value_set_from_type_instance (AZPackedValue *dst, unsigned int type, v
 			return;
 		}
 		dst->impl = &klass->implementation;
-		if (klass->flags & AZ_CLASS_IS_VALUE) {
+		if (klass->flags & AZ_FLAG_VALUE) {
 			if (klass->value_size) {
 				memcpy (&dst->v, inst, klass->value_size);
 			}
@@ -227,7 +227,7 @@ az_packed_value_set_from_impl_instance (AZPackedValue *dst, const AZImplementati
 			return;
 		}
 		dst->impl = impl;
-		if (klass->flags & AZ_CLASS_IS_VALUE) {
+		if (klass->flags & AZ_FLAG_VALUE) {
 			if (klass->value_size) {
 				memcpy (&dst->v, inst, klass->value_size);
 			}

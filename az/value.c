@@ -65,7 +65,7 @@ az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue
 	if (klass->flags & AZ_CLASS_IS_BLOCK) {
 		return lhs->block == rhs->block;
 	}
-	if ((klass->flags & AZ_CLASS_IS_VALUE) && klass->value_size) {
+	if ((klass->flags & AZ_FLAG_VALUE) && klass->value_size) {
 		return !memcmp (lhs, rhs, klass->value_size);
 	}
 	return 0;
@@ -79,7 +79,7 @@ az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, cons
 	if (klass->flags & AZ_CLASS_IS_BLOCK) {
 		return lhs->block == rhs;
 	}
-	if ((klass->flags & AZ_CLASS_IS_VALUE) && klass->value_size) {
+	if ((klass->flags & AZ_FLAG_VALUE) && klass->value_size) {
 		return !memcmp (lhs, rhs, klass->value_size);
 	}
 	return 0;

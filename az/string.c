@@ -124,7 +124,7 @@ string_dispose (AZReferenceClass *klass, AZReference *ref)
 void
 az_init_string_class (void)
 {
-	az_string_class = (AZStringClass *) az_class_new_with_type (AZ_TYPE_STRING, AZ_TYPE_REFERENCE, sizeof (AZStringClass), 0, AZ_CLASS_IS_FINAL, (const uint8_t *) "string");
+	az_string_class = (AZStringClass *) az_class_new_with_type (AZ_TYPE_STRING, AZ_TYPE_REFERENCE, sizeof (AZStringClass), 0, AZ_FLAG_FINAL, (const uint8_t *) "string");
 	az_string_class->reference_class.klass.serialize = serialize_string;
 	az_string_class->reference_class.klass.deserialize = deserialize_string;
 	az_string_class->reference_class.klass.to_string = string_to_string;

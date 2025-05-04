@@ -24,17 +24,19 @@ struct _AZImplementation {
 /* Class flags */
 
 /* No instancing is allowed (this is not propagated to subclasses) */
-#define AZ_CLASS_IS_ABSTRACT 1
+#define AZ_FLAG_ABSTRACT 1
 /* No subclasses */
-#define AZ_CLASS_IS_FINAL 2
+#define AZ_FLAG_FINAL 2
 /* Instance is value */
-#define AZ_CLASS_IS_VALUE 4
+#define AZ_FLAG_VALUE 4
 /* Subclasses should not remove flag set by parent */
 #define AZ_CLASS_ZERO_MEMORY 8
 /* Special handling */
 #define AZ_CLASS_IS_BLOCK 16
 #define AZ_CLASS_IS_REFERENCE 32
 #define AZ_CLASS_IS_INTERFACE 64
+
+#define AZ_CLASS_ELEMENT_SIZE(klass) ((klass->instance_size + klass->alignment) & ~klass->alignment)
 
 typedef struct _AZInstanceAllocator AZInstanceAllocator;
 
@@ -55,9 +57,15 @@ struct _AZClass {
 	uint16_t n_ifaces_self;
 	uint16_t n_ifaces_all;
 	/* Interfaces implemented here */
-	unsigned int ifaces_self;
+	union {
+		AZIFEntry iface_self;
+		AZIFEntry *ifaces_self;
+	};
 	/* Interface chain (ascending, interface then sub-interfaces */
-	unsigned int ifaces_all;
+	union {
+		AZIFEntry iface_all;
+		AZIFEntry *ifaces_all;
+	};
 
 #ifdef AZ_HAS_PROPERTIES
 	unsigned int n_properties_self;
@@ -65,16 +73,14 @@ struct _AZClass {
 #endif
 
 	const uint8_t *name;
-	/* Has to be 0 (for zero-sized types), 1, 2, 4, 8 or 16 */
-	unsigned int alignment;
+	/* Alignment mask: 0 (1), 1 (2), 3 (4), 7 (8) or 15 (16) */
+	uint16_t alignment;
 	/* Size of class structure */
-	unsigned int class_size;
+	uint16_t class_size;
 	/* Size of instance */
 	unsigned int instance_size;
 	/* Size of value */
 	unsigned int value_size;
-	/* Size of values in arrays (rounded to 16 bytes for aligned types) */
-	unsigned int element_size;
 
 	/* Default value */
 	void *default_val;
@@ -125,6 +131,21 @@ struct _AZClass {
 	unsigned int (*set_property) (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
 #endif
 };
+
+static inline const AZIFEntry *
+az_class_iface_self(const AZClass *klass, uint16_t idx)
+{
+	if (klass->n_ifaces_self == 1) return &klass->iface_self;
+	return klass->ifaces_self + idx;
+}
+
+static inline const AZIFEntry *
+az_class_iface_all(const AZClass *klass, uint16_t idx)
+{
+	if (klass->n_ifaces_all == 1) return &klass->iface_all;
+	return klass->ifaces_all + idx;
+}
+
 
 /* To be called from class constructors */
 void az_class_set_num_interfaces (AZClass *klass, unsigned int ninterfaces);

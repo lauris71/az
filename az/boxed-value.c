@@ -26,7 +26,7 @@ boxed_value_to_string (const AZImplementation *impl, void *inst, unsigned char *
 void
 az_init_boxed_value_class (void)
 {
-	az_boxed_value_class = (AZBoxedValueClass *) az_class_new_with_type (AZ_TYPE_BOXED_VALUE, AZ_TYPE_REFERENCE, sizeof (AZBoxedValueClass), 0, AZ_CLASS_IS_FINAL, (const uint8_t *) "boxed value");
+	az_boxed_value_class = (AZBoxedValueClass *) az_class_new_with_type (AZ_TYPE_BOXED_VALUE, AZ_TYPE_REFERENCE, sizeof (AZBoxedValueClass), 0, AZ_FLAG_FINAL, (const uint8_t *) "boxed value");
 	az_boxed_value_class->ref_class.klass.to_string = boxed_value_to_string;
 }
 

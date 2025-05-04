@@ -23,8 +23,8 @@ static AZClass *function_class = NULL;
 void
 az_init_function_classes (void)
 {
-	function_signature_class = az_class_new_with_type (AZ_TYPE_FUNCTION_SIGNATURE, AZ_TYPE_BLOCK, sizeof (AZClass), 0, AZ_CLASS_IS_FINAL, (const uint8_t *) "signature");
-	function_class = az_class_new_with_type (AZ_TYPE_FUNCTION, AZ_TYPE_INTERFACE, sizeof (AZFunctionClass), sizeof (AZFunctionInstance), AZ_CLASS_IS_ABSTRACT, (const uint8_t *) "function");
+	function_signature_class = az_class_new_with_type (AZ_TYPE_FUNCTION_SIGNATURE, AZ_TYPE_BLOCK, sizeof (AZClass), 0, AZ_FLAG_FINAL, (const uint8_t *) "signature");
+	function_class = az_class_new_with_type (AZ_TYPE_FUNCTION, AZ_TYPE_INTERFACE, sizeof (AZFunctionClass), sizeof (AZFunctionInstance), AZ_FLAG_ABSTRACT, (const uint8_t *) "function");
 	((AZInterfaceClass *) function_class)->implementation_size = sizeof (AZFunctionImplementation);
 }
 
@@ -238,7 +238,7 @@ function_build_arguments (const AZFunctionSignature *sig, uint64_t *p, const AZI
 	unsigned int i;
 	for (i = 0; i < sig->n_args; i++) {
 		AZClass *klass = az_classes[sig->arg_types[i]];
-		if (klass->flags & AZ_CLASS_IS_VALUE) {
+		if (klass->flags & AZ_FLAG_VALUE) {
 			if (klass->flags & AZ_CLASS_IS_FINAL) {
 				/* Final value types */
 				arg_impls[i] = &klass->implementation;
@@ -289,8 +289,8 @@ function_build_arguments_arm64 (const AZFunctionSignature *sig, va_list ap, cons
 	unsigned int i;
 	for (i = 0; i < sig->n_args; i++) {
 		AZClass *klass = AZ_CLASS_FROM_TYPE(sig->arg_types[i]);
-		if (klass->flags & AZ_CLASS_IS_VALUE) {
-			if (klass->flags & AZ_CLASS_IS_FINAL) {
+		if (klass->flags & AZ_FLAG_VALUE) {
+			if (klass->flags & AZ_FLAG_FINAL) {
 				/* Final value type, no implementation */
 				arg_impls[i] = &klass->implementation;
 				if (klass->value_size <= 8) {
@@ -321,7 +321,7 @@ function_build_arguments_arm64 (const AZFunctionSignature *sig, va_list ap, cons
 			arg_ptrs[i] = &arg_vals[i];
 		} else {
 			/* Non-object block types */
-			if (klass->flags & AZ_CLASS_IS_FINAL) {
+			if (klass->flags & AZ_FLAG_FINAL) {
                                 /* Implementation is omitted for final types */
 				arg_impls[i] = &klass->implementation;
                                 arg_vals[i].block = (void *) va_arg(ap, void *);
