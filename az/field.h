@@ -13,19 +13,6 @@
 extern "C" {
 #endif
 
-struct _AZFieldDefinition {
-	unsigned int idx;
-	const char *key;
-	unsigned int type;
-	unsigned int is_final;
-	unsigned int spec;
-	unsigned int read;
-	unsigned int write;
-	unsigned int offset;
-	AZImplementation *impl;
-	void *inst;
-};
-
 #define AZ_FIELD_INSTANCE 0
 #define AZ_FIELD_IMPLEMENTATION 1
 #define AZ_FIELD_CLASS 2
@@ -79,7 +66,7 @@ void az_field_setup_function (AZField *prop, const unsigned char *key, unsigned 
 	unsigned int spec, unsigned int read, unsigned int write, unsigned int offset, const AZFunctionSignature *sig,
 	const AZImplementation *impl, void *inst);
 
-void az_field_setup_from_def (AZField *prop, AZFieldDefinition *def);
+//void az_field_setup_from_def (AZField *prop, AZFieldDefinition *def);
 
 /* Library internals */
 void az_init_field_class (void);

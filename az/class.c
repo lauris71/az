@@ -205,7 +205,6 @@ az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsig
 		klass->flags &= ~AZ_FLAG_ABSTRACT;
 		klass->parent = parent_class;
 		klass->n_ifaces_self = 0;
-		klass->ifaces_self = 0;
 #ifdef AZ_HAS_PROPERTIES
 		klass->n_properties_self = 0;
 		klass->properties_self = NULL;
@@ -237,7 +236,7 @@ void
 az_class_set_num_interfaces (AZClass *klass, unsigned int n_ifaces)
 {
 	klass->n_ifaces_self = n_ifaces;
-	if (n_ifaces > 1) {
+	if (n_ifaces > 2) {
 		static unsigned int n_allocations = 0, allocated = 0;
 		klass->ifaces_self = (AZIFEntry *) malloc(n_ifaces * sizeof(AZIFEntry));
 		n_allocations += 1;
@@ -245,6 +244,10 @@ az_class_set_num_interfaces (AZClass *klass, unsigned int n_ifaces)
 		fprintf(stderr, "az_class_set_num_interfaces(): Allocated %u (%u %u)\n", n_ifaces, n_allocations, allocated);
 #ifdef AZ_SAFETY_CHECKS
         memset (klass->ifaces_self, 0, n_ifaces * sizeof (AZIFEntry));
+#endif
+	} else {
+#ifdef AZ_SAFETY_CHECKS
+        memset (klass->ifaces, 0, n_ifaces * sizeof (AZIFEntry));
 #endif
 	}
 }
@@ -255,12 +258,15 @@ az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type,
 	arikkei_return_if_fail (klass != NULL);
 	arikkei_return_if_fail (idx < klass->n_ifaces_self);
 	arikkei_return_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE));
+	if (klass->n_ifaces_self <= 2) {
 #ifdef AZ_SAFETY_CHECKS
-    arikkei_return_if_fail (!az_class_iface_self(klass, idx)->type);
+	    arikkei_return_if_fail (!klass->ifaces[idx].type);
 #endif
-	if (klass->n_ifaces_self == 1) {
-		klass->iface_self = (AZIFEntry) {type, impl_offset, inst_offset};
+		klass->ifaces[idx] = (AZIFEntry) {type, impl_offset, inst_offset};
 	} else {
+#ifdef AZ_SAFETY_CHECKS
+	    arikkei_return_if_fail (!klass->ifaces_self[idx].type);
+#endif
 		klass->ifaces_self[idx] = (AZIFEntry) {type, impl_offset, inst_offset};
 	}
 	/* For standalone types implementation is in class and should be initialized */
@@ -279,10 +285,11 @@ az_class_post_init (AZClass *klass)
 	arikkei_return_if_fail (!(klass->alignment & (klass->alignment + 1)));
 #ifdef AZ_SAFETY_CHECKS
 	for (i = 0; i < klass->n_ifaces_self; i++) {
-            if (!az_class_iface_self(klass, i)->type) {
-                fprintf (stderr, "az_class_post_init: Klass %s interface %u is not defined\n", klass->name, i);
-            }
-        }
+		AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[i] : &klass->ifaces_self[i];
+		if (!ifentry->type) {
+			fprintf (stderr, "az_class_post_init: Klass %s interface %u is not defined\n", klass->name, i);
+		}
+	}
 #ifdef AZ_HAS_PROPERTIES
 	for (i = 0; i < klass->n_properties_self; i++) {
 		if (!klass->properties_self[i].key) {
@@ -295,34 +302,73 @@ az_class_post_init (AZClass *klass)
 		/* Count all interfaces */
 		klass->n_ifaces_all = klass->parent->n_ifaces_all;
 		for (i = 0; i < klass->n_ifaces_self; i++) {
-			AZClass *iface_class = AZ_CLASS_FROM_TYPE(az_class_iface_self(klass, i)->type);
+			/* At this stage n_ifaces_all has still parent class value */
+			AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[i] : &klass->ifaces_self[i];
+			AZClass *iface_class = AZ_CLASS_FROM_TYPE(ifentry->type);
 			klass->n_ifaces_all += (1 + iface_class->n_ifaces_all);
 		}
-		if (klass->n_ifaces_all == 1) {
-			klass->iface_all = klass->iface_self;
+		/*
+		* n_ifaces_self == n_ifaces_all:
+		*   n_ifaces_self <= 2 : self, all = ifaces[0..1]
+		*   n_ifaces_self > 2 : self, all = ifaces_self
+		* n_ifaces_self < n_ifaces_all:
+		* 	 n_ifaces_self == 0:
+		*     n_ifaces_all <= 2 : all = ifaces[0..1]
+		*     n_ifaces_all > 2 : all = ifaces_all
+		*   n_ifaces_self == 1:
+		*     n_ifaces_all == 2 : self, all = ifaces[0..1]
+		*     n_ifaces_all > 2 : self = ifaces[0], all = ifaces_all
+		*   n_ifaces_self > 1 : self = ifaces_self, all = ifaces_all
+		*/
+		if (klass->n_ifaces_self == klass->n_ifaces_all) {
+			/* Share interface definitions */
+			if (klass->n_ifaces_self > 2) {
+				klass->ifaces_all = klass->ifaces_self;
+			}
 		} else {
-			static unsigned int n_allocations = 0, allocated = 0;
-			klass->ifaces_all = (AZIFEntry *) malloc(klass->n_ifaces_all * sizeof(AZIFEntry));
-			n_allocations += 1;
-			allocated += klass->n_ifaces_all;
-			fprintf(stderr, "az_class_post_init(): Allocated %u (%u %u)\n", klass->n_ifaces_all, n_allocations, allocated);
+			if (klass->n_ifaces_self == 2) {
+				/* Have to move self interfaces */
+				static unsigned int n_allocations = 0, allocated = 0;
+				AZIFEntry *ifaces = (AZIFEntry *) malloc(klass->n_ifaces_self * sizeof(AZIFEntry));
+				n_allocations += 1;
+				allocated += klass->n_ifaces_self;
+				fprintf(stderr, "az_class_post_init(): Allocated self %u (%u %u)\n", klass->n_ifaces_self, n_allocations, allocated);
+				memcpy(ifaces, klass->ifaces, 2 * sizeof(AZIFEntry));
+				klass->ifaces_self = ifaces;
+			}
+			AZIFEntry *ifaces;
+			if ((klass->n_ifaces_self == 1) && (klass->n_ifaces_all <= 2)) {
+				ifaces = klass->ifaces;
+			} else {
+				static unsigned int n_allocations = 0, allocated = 0;
+				klass->ifaces_all = (AZIFEntry *) malloc(klass->n_ifaces_all * sizeof(AZIFEntry));
+				n_allocations += 1;
+				allocated += klass->n_ifaces_all;
+				fprintf(stderr, "az_class_post_init(): Allocated all %u (%u %u)\n", klass->n_ifaces_all, n_allocations, allocated);
+				ifaces = klass->ifaces_all;
+			}
 			unsigned int idx = 0;
 			for (i = 0; i < klass->n_ifaces_self; i++) {
+				ifaces[idx] = *az_class_iface_self(klass, i);
 				AZClass *iface_class = AZ_CLASS_FROM_TYPE(az_class_iface_self(klass, i)->type);
-				klass->ifaces_all[idx] = *az_class_iface_self(klass, i);
 				idx += 1;
-				if (iface_class->n_ifaces_all == 1) {
-					klass->ifaces_all[idx] = iface_class->iface_all;
-					idx += 1;
-				} else {
-					memcpy(&klass->ifaces_all[idx], iface_class->ifaces_all, iface_class->n_ifaces_all * sizeof (AZIFEntry *));
-				}
+				memcpy(&ifaces[idx], az_class_iface_all(iface_class, 0), iface_class->n_ifaces_all * sizeof (AZIFEntry *));
+				idx += iface_class->n_ifaces_all;
 			}
-			if (klass->parent->n_ifaces_all == 1) {
-				klass->ifaces_all[idx] = klass->parent->iface_all;
-			} else if (klass->parent->n_ifaces_all) {
-				memcpy (&klass->ifaces_all[idx], klass->parent->ifaces_all, klass->parent->n_ifaces_all * sizeof (AZIFEntry *));
-			}
+			memcpy (&ifaces[idx], az_class_iface_all(klass->parent, 0), klass->parent->n_ifaces_all * sizeof (AZIFEntry *));
+		}
+	}
+	if (klass->n_ifaces_all) {
+		fprintf (stderr, "Class %s\n", klass->name);
+		fprintf (stderr, "  Self %u\n", klass->n_ifaces_self);
+		for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
+			const AZIFEntry *ifentry = az_class_iface_self(klass, i);
+			fprintf (stderr, "    %d: type %d\n", i, ifentry->type);
+		}
+		fprintf (stderr, "  All %u\n", klass->n_ifaces_all);
+		for (uint16_t i = 0; i < klass->n_ifaces_all; i++) {
+			const AZIFEntry *ifentry = az_class_iface_all(klass, i);
+			fprintf (stderr, "    %d: type %d\n", i, ifentry->type);
 		}
 	}
 	/* Init recursively */
@@ -364,33 +410,6 @@ void az_class_define_property_function (AZClass *klass, unsigned int idx, const 
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
 #endif
 	az_field_setup_function (klass->properties_self + idx, key, is_final, spec, read, write, offset, sig, impl, inst);
-}
-
-void
-az_class_define_property_from_def (AZClass *klass, AZFieldDefinition *def)
-{
-#ifdef AZ_SAFETY_CHECKS
-	arikkei_return_if_fail (klass != NULL);
-	arikkei_return_if_fail (def != NULL);
-	arikkei_return_if_fail (def->idx < klass->n_properties_self);
-	arikkei_return_if_fail (!klass->properties_self[def->idx].key);
-#endif
-	az_field_setup_from_def (klass->properties_self + def->idx, def);
-}
-
-void
-az_class_define_properties (AZClass *klass, AZFieldDefinition defs[], unsigned int num_properties)
-{
-	unsigned int i;
-	arikkei_return_if_fail (klass != NULL);
-	arikkei_return_if_fail (klass->n_properties_self == 0);
-	klass->n_properties_self = num_properties;
-	klass->properties_self = (AZField *) malloc (num_properties * sizeof (AZField));
-	memset (klass->properties_self, 0, num_properties * sizeof (AZField));
-	for (i = 0; i < num_properties; i++) {
-		arikkei_return_if_fail (defs[i].idx == i);
-		az_class_define_property_from_def (klass, &defs[i]);
-	}
 }
 
 void

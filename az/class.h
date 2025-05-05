@@ -56,15 +56,14 @@ struct _AZClass {
 
 	uint16_t n_ifaces_self;
 	uint16_t n_ifaces_all;
-	/* Interfaces implemented here */
 	union {
-		AZIFEntry iface_self;
-		AZIFEntry *ifaces_self;
-	};
-	/* Interface chain (ascending, interface then sub-interfaces */
-	union {
-		AZIFEntry iface_all;
-		AZIFEntry *ifaces_all;
+		AZIFEntry ifaces[2];
+		struct {
+			/* Interfaces implemented here */
+			AZIFEntry *ifaces_self;
+			/* Interface chain (ascending, interface then sub-interfaces */
+			AZIFEntry *ifaces_all;
+		};
 	};
 
 #ifdef AZ_HAS_PROPERTIES
@@ -132,18 +131,44 @@ struct _AZClass {
 #endif
 };
 
+/*
+ * We trade some branching for cache locality here
+ *
+ * n_ifaces_self == n_ifaces_all:
+ *   n_ifaces_self <= 2 : self, all = ifaces[0..1]
+ *   n_ifaces_self > 2 : self, all = ifaces_self
+ * n_ifaces_self < n_ifaces_all:
+ * 	 n_ifaces_self == 0:
+ *     n_ifaces_all <= 2 : all = ifaces[0..1]
+ *     n_ifaces_all > 2 : all = ifaces_all
+ *   n_ifaces_self == 1:
+ *     n_ifaces_all == 2 : self, all = ifaces[0..1]
+ *     n_ifaces_all > 2 : self = ifaces[0], all = ifaces_all
+ *   n_ifaces_self > 1 : self = ifaces_self, all = ifaces_all
+ */
+
 static inline const AZIFEntry *
 az_class_iface_self(const AZClass *klass, uint16_t idx)
 {
-	if (klass->n_ifaces_self == 1) return &klass->iface_self;
-	return klass->ifaces_self + idx;
+	if (klass->n_ifaces_self == klass->n_ifaces_all) {
+		return (klass->n_ifaces_self <= 2) ? &klass->ifaces[idx] : &klass->ifaces_self[idx];
+	} else {
+		return (klass->n_ifaces_self <= 1) ? &klass->ifaces[idx] : &klass->ifaces_self[idx];
+	}
 }
 
 static inline const AZIFEntry *
 az_class_iface_all(const AZClass *klass, uint16_t idx)
 {
-	if (klass->n_ifaces_all == 1) return &klass->iface_all;
-	return klass->ifaces_all + idx;
+	if (klass->n_ifaces_self == klass->n_ifaces_all) {
+		return (klass->n_ifaces_self <= 2) ? &klass->ifaces[idx] : &klass->ifaces_all[idx];
+	} else {
+		if (klass->n_ifaces_self <= 1) {
+			return (klass->n_ifaces_all <= 2) ? &klass->ifaces[idx] : &klass->ifaces_all[idx];
+		} else {
+			return &klass->ifaces_all[idx];
+		}
+	}
 }
 
 
@@ -159,8 +184,6 @@ void az_class_define_property (AZClass *klass, unsigned int idx, const unsigned 
 void az_class_define_property_function (AZClass *klass, unsigned int idx, const unsigned char *key,
 	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset,
 	const AZFunctionSignature *sig, const AZImplementation *impl, void *inst);
-void az_class_define_property_from_def (AZClass *klass, AZFieldDefinition *def);
-void az_class_define_properties (AZClass *klass, AZFieldDefinition *defs, unsigned int num_defs);
 void az_class_property_setup (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int type,
 	unsigned int is_static, unsigned int can_read, unsigned int can_write, unsigned int is_final, unsigned int is_value,
 	unsigned int value_type, void *inst);

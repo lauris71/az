@@ -57,9 +57,3 @@ void az_field_setup_function (AZField *field, const unsigned char *key, unsigned
 	az_field_setup (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, offset, impl, inst);
 	field->signature = sig;
 }
-
-void
-az_field_setup_from_def (AZField *prop, AZFieldDefinition *def)
-{
-	az_field_setup (prop, (const unsigned char *) def->key, def->type, def->is_final, def->spec, def->read, def->write, def->offset, def->impl, def->inst);
-}

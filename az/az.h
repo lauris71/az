@@ -99,7 +99,6 @@ typedef struct _AZValue64 AZValue64;
 
 /* Members and properties */
 typedef struct _AZField AZField;
-typedef struct _AZFieldDefinition AZFieldDefinition;
 
 /* Predeclarations of base types */
 typedef struct _AZReference AZReference;

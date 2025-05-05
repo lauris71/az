@@ -321,7 +321,7 @@ any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, co
 static AZClass AnyClass = {
 	AZ_TYPE_ANY, AZ_FLAG_ABSTRACT,
 	NULL,
-	0, 0, {0}, {0},
+	0, 0, {0},
 	0, NULL,
 	(const uint8_t *) "any",
 	0, sizeof(AZClass), 0, 0,
@@ -336,7 +336,7 @@ unsigned int AnyType[] = { AZ_TYPE_ANY };
 static AZClass BooleanClass = {
 	AZ_TYPE_ANY, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
 	&AnyClass,
-	0, 0, {0}, {0},
+	0, 0, {0},
 	0, NULL,
 	(const uint8_t *) "boolean",
 	3, sizeof(AZClass), 4, 4,

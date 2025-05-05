@@ -333,7 +333,7 @@ az_get_interface (const AZImplementation *impl, void *inst, unsigned int if_type
 		return impl;
 	}
 	AZClass *klass = AZ_CLASS_FROM_TYPE(impl->type);
-	AZIFEntry *ifentry = az_class_iface_all(klass, 0);
+	const AZIFEntry *ifentry = az_class_iface_all(klass, 0);
 	for (i = 0; i < klass->n_ifaces_all; i++) {
 		if (az_type_is_a(ifentry->type, if_type)) {
 			sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
