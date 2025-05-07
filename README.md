@@ -20,7 +20,7 @@ It also implements a set of convenient types
 - collection interfaces
 - function interface
 
-It is by default compiled as drop-in static library.
+By default it is compiled as drop-in static library.
 
 ## Building
 
@@ -74,7 +74,7 @@ Class contains the type definition of data "what these bits of instance are".
 
 All classes are itself implementations (thus they can contain virtual methods and virtual data). For standalone instances this is all the polymorphism needed. But for interfaces the distinction is important.
 
-Interfaces are implemented (in different ways) inside other instances. All implementations of the same interface have the same base type information (class), and thus part of their polymorphic data has to be specified by the implementations. Normally this is done by embedding interface implementation insde the implementation (or class) of the containing type.
+Interfaces are implemented (in different ways) inside other instances. All implementations of the same interface have the same base type information (class), and thus part of their polymorphic data has to be specified by the implementations. Normally this is done by embedding the implementation of an interface type inside the implementation (or class) of the containing type.
 
 Which virtual methods of interface belong to the class and which to the implementation depends on the semantics of the interface and methods.
 
@@ -102,7 +102,7 @@ Boxed value contains the type (i.e. pointer to an implementation) and instance (
 These are needed to retrieve a value of unknown size (e.g. reading a property with "Any" type)
 
 ### Boxed interface
-Boxed interface contains value (i.e. pointer to the implementation and the value) of the containing instance and an interface (i.e. pointer to the implementation and pointer to the isntance) implemented in the former.
+Boxed interface contains value (i.e. pointer to the implementation and the value) of the containing instance and an interface (i.e. pointer to the implementation and pointer to the instance) implemented in the former.
 
 Interfaces are "owned" by the containing instance. Thus methods cannot extend the lifecycle of an interface beyond the duration of the instance. But in many situations one may want to extend it – e.g. to create a collection of interfaces.
 

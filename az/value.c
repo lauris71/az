@@ -20,13 +20,27 @@
 
 #ifdef AZ_SAFETY_CHECKS
 void
+az_value_init (const AZImplementation *impl, AZValue *val)
+{
+	AZClass *klass;
+	arikkei_return_if_fail (impl != 0);
+	arikkei_return_if_fail (val != NULL);
+	klass = az_type_get_class (impl->type);
+	if (klass->flags & AZ_FLAG_VALUE) {
+		az_instance_init(val, impl->type);
+	} else if (klass->flags & AZ_FLAG_BLOCK) {
+		val->block = NULL;
+	}
+}
+
+void
 az_clear_value (const AZImplementation *impl, AZValue *val)
 {
 	AZClass *klass;
 	arikkei_return_if_fail (impl != 0);
 	arikkei_return_if_fail (val != NULL);
 	klass = az_type_get_class (impl->type);
-	if (klass->flags & AZ_CLASS_IS_REFERENCE) {
+	if (klass->flags & AZ_FLAG_REFERENCE) {
 		if (val->reference) az_reference_unref ((AZReferenceClass *) impl, val->reference);
 	}
 }
@@ -39,7 +53,7 @@ az_transfer_value (const AZImplementation *impl, AZValue *dst, const AZValue *sr
 	arikkei_return_if_fail (dst != NULL);
 	arikkei_return_if_fail (src != NULL);
 	klass = az_type_get_class (impl->type);
-	if (klass->value_size) memcpy (dst, src, klass->value_size);
+	if (az_class_value_size(klass)) memcpy (dst, src, az_class_value_size(klass));
 }
 
 void *
@@ -49,7 +63,7 @@ az_instance_from_value (const AZImplementation *impl, const AZValue *value)
 	arikkei_return_val_if_fail (impl != 0, NULL);
 	arikkei_return_val_if_fail (value != NULL, NULL);
 	klass = az_type_get_class (impl->type);
-	if (klass->flags & AZ_CLASS_IS_BLOCK) {
+	if (klass->flags & AZ_FLAG_BLOCK) {
 		return value->block;
 	} else {
 		return (void *) value;
@@ -62,11 +76,11 @@ az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue
 {
 	AZClass *klass;
 	klass = az_type_get_class (impl->type);
-	if (klass->flags & AZ_CLASS_IS_BLOCK) {
+	if (klass->flags & AZ_FLAG_BLOCK) {
 		return lhs->block == rhs->block;
 	}
-	if ((klass->flags & AZ_FLAG_VALUE) && klass->value_size) {
-		return !memcmp (lhs, rhs, klass->value_size);
+	if ((klass->flags & AZ_FLAG_VALUE) && klass->instance_size) {
+		return !memcmp (lhs, rhs, klass->instance_size);
 	}
 	return 0;
 }
@@ -76,11 +90,11 @@ az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, cons
 {
 	AZClass *klass;
 	klass = az_type_get_class (impl->type);
-	if (klass->flags & AZ_CLASS_IS_BLOCK) {
+	if (klass->flags & AZ_FLAG_BLOCK) {
 		return lhs->block == rhs;
 	}
-	if ((klass->flags & AZ_FLAG_VALUE) && klass->value_size) {
-		return !memcmp (lhs, rhs, klass->value_size);
+	if ((klass->flags & AZ_FLAG_VALUE) && klass->instance_size) {
+		return !memcmp (lhs, rhs, klass->instance_size);
 	}
 	return 0;
 }
@@ -96,8 +110,8 @@ az_copy_value (const AZImplementation *impl, AZValue *dst, const AZValue *src)
 	arikkei_return_if_fail (src != NULL);
 #endif
 	klass = az_type_get_class (impl->type);
-	if (klass->value_size) memcpy (dst, src, klass->value_size);
-	if (klass->flags & AZ_CLASS_IS_REFERENCE) {
+	if (az_class_value_size(klass)) memcpy (dst, src, az_class_value_size(klass));
+	if (klass->flags & AZ_FLAG_REFERENCE) {
 		if (src->reference) az_reference_ref (src->reference);
 	}
 }
@@ -112,13 +126,13 @@ az_set_value_from_instance (const AZImplementation *impl, AZValue *dst, void *in
 	arikkei_return_if_fail (inst != NULL);
 #endif
 	klass = az_type_get_class (impl->type);
-	if (klass->flags & AZ_CLASS_IS_BLOCK) {
+	if (klass->flags & AZ_FLAG_BLOCK) {
 		dst->block = inst;
-		if (klass->flags & AZ_CLASS_IS_REFERENCE) {
+		if (klass->flags & AZ_FLAG_REFERENCE) {
 			if (inst) az_reference_ref (dst->reference);
 		}
 	} else {
-		if (klass->value_size) memcpy (dst, inst, klass->value_size);
+		if (klass->instance_size) memcpy (dst, inst, klass->instance_size);
 	}
 }
 
@@ -130,7 +144,7 @@ az_value_convert_auto (const AZImplementation **dst_impl, AZValue *dst_val, cons
 	AZClass *to_klass = az_type_get_class (to_type);
 	/* None can be converted to null reference */
 	if (!src_impl) {
-		if ((to_type == AZ_TYPE_ANY) || (to_klass->flags & AZ_CLASS_IS_BLOCK)) {
+		if ((to_type == AZ_TYPE_ANY) || (to_klass->flags & AZ_FLAG_BLOCK)) {
 			*dst_impl = NULL;
 			dst_val->reference = NULL;
 			return 1;
@@ -145,7 +159,7 @@ az_value_convert_auto (const AZImplementation **dst_impl, AZValue *dst_val, cons
 		return 1;
 	}
 	/* Anything can be converted to implemented interface */
-	if ((to_klass->flags & AZ_CLASS_IS_INTERFACE) && az_type_implements ((*src_impl)->type, to_type)) {
+	if ((to_klass->flags & AZ_FLAG_INTERFACE) && az_type_implements ((*src_impl)->type, to_type)) {
 		dst_val->reference = (AZReference *) az_boxed_interface_new_from_impl_value (*src_impl, src_val, to_type);
 		*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BOXED_INTERFACE);
 		return 1;
@@ -172,7 +186,7 @@ az_value_convert_in_place (const AZImplementation **impl, AZValue *val, unsigned
 	AZClass* to_klass = az_type_get_class (to_type);
 	/* None can be converted to null reference */
 	if (!*impl) {
-		if ((to_type == AZ_TYPE_ANY) || (to_klass->flags & AZ_CLASS_IS_BLOCK)) {
+		if ((to_type == AZ_TYPE_ANY) || (to_klass->flags & AZ_FLAG_BLOCK)) {
 			*impl = NULL;
 			val->reference = NULL;
 			return 1;
@@ -184,7 +198,7 @@ az_value_convert_in_place (const AZImplementation **impl, AZValue *val, unsigned
 		return 1;
 	}
 	/* Anything can be converted to implemented interface */
-	if ((to_klass->flags & AZ_CLASS_IS_INTERFACE) && az_type_implements ((*impl)->type, to_type)) {
+	if ((to_klass->flags & AZ_FLAG_INTERFACE) && az_type_implements ((*impl)->type, to_type)) {
 		val->reference = (AZReference *) az_boxed_interface_new_from_impl_value (*impl, val, to_type);
 		*impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BOXED_INTERFACE);
 		return 1;

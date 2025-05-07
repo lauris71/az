@@ -40,7 +40,7 @@ az_attrib_dict_get_type (void)
 {
 	if (!attrib_dict_type) {
 		attrib_dict_class = (AZAttribDictClass *) az_register_interface_type (&attrib_dict_type, (const unsigned char *) "AZAttributeArray", AZ_TYPE_LIST,
-			sizeof (AZAttribDictClass), sizeof (AZAttribDictImplementation), 0, AZ_CLASS_ZERO_MEMORY,
+			sizeof (AZAttribDictClass), sizeof (AZAttribDictImplementation), 0, AZ_FLAG_ZERO_MEMORY,
 			(void (*) (AZClass *)) attrib_dict_class_init,
 			(void (*) (AZImplementation *)) attrib_dict_impl_init,
 			NULL, NULL);

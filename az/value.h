@@ -52,10 +52,22 @@ struct _AZValue64 {
 };
 
 #ifdef AZ_SAFETY_CHECKS
+void az_value_init (const AZImplementation *impl, AZValue *val);
 void az_clear_value (const AZImplementation *impl, AZValue *val);
 void az_transfer_value (const AZImplementation *impl, AZValue *dst, const AZValue *src);
 void *az_instance_from_value (const AZImplementation *impl, const AZValue *value);
 #else
+ARIKKEI_INLINE void
+az_value_init (const AZImplementation *impl, AZValue *val)
+{
+	AZClass *klass = az_type_get_class (impl->type);
+	if (klass->flags & AZ_FLAG_VALUE) {
+		az_instance_init(val, impl->type);
+	} else if (klass->flags & AZ_FLAG_BLOCK) {
+		val->block = NULL;
+	}
+}
+
 ARIKKEI_INLINE void
 az_clear_value (const AZImplementation *impl, AZValue *val)
 {
@@ -73,7 +85,7 @@ az_transfer_value (const AZImplementation *impl, AZValue *dst, const AZValue *sr
 ARIKKEI_INLINE void *
 az_instance_from_value (const AZImplementation *impl, const AZValue *value)
 {
-	if (impl && (AZ_CLASS_IS_BLOCK(impl->type))) {
+	if (impl && (AZ_FLAG_BLOCK(impl->type))) {
 		return value->block;
 	} else {
 		return (void *) value;

@@ -34,10 +34,10 @@ az_field_setup (AZField *prop, const unsigned char *key, unsigned int type, unsi
 	arikkei_return_if_fail (type != AZ_TYPE_NONE);
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
 	arikkei_return_if_fail (!impl || (az_type_is_assignable_to (impl->type, type)));
+	arikkei_return_if_fail (!offset || !impl);
 #endif
 	prop->key = az_string_new (key);
 	prop->type = type;
-	prop->offset = offset;
 	prop->is_reference = az_type_is_a (type, AZ_TYPE_REFERENCE);
 	prop->is_interface = az_type_is_a (type, AZ_TYPE_INTERFACE);
 	prop->is_function = az_type_is_a (type, AZ_TYPE_FUNCTION);
@@ -45,15 +45,32 @@ az_field_setup (AZField *prop, const unsigned char *key, unsigned int type, unsi
 	prop->spec = spec;
 	prop->read = read;
 	prop->write = write;
-	if (impl) {
-		prop->val.impl = impl;
-		az_set_value_from_instance (impl, &prop->val.v.value, inst);
+	if (offset) {
+		prop->offset = offset;
+	} else if (impl) {
+		unsigned int size = sizeof(AZPackedValue);
+		AZClass *val_class = AZ_CLASS_FROM_TYPE(impl->type);
+		if (az_class_value_size(val_class) > 16) {
+			size += (az_class_value_size(val_class) - 16);
+		}
+		prop->value = (AZPackedValue *) malloc(size);
+		prop->value->impl = impl;
+		az_set_value_from_instance (impl, &prop->value->v, inst);
+	} else {
+		prop->value = NULL;
 	}
 }
 
-void az_field_setup_function (AZField *field, const unsigned char *key, unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset, const AZFunctionSignature *sig,
+void az_field_setup_function (AZField *field, const unsigned char *key, unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, const AZFunctionSignature *sig,
 	const AZImplementation *impl, void *inst)
 {
-	az_field_setup (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, offset, impl, inst);
+	az_field_setup (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, 0, impl, inst);
+	field->signature = sig;
+}
+
+void az_field_setup_function_packed (AZField *field, const unsigned char *key, unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write,
+	const AZFunctionSignature *sig, unsigned int offset)
+{
+	az_field_setup (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, offset, NULL, NULL);
 	field->signature = sig;
 }

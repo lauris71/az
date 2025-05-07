@@ -278,7 +278,7 @@ az_packed_value_array_get_type (void)
 {
 	static unsigned int type = 0;
 	if (!type) {
-		az_register_type (&type, (const unsigned char *) "AZPackedValueArray", AZ_TYPE_REFERENCE, sizeof (AZPackedValueArrayClass), sizeof (AZPackedValueArray), AZ_FLAG_FINAL | AZ_CLASS_ZERO_MEMORY,
+		az_register_type (&type, (const unsigned char *) "AZPackedValueArray", AZ_TYPE_REFERENCE, sizeof (AZPackedValueArrayClass), sizeof (AZPackedValueArray), AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY,
 			(void (*) (AZClass *)) packed_value_array_class_init,
 			NULL,
 			(void (*) (const AZImplementation *, void *)) packed_value_array_finalize);

@@ -21,7 +21,7 @@ unsigned int
 az_function_value_get_type (void)
 {
 	if (!function_value_type) {
-		az_register_type (&function_value_type, (const unsigned char *) "FunctionValue", AZ_TYPE_STRUCT, sizeof (AZFunctionValueClass), sizeof (AZFunctionValue), AZ_FLAG_FINAL | AZ_CLASS_ZERO_MEMORY,
+		az_register_type (&function_value_type, (const unsigned char *) "FunctionValue", AZ_TYPE_STRUCT, sizeof (AZFunctionValueClass), sizeof (AZFunctionValue), AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY,
 			(void (*) (AZClass *)) function_value_class_init,
 			NULL, NULL);
 	}

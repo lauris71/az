@@ -34,7 +34,7 @@ unsigned int
 az_interface_list_get_type (void)
 {
 	if (!interface_list_type) {
-		az_register_type (&interface_list_type, (const unsigned char*) "AZInterfaceList", AZ_TYPE_STRUCT, sizeof (AZInterfaceListClass), sizeof (AZInterfaceList), AZ_CLASS_ZERO_MEMORY,
+		az_register_type (&interface_list_type, (const unsigned char*) "AZInterfaceList", AZ_TYPE_STRUCT, sizeof (AZInterfaceListClass), sizeof (AZInterfaceList), AZ_FLAG_ZERO_MEMORY,
 			(void (*) (AZClass*)) interface_list_class_init,
 			(void (*) (const AZImplementation*, void*)) interface_list_init,
 			(void (*) (const AZImplementation*, void*)) interface_list_finalize);

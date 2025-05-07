@@ -293,7 +293,7 @@ function_build_arguments_arm64 (const AZFunctionSignature *sig, va_list ap, cons
 			if (klass->flags & AZ_FLAG_FINAL) {
 				/* Final value type, no implementation */
 				arg_impls[i] = &klass->implementation;
-				if (klass->value_size <= 8) {
+				if (az_class_value_size(klass) <= 8) {
                                     /* fixme: Do the proper copying */
                                     arg_vals[i].uint64_v = va_arg(ap, uint64_t);
 				} else {
@@ -304,7 +304,7 @@ function_build_arguments_arm64 (const AZFunctionSignature *sig, va_list ap, cons
 			} else {
 				/* Nonfinal value type, add implementation */
 				arg_impls[i] = (const AZImplementation *) va_arg(ap, AZImplementation *);
-				if (klass->value_size <= 8) {
+				if (az_class_value_size(klass) <= 8) {
                                     /* fixme: Do the proper copying */
                                     arg_vals[i].uint64_v = va_arg(ap, uint64_t);
 				} else {

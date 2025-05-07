@@ -44,8 +44,6 @@ enum {
 	NUM_PROPERTIES
 };
 
-static AZObjectClass *parent_class;
-
 unsigned int
 az_active_object_get_type (void)
 {
@@ -60,7 +58,6 @@ az_active_object_get_type (void)
 static void
 az_active_object_class_init (AZActiveObjectClass *klass)
 {
-	parent_class = (AZObjectClass *) ((AZClass *) klass)->parent;
 	az_class_set_num_interfaces ((AZClass *) klass, 1);
 	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_ATTRIBUTE_DICT, ARIKKEI_OFFSET(AZActiveObjectClass,aa_impl), 0);
 	/* AZClass implementation */

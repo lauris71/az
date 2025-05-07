@@ -4,8 +4,10 @@
 /*
 * A run-time type library
 *
-* Copyright (C) Lauris Kaplinski 2016
+* Copyright (C) Lauris Kaplinski 2016-2025
 */
+
+typedef struct _AZFieldFunction AZFieldFUnction;
 
 #include <az/packed-value.h>
 
@@ -42,7 +44,6 @@ extern "C" {
 struct _AZField {
 	AZString *key;
 	unsigned int type;
-	unsigned int offset;
 	/* Shortcuts */
 	unsigned int is_reference : 1;
 	unsigned int is_interface : 1;
@@ -54,8 +55,11 @@ struct _AZField {
 	unsigned int write : 2;
 	/* Signature for functions */
 	const AZFunctionSignature *signature;
-	/* Default value, may be the actual value for final properties */
-	AZPackedValue64 val;
+	union {
+		unsigned int offset;
+		/* Stored value, may be the actual value for final properties */
+		AZPackedValue *value;
+	};
 };
 
 void az_field_setup (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
@@ -63,10 +67,11 @@ void az_field_setup (AZField *prop, const unsigned char *key, unsigned int type,
 	const AZImplementation *impl, void *inst);
 
 void az_field_setup_function (AZField *prop, const unsigned char *key, unsigned int is_final,
-	unsigned int spec, unsigned int read, unsigned int write, unsigned int offset, const AZFunctionSignature *sig,
+	unsigned int spec, unsigned int read, unsigned int write, const AZFunctionSignature *sig,
 	const AZImplementation *impl, void *inst);
 
-//void az_field_setup_from_def (AZField *prop, AZFieldDefinition *def);
+void az_field_setup_function_packed (AZField *prop, const unsigned char *key, unsigned int is_final,
+	unsigned int spec, unsigned int read, unsigned int write, const AZFunctionSignature *sig, unsigned int offset);
 
 /* Library internals */
 void az_init_field_class (void);

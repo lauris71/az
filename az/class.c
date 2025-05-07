@@ -187,9 +187,19 @@ az_class_new_with_type (unsigned int type, unsigned int parent_type, unsigned in
 	az_class_pre_init (klass, type, parent_type, class_size, instance_size, flags, name);
 	az_classes[AZ_TYPE_INDEX(type)] = klass;
 	/* We have to use class flags here because of parent chaining */
-	az_types[type].flags = klass->flags;
-	az_types[type].pidx = parent_type;
+	az_types[AZ_TYPE_INDEX(type)].flags = klass->flags;
+	az_types[AZ_TYPE_INDEX(type)].pidx = parent_type;
 	return klass;
+}
+
+void
+az_class_new_with_value (AZClass *klass)
+{
+	unsigned int type = AZ_TYPE_INDEX(klass->implementation.type);
+	az_classes[type] = klass;
+	/* We have to use class flags here because of parent chaining */
+	az_types[type].flags = klass->flags;
+	az_types[type].pidx = klass->parent ? klass->parent->implementation.type : AZ_TYPE_NONE;
 }
 
 static void
@@ -215,11 +225,6 @@ az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsig
 	klass->name = name;
 	klass->class_size = class_size;
 	klass->instance_size = instance_size;
-	if (klass->flags & AZ_FLAG_VALUE) {
-		klass->value_size = instance_size;
-	} else {
-		klass->value_size = sizeof (void *);
-	}
 	klass->init_recursive = NULL;
 }
 
@@ -298,6 +303,10 @@ az_class_post_init (AZClass *klass)
 	}
 #endif
 #endif
+	if (klass->n_ifaces_self || klass->instance_init || klass->instance_finalize) {
+		klass->flags |= AZ_FLAG_CONSTRUCT;
+		az_types[AZ_TYPE_INDEX(klass->implementation.type)].flags |= AZ_FLAG_CONSTRUCT;
+	}
 	if (klass->n_ifaces_self) {
 		/* Count all interfaces */
 		klass->n_ifaces_all = klass->parent->n_ifaces_all;
@@ -399,8 +408,9 @@ void az_class_define_property (AZClass *klass, unsigned int idx, const unsigned 
 	az_field_setup (klass->properties_self + idx, key, type, is_final, spec, read, write, offset, impl, inst);
 }
 
-void az_class_define_property_function (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset,
+void
+az_class_define_property_function_val (AZClass *klass, unsigned int idx, const unsigned char *key,
+	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write,
 	const AZFunctionSignature *sig, const AZImplementation *impl, void *inst)
 {
 #ifdef AZ_SAFETY_CHECKS
@@ -409,7 +419,20 @@ void az_class_define_property_function (AZClass *klass, unsigned int idx, const 
 	arikkei_return_if_fail (key != NULL);
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
 #endif
-	az_field_setup_function (klass->properties_self + idx, key, is_final, spec, read, write, offset, sig, impl, inst);
+	az_field_setup_function (klass->properties_self + idx, key, is_final, spec, read, write, sig, impl, inst);
+}
+
+void
+az_class_define_property_function_packed (AZClass *klass, unsigned int idx, const unsigned char *key,
+	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset, const AZFunctionSignature *sig)
+{
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_if_fail (klass != NULL);
+	arikkei_return_if_fail (idx < klass->n_properties_self);
+	arikkei_return_if_fail (key != NULL);
+	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
+#endif
+	az_field_setup_function_packed (klass->properties_self + idx, key, is_final, spec, read, write, sig, offset);
 }
 
 void
@@ -450,9 +473,7 @@ az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *k
 	AZFunctionValue fval;
 	sig = az_function_signature_new (klass->implementation.type, ret_type, n_args, arg_types);
 	az_function_value_setup (&fval, sig, invoke);
-	// az_class_define_property (klass, idx, key, AZ_TYPE_FUNCTION, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, 0,
-	//	(AZImplementation *) az_type_get_class (AZ_TYPE_FUNCTION_VALUE), &fval);
-	az_class_define_property_function (klass, idx, key, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, 0, sig,
+	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class (AZ_TYPE_FUNCTION_VALUE), &fval);
 }
 
@@ -480,7 +501,7 @@ unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImp
 	AZFunctionValue fval;
 	sig = az_function_signature_new (AZ_TYPE_NONE, ret_type, n_args, arg_types);
 	az_function_value_setup (&fval, sig, invoke);
-	az_class_define_property_function (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, 0, sig,
+	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class (AZ_TYPE_FUNCTION_VALUE), &fval);
 }
 

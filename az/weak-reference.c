@@ -23,7 +23,7 @@ unsigned int
 az_weak_reference_get_type (void)
 {
 	if (!weak_reference_type) {
-		az_register_type (&weak_reference_type, (const unsigned char *) "WeakReference", AZ_TYPE_ANY, sizeof (AZWeakReferenceClass), sizeof (AZWeakReference), AZ_CLASS_ZERO_MEMORY | AZ_FLAG_FINAL,
+		az_register_type (&weak_reference_type, (const unsigned char *) "WeakReference", AZ_TYPE_ANY, sizeof (AZWeakReferenceClass), sizeof (AZWeakReference), AZ_FLAG_ZERO_MEMORY | AZ_FLAG_FINAL,
 			NULL, NULL,
 			(void (*) (const AZImplementation *, void *)) weak_reference_finalize);
 	}

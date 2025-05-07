@@ -30,11 +30,12 @@ struct _AZImplementation {
 /* Instance is value */
 #define AZ_FLAG_VALUE 4
 /* Subclasses should not remove flag set by parent */
-#define AZ_CLASS_ZERO_MEMORY 8
+#define AZ_FLAG_ZERO_MEMORY 8
+#define AZ_FLAG_CONSTRUCT 16
 /* Special handling */
-#define AZ_CLASS_IS_BLOCK 16
-#define AZ_CLASS_IS_REFERENCE 32
-#define AZ_CLASS_IS_INTERFACE 64
+#define AZ_FLAG_BLOCK 32
+#define AZ_FLAG_REFERENCE 64
+#define AZ_FLAG_INTERFACE 128
 
 #define AZ_CLASS_ELEMENT_SIZE(klass) ((klass->instance_size + klass->alignment) & ~klass->alignment)
 
@@ -77,9 +78,7 @@ struct _AZClass {
 	/* Size of class structure */
 	uint16_t class_size;
 	/* Size of instance */
-	unsigned int instance_size;
-	/* Size of value */
-	unsigned int value_size;
+	uint32_t instance_size;
 
 	/* Default value */
 	void *default_val;
@@ -147,6 +146,11 @@ struct _AZClass {
  *   n_ifaces_self > 1 : self = ifaces_self, all = ifaces_all
  */
 
+static inline AZClass *
+az_class_parent(const AZClass *klass) {
+	return klass->parent;
+}
+
 static inline const AZIFEntry *
 az_class_iface_self(const AZClass *klass, uint16_t idx)
 {
@@ -171,6 +175,11 @@ az_class_iface_all(const AZClass *klass, uint16_t idx)
 	}
 }
 
+static inline unsigned int
+az_class_value_size(const AZClass *klass)
+{
+	return (klass->flags & AZ_FLAG_BLOCK) ? sizeof(void *) : klass->instance_size;
+}
 
 /* To be called from class constructors */
 void az_class_set_num_interfaces (AZClass *klass, unsigned int ninterfaces);
@@ -181,9 +190,11 @@ void az_class_set_num_properties (AZClass *klass, unsigned int nproperties);
 void az_class_define_property (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int type,
 	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset,
 	const AZImplementation *impl, void *inst);
-void az_class_define_property_function (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset,
+void az_class_define_property_function_val (AZClass *klass, unsigned int idx, const unsigned char *key,
+	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write,
 	const AZFunctionSignature *sig, const AZImplementation *impl, void *inst);
+void az_class_define_property_function_packed (AZClass *klass, unsigned int idx, const unsigned char *key,
+	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset, const AZFunctionSignature *sig);
 void az_class_property_setup (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int type,
 	unsigned int is_static, unsigned int can_read, unsigned int can_write, unsigned int is_final, unsigned int is_value,
 	unsigned int value_type, void *inst);

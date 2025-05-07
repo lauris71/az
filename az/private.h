@@ -13,7 +13,7 @@
 #include <az/types.h>
 #include <az/class.h>
 
-#define AZ_TYPE_VALUE_SIZE(t) az_type_get_class(t)->value_size
+#define AZ_TYPE_VALUE_SIZE(t) az_class_value_size(az_type_get_class(t))
 
 #ifdef ARIKKEI_MEMCHECK
 #define ARIKKEI_CHECK_INTEGRITY() arikkei_check_integrity()
@@ -56,6 +56,7 @@ AZClass *az_class_new (uint32_t *type, const unsigned char *name, unsigned int p
 /* Allocates and initializes a new class with pre-defined type, does NOT call neither class constructor nor post_init */
 /* Used internally for primitive types */
 AZClass *az_class_new_with_type (unsigned int type, unsigned int parent, unsigned int class_size, unsigned int instance_size, unsigned int flags, const uint8_t *name);
+void az_class_new_with_value (AZClass *klass);
 
 /* Called after class constructor has run (builds interface chain etc.) */
 void az_class_post_init (AZClass *klass);

@@ -127,7 +127,7 @@ reference_instance_init (AZReferenceClass *klass, void *instance)
 void
 az_init_reference_class (void)
 {
-	reference_class = (AZReferenceClass *) az_class_new_with_type (AZ_TYPE_REFERENCE, AZ_TYPE_BLOCK, sizeof (AZReferenceClass), sizeof (AZReference), AZ_FLAG_ABSTRACT | AZ_CLASS_IS_REFERENCE, (const uint8_t *) "reference");
+	reference_class = (AZReferenceClass *) az_class_new_with_type (AZ_TYPE_REFERENCE, AZ_TYPE_BLOCK, sizeof (AZReferenceClass), sizeof (AZReference), AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE, (const uint8_t *) "reference");
 	reference_class->klass.instance_init = (void (*) (const AZImplementation *, void *)) reference_instance_init;
 #ifdef AZ_MT_REFERENCES
 	mtx_init (&mutex, mtx_plain);

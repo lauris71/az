@@ -61,9 +61,9 @@ unsigned int az_num_classes = 0;
 #define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_classes[AZ_TYPE_INDEX(t)])
 
 #define AZ_TYPE_FLAGS(t) az_types[AZ_TYPE_INDEX(t)].flags
-#define AZ_TYPE_IS_REFERENCE(t) (AZ_TYPE_FLAGS(t) & AZ_CLASS_IS_REFERENCE)
-#define AZ_TYPE_IS_INTERFACE(t) (AZ_TYPE_FLAGS(t) & AZ_CLASS_IS_INTERFACE)
-#define AZ_TYPE_IS_BLOCK(t) (AZ_TYPE_FLAGS(t) & AZ_CLASS_IS_BLOCK)
+#define AZ_TYPE_IS_REFERENCE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_REFERENCE)
+#define AZ_TYPE_IS_INTERFACE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_INTERFACE)
+#define AZ_TYPE_IS_BLOCK(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_BLOCK)
 #define AZ_TYPE_IS_VALUE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_VALUE)
 #define AZ_TYPE_IS_FINAL(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_FINAL)
 
@@ -140,7 +140,16 @@ unsigned int az_type_is_convertible_to (unsigned int type, unsigned int test);
  * @param inst pointer to instance
  * @param type instance type
  */
-void az_instance_init (void *inst, unsigned int type);
+void az_instance_initialize (void *inst, unsigned int type);
+#ifdef AZ_SAFETY_CHECKS
+#define az_instance_init az_instance_initialize
+#else
+ARIKKEI_INLINE void
+az_instance_init (void *inst, unsigned int type)
+{
+	if (AZ_TYPE_FLAGS(type) & (AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT)) az_instance_initialize(inst, type);
+}
+#endif
 void az_instance_finalize (void *inst, unsigned int type);
 /* Initialize a new implementation for interface */
 void az_implementation_init (AZImplementation *impl, unsigned int type);
