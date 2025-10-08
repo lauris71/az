@@ -101,7 +101,7 @@ collection_call_contains (const AZImplementation *arg_impls[], const AZValue *ar
 	/* fixme: Automatic deboxing at function call? */
 	const AZCollectionImplementation *impl;
 	void *inst;
-	if (arg_impls[0]->type == AZ_TYPE_BOXED_INTERFACE) {
+	if (AZ_IMPL_TYPE(arg_impls[0]) == AZ_TYPE_BOXED_INTERFACE) {
 		impl = (const AZCollectionImplementation *) ((AZBoxedInterface *) arg_vals[0]->reference)->impl;
 		inst = ((AZBoxedInterface *) arg_vals[0]->reference)->inst;
 	} else {

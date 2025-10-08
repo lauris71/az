@@ -13,6 +13,8 @@ typedef struct _AZObjectClass AZObjectClass;
 #define AZ_OBJECT(o) (AZ_CHECK_INSTANCE_CAST ((o), AZ_TYPE_OBJECT, AZObject))
 #define AZ_IS_OBJECT(o) (AZ_CHECK_INSTANCE_TYPE ((o), AZ_TYPE_OBJECT))
 
+#define AZ_OBJECT_TYPE(o) AZ_CLASS_TYPE((AZClass *) ((AZObject *) o)->klass)
+
 #include <stdlib.h>
 
 #include <az/reference.h>

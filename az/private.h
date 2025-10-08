@@ -22,27 +22,18 @@ void arikkei_check_integrity (void);
 #define ARIKKEI_CHECK_INTEGRITY()
 #endif
 
-#ifndef __AZ_TYPES_C__
-/* All interfaces for specific class starting from base class, first interface then sub-interfaces */
-extern AZIFEntry *az_ifaces_all;
-extern unsigned int az_ifaces_all_len;
-extern unsigned int az_ifaces_all_size;
-#else
-AZIFEntry *az_ifaces_all;
-unsigned int az_ifaces_all_len;
-unsigned int az_ifaces_all_size;
-#endif
-
 ARIKKEI_INLINE unsigned int
 az_type_is_valid(uint32_t type) {
 	if (AZ_TYPE_INDEX(type) == 0) return 0;
 	if (AZ_TYPE_INDEX(type) >= az_num_classes) return 0;
 	AZImplementation *impl = AZ_IMPL_FROM_TYPE(type);
-	return type == impl->type;
+	return type == impl->_type;
 }
 
 /* Library internals */
-void az_classes_init (void);
+void az_globals_init (void);
+
+unsigned int az_reserve_type();
 
 void az_init_implementation_class (void);
 void az_implementation_class_post_init (void);

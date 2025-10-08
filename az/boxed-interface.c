@@ -23,8 +23,8 @@ static unsigned int
 boxed_interface_to_string (const AZImplementation *impl, void *inst, unsigned char *buf, unsigned int len)
 {
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
-	AZClass *klass = AZ_CLASS_FROM_TYPE(boxed->val.impl->type);
-	AZClass *iface_class = AZ_CLASS_FROM_TYPE(boxed->impl->type);
+	AZClass *klass = AZ_CLASS_FROM_IMPL(boxed->val.impl);
+	AZClass *iface_class = AZ_CLASS_FROM_IMPL(boxed->impl);
 	unsigned int pos;
 	pos = arikkei_memcpy_str (buf, len, (const unsigned char *) "Boxed ");
 	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, iface_class->name);
@@ -46,8 +46,8 @@ az_boxed_interface_new (const AZImplementation *impl, void *inst, const AZImplem
 {
 	arikkei_return_val_if_fail (impl != NULL, NULL);
 	arikkei_return_val_if_fail (if_impl != NULL, NULL);
-	arikkei_return_val_if_fail (!AZ_TYPE_IS_VALUE(impl->type), NULL);
-	unsigned int val_size = AZ_TYPE_VALUE_SIZE(impl->type);
+	arikkei_return_val_if_fail (!AZ_TYPE_IS_VALUE(AZ_IMPL_TYPE(impl)), NULL);
+	unsigned int val_size = AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(impl));
 	AZBoxedInterface *boxed;
 	if (val_size > 16) {
 		boxed = (AZBoxedInterface *) malloc (sizeof (AZBoxedInterface) + val_size - 16);
@@ -66,7 +66,7 @@ AZBoxedInterface *
 az_boxed_interface_new_from_impl_value (const AZImplementation *impl, const AZValue *val, unsigned int type)
 {
 	arikkei_return_val_if_fail (impl != NULL, NULL);
-	unsigned int val_size = AZ_TYPE_VALUE_SIZE(impl->type);
+	unsigned int val_size = AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(impl));
 	AZBoxedInterface *boxed;
 	if (val_size > 16) {
 		boxed = (AZBoxedInterface *) malloc (sizeof (AZBoxedInterface) + val_size - 16);
@@ -84,7 +84,7 @@ AZBoxedInterface *
 az_boxed_interface_new_from_impl_instance (const AZImplementation *impl, void *inst, unsigned int type)
 {
 	arikkei_return_val_if_fail (impl != NULL, NULL);
-	unsigned int val_size = AZ_TYPE_VALUE_SIZE(impl->type);
+	unsigned int val_size = AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(impl));
 	AZBoxedInterface *boxed;
 	if (val_size > 16) {
 		boxed = ( AZBoxedInterface *) malloc (sizeof (AZBoxedInterface) + val_size - 16);

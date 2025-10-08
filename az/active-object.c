@@ -286,7 +286,7 @@ static const AZImplementation *
 aobj_aa_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue64 *val)
 {
 	unsigned int i;
-	if (key_impl->type != AZ_TYPE_STRING) return NULL;
+	if (AZ_IMPL_TYPE(key_impl) != AZ_TYPE_STRING) return NULL;
 	AZActiveObject *aobj = (AZActiveObject *) map_inst;
 	if (!aobj->attributes) return 0;
 	for (i = 0; i < aobj->attributes->length; i++) {
@@ -302,7 +302,7 @@ static unsigned int
 aobj_aa_keys_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst)
 {
 	unsigned int i;
-	if (impl->type != AZ_TYPE_STRING) return 0;
+	if (AZ_IMPL_TYPE(impl) != AZ_TYPE_STRING) return 0;
 	AZActiveObject *aobj = (AZActiveObject *) coll_inst;
 	if (!aobj->attributes) return 0;
 	for (i = 0; i < aobj->attributes->length; i++) {

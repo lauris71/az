@@ -18,24 +18,36 @@ extern "C" {
  * 
  */
 struct _AZImplementation {
-	unsigned int type;
+	unsigned int _type;
 };
+
+#define AZ_CLASS_FROM_IMPL(i) AZ_CLASS_FROM_TYPE(i->_type)
+/* todo: flag has to be NOT_INTERFACE */
+#define AZ_IMPL_IS_INTERFACE(i) (AZ_CLASS_FROM_IMPL(i)->flags & AZ_FLAG_INTERFACE)
+#define AZ_IMPL_IS_REFERENCE(i) (AZ_CLASS_FROM_IMPL(i)->flags & AZ_FLAG_REFERENCE)
+
+#define AZ_IMPL_TYPE(i) ((i)->_type)
+#define AZ_CLASS_TYPE(c) ((c)->implementation._type)
 
 /* Class flags */
 
+/* These flags have to be zero if interpreted as class pointer */
+/* Interface type, implementation is not class */
+#define AZ_FLAG_INTERFACE 1
+/* Reference type, copying needs reference counting */
+#define AZ_FLAG_REFERENCE 2
+
 /* No instancing is allowed (this is not propagated to subclasses) */
-#define AZ_FLAG_ABSTRACT 1
+#define AZ_FLAG_ABSTRACT 4
 /* No subclasses */
-#define AZ_FLAG_FINAL 2
+#define AZ_FLAG_FINAL 8
 /* Instance is value */
-#define AZ_FLAG_VALUE 4
+#define AZ_FLAG_VALUE 16
 /* Subclasses should not remove flag set by parent */
-#define AZ_FLAG_ZERO_MEMORY 8
-#define AZ_FLAG_CONSTRUCT 16
+#define AZ_FLAG_ZERO_MEMORY 32
+#define AZ_FLAG_CONSTRUCT 64
 /* Special handling */
-#define AZ_FLAG_BLOCK 32
-#define AZ_FLAG_REFERENCE 64
-#define AZ_FLAG_INTERFACE 128
+#define AZ_FLAG_BLOCK 128
 
 #define AZ_CLASS_ELEMENT_SIZE(klass) ((klass->instance_size + klass->alignment) & ~klass->alignment)
 
@@ -50,7 +62,6 @@ struct _AZInstanceAllocator {
 
 struct _AZClass {
 	AZImplementation implementation;
-
 	unsigned int flags;
 
 	AZClass *parent;
@@ -87,12 +98,12 @@ struct _AZClass {
 	AZInstanceAllocator *allocator;
 
 	/*
-         * This allows superclasses to adjust values, that depend on the actual type and are not
-         * handled by pre_init and post_init
-         * 
-         * Called from post_init
-         * 
-         */
+	* This allows superclasses to adjust values, that depend on the actual type and are not
+	* handled by pre_init and post_init
+	* 
+	* Called from post_init
+	* 
+	*/
 	void (*init_recursive) (AZClass *klass);
 	/* Constructors and destructors */
 	void (*instance_init) (const AZImplementation *impl, void *inst);
@@ -152,27 +163,53 @@ az_class_parent(const AZClass *klass) {
 }
 
 static inline const AZIFEntry *
-az_class_iface_self(const AZClass *klass, uint16_t idx)
+az_class_ifaces_self(const AZClass *klass)
 {
 	if (klass->n_ifaces_self == klass->n_ifaces_all) {
-		return (klass->n_ifaces_self <= 2) ? &klass->ifaces[idx] : &klass->ifaces_self[idx];
+		return (klass->n_ifaces_self <= 2) ? &klass->ifaces[0] : &klass->ifaces_self[0];
 	} else {
-		return (klass->n_ifaces_self <= 1) ? &klass->ifaces[idx] : &klass->ifaces_self[idx];
+		return (klass->n_ifaces_self <= 1) ? &klass->ifaces[0] : &klass->ifaces_self[0];
+	}
+}
+
+static inline const AZIFEntry *
+az_class_iface_self(const AZClass *klass, uint16_t idx)
+{
+	return az_class_ifaces_self(klass) + idx;
+//	if (klass->n_ifaces_self == klass->n_ifaces_all) {
+//		return (klass->n_ifaces_self <= 2) ? &klass->ifaces[idx] : &klass->ifaces_self[idx];
+//	} else {
+//		return (klass->n_ifaces_self <= 1) ? &klass->ifaces[idx] : &klass->ifaces_self[idx];
+//	}
+}
+
+static inline const AZIFEntry *
+az_class_ifaces_all(const AZClass *klass)
+{
+	if (klass->n_ifaces_self == klass->n_ifaces_all) {
+		return (klass->n_ifaces_self <= 2) ? &klass->ifaces[0] : &klass->ifaces_all[0];
+	} else {
+		if (klass->n_ifaces_self <= 1) {
+			return (klass->n_ifaces_all <= 2) ? &klass->ifaces[0] : &klass->ifaces_all[0];
+		} else {
+			return &klass->ifaces_all[0];
+		}
 	}
 }
 
 static inline const AZIFEntry *
 az_class_iface_all(const AZClass *klass, uint16_t idx)
 {
-	if (klass->n_ifaces_self == klass->n_ifaces_all) {
-		return (klass->n_ifaces_self <= 2) ? &klass->ifaces[idx] : &klass->ifaces_all[idx];
-	} else {
-		if (klass->n_ifaces_self <= 1) {
-			return (klass->n_ifaces_all <= 2) ? &klass->ifaces[idx] : &klass->ifaces_all[idx];
-		} else {
-			return &klass->ifaces_all[idx];
-		}
-	}
+	return az_class_ifaces_all(klass) + idx;
+//	if (klass->n_ifaces_self == klass->n_ifaces_all) {
+//		return (klass->n_ifaces_self <= 2) ? &klass->ifaces[idx] : &klass->ifaces_all[idx];
+//	} else {
+//		if (klass->n_ifaces_self <= 1) {
+//			return (klass->n_ifaces_all <= 2) ? &klass->ifaces[idx] : &klass->ifaces_all[idx];
+//		} else {
+//			return &klass->ifaces_all[idx];
+//		}
+//	}
 }
 
 static inline unsigned int

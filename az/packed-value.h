@@ -26,6 +26,8 @@ struct _AZPackedValue {
 	AZValue v;
 } ARIKKEI_ALIGN_16;
 
+#define AZ_PACKED_VALUE_TYPE(v) AZ_IMPL_TYPE((v)->impl)
+
 struct _AZPackedValue64 {
 	union {
 		struct {
@@ -52,7 +54,7 @@ az_value_set_from_packed_value (const AZImplementation **dst_impl, AZValue *dst_
 ARIKKEI_INLINE void
 az_packed_value_clear (AZPackedValue *val)
 {
-	if (val->impl && AZ_TYPE_IS_REFERENCE(val->impl->type) && val->v.reference) az_reference_unref ((AZReferenceClass *) val->impl, val->v.reference);
+	if (val->impl && AZ_IMPL_IS_REFERENCE(val->impl) && val->v.reference) az_reference_unref ((AZReferenceClass *) val->impl, val->v.reference);
 	val->impl = NULL;
 }
 
@@ -60,7 +62,7 @@ az_packed_value_clear (AZPackedValue *val)
 ARIKKEI_INLINE void
 az_packed_value_set_boolean (AZPackedValue *val, unsigned int boolean_v)
 {
-	if (val->impl && AZ_TYPE_IS_REFERENCE(val->impl->type) && val->v.reference) az_reference_unref ((AZReferenceClass *) val->impl, val->v.reference);
+	if (val->impl && AZ_IMPL_IS_REFERENCE(val->impl) && val->v.reference) az_reference_unref ((AZReferenceClass *) val->impl, val->v.reference);
 	val->impl = (AZImplementation *) az_type_get_class(AZ_TYPE_BOOLEAN);
 	val->v.boolean_v = boolean_v;
 }
@@ -68,7 +70,7 @@ az_packed_value_set_boolean (AZPackedValue *val, unsigned int boolean_v)
 ARIKKEI_INLINE void
 az_packed_value_set_int (AZPackedValue *value, unsigned int type, int val)
 {
-	if (value->impl && AZ_TYPE_IS_REFERENCE(value->impl->type) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
+	if (value->impl && AZ_IMPL_IS_REFERENCE(value->impl) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
 	value->impl = (AZImplementation *) az_type_get_class(type);
 	value->v.int32_v = val;
 }
@@ -76,7 +78,7 @@ az_packed_value_set_int (AZPackedValue *value, unsigned int type, int val)
 ARIKKEI_INLINE void
 az_packed_value_set_unsigned_int (AZPackedValue *value, unsigned int type, unsigned int val)
 {
-	if (value->impl && AZ_TYPE_IS_REFERENCE(value->impl->type) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
+	if (value->impl && AZ_IMPL_IS_REFERENCE(value->impl) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
 	value->impl = (AZImplementation *) az_type_get_class(type);
 	value->v.uint32_v = val;
 }
@@ -84,7 +86,7 @@ az_packed_value_set_unsigned_int (AZPackedValue *value, unsigned int type, unsig
 ARIKKEI_INLINE void
 az_packed_value_set_i64 (AZPackedValue *value, int64_t val)
 {
-	if (value->impl && AZ_TYPE_IS_REFERENCE(value->impl->type) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
+	if (value->impl && AZ_IMPL_IS_REFERENCE(value->impl) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
 	value->impl = (AZImplementation *) az_type_get_class(AZ_TYPE_INT64);
 	value->v.int64_v = val;
 }
@@ -92,7 +94,7 @@ az_packed_value_set_i64 (AZPackedValue *value, int64_t val)
 ARIKKEI_INLINE void
 az_packed_value_set_u64 (AZPackedValue *value, uint64_t val)
 {
-	if (value->impl && AZ_TYPE_IS_REFERENCE(value->impl->type) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
+	if (value->impl && AZ_IMPL_IS_REFERENCE(value->impl) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
 	value->impl = (AZImplementation *) az_type_get_class(AZ_TYPE_UINT64);
 	value->v.uint64_v = (uint64_t) val;
 }
@@ -100,7 +102,7 @@ az_packed_value_set_u64 (AZPackedValue *value, uint64_t val)
 ARIKKEI_INLINE void
 az_packed_value_set_float (AZPackedValue *value, float val)
 {
-	if (value->impl && AZ_TYPE_IS_REFERENCE(value->impl->type) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
+	if (value->impl && AZ_IMPL_IS_REFERENCE(value->impl) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
 	value->impl = (AZImplementation *) az_type_get_class(AZ_TYPE_FLOAT);
 	value->v.float_v = val;
 }
@@ -108,7 +110,7 @@ az_packed_value_set_float (AZPackedValue *value, float val)
 ARIKKEI_INLINE void
 az_packed_value_set_double (AZPackedValue *value, double val)
 {
-	if (value->impl && AZ_TYPE_IS_REFERENCE(value->impl->type) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
+	if (value->impl && AZ_IMPL_IS_REFERENCE(value->impl) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
 	value->impl = (AZImplementation *) az_type_get_class(AZ_TYPE_DOUBLE);
 	value->v.double_v = val;
 }
@@ -116,7 +118,7 @@ az_packed_value_set_double (AZPackedValue *value, double val)
 ARIKKEI_INLINE void
 az_packed_value_set_pointer (AZPackedValue *value, const void *val)
 {
-	if (value->impl && AZ_TYPE_IS_REFERENCE(value->impl->type) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
+	if (value->impl && AZ_IMPL_IS_REFERENCE(value->impl) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
 	value->impl = (AZImplementation *) az_type_get_class(AZ_TYPE_POINTER);
 	value->v.pointer_v = (void *) val;
 }
@@ -124,7 +126,7 @@ az_packed_value_set_pointer (AZPackedValue *value, const void *val)
 ARIKKEI_INLINE void
 az_packed_value_set_implementation (AZPackedValue *value, AZImplementation *val)
 {
-	if (value->impl && AZ_TYPE_IS_REFERENCE(value->impl->type) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
+	if (value->impl && AZ_IMPL_IS_REFERENCE(value->impl) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
 	value->impl = (AZImplementation *) az_type_get_class(AZ_TYPE_IMPLEMENTATION);
 	value->v.block = val;
 }
@@ -132,7 +134,7 @@ az_packed_value_set_implementation (AZPackedValue *value, AZImplementation *val)
 ARIKKEI_INLINE void
 az_packed_value_set_class (AZPackedValue *value, AZClass *val)
 {
-	if (value->impl && AZ_TYPE_IS_REFERENCE(value->impl->type) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
+	if (value->impl && AZ_IMPL_IS_REFERENCE(value->impl) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
 	value->impl = (AZImplementation *) az_type_get_class(AZ_TYPE_CLASS);
 	value->v.block = val;
 }
@@ -143,7 +145,7 @@ void az_packed_value_set_reference (AZPackedValue *value, unsigned int type, AZR
 ARIKKEI_INLINE void
 az_packed_value_transfer_reference (AZPackedValue *value, unsigned int type, AZReference *ref)
 {
-	if (value->impl && AZ_TYPE_IS_REFERENCE(value->impl->type) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
+	if (value->impl && AZ_IMPL_IS_REFERENCE(value->impl) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
 	value->impl = (AZImplementation *) az_type_get_class(type);
 	value->v.reference = ref;
 }
@@ -151,7 +153,7 @@ az_packed_value_transfer_reference (AZPackedValue *value, unsigned int type, AZR
 ARIKKEI_INLINE void
 az_packed_value_transfer_string (AZPackedValue *value, AZString *str)
 {
-	if (value->impl && AZ_TYPE_IS_REFERENCE(value->impl->type) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
+	if (value->impl && AZ_IMPL_IS_REFERENCE(value->impl) && value->v.reference) az_reference_unref ((AZReferenceClass *) value->impl, value->v.reference);
 	value->impl = (AZImplementation *) az_type_get_class(AZ_TYPE_STRING);
 	value->v.string = str;
 }
@@ -162,8 +164,8 @@ ARIKKEI_INLINE void
 az_packed_value_copy (AZPackedValue *dst, const AZPackedValue *src)
 {
 	if (dst == src) return;
-	if (!src->impl || (src->impl->type < AZ_TYPE_REFERENCE)) {
-		if (dst->impl && (dst->impl->type >= AZ_TYPE_REFERENCE)) az_packed_value_clear (dst);
+	if (!src->impl || (AZ_IMPL_TYPE(src->impl) < AZ_TYPE_REFERENCE)) {
+		if (dst->impl && (AZ_IMPL_TYPE(dst->impl) >= AZ_TYPE_REFERENCE)) az_packed_value_clear (dst);
 		*dst = *src;
 	} else {
 		az_packed_value_copy_indirect (dst, src);

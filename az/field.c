@@ -33,7 +33,7 @@ az_field_setup (AZField *prop, const unsigned char *key, unsigned int type, unsi
 	arikkei_return_if_fail (key != NULL);
 	arikkei_return_if_fail (type != AZ_TYPE_NONE);
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
-	arikkei_return_if_fail (!impl || (az_type_is_assignable_to (impl->type, type)));
+	arikkei_return_if_fail (!impl || (az_type_is_assignable_to(AZ_IMPL_TYPE(impl), type)));
 	arikkei_return_if_fail (!offset || !impl);
 #endif
 	prop->key = az_string_new (key);
@@ -49,7 +49,7 @@ az_field_setup (AZField *prop, const unsigned char *key, unsigned int type, unsi
 		prop->offset = offset;
 	} else if (impl) {
 		unsigned int size = sizeof(AZPackedValue);
-		AZClass *val_class = AZ_CLASS_FROM_TYPE(impl->type);
+		AZClass *val_class = AZ_CLASS_FROM_IMPL(impl);
 		if (az_class_value_size(val_class) > 16) {
 			size += (az_class_value_size(val_class) - 16);
 		}

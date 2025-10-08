@@ -66,7 +66,7 @@ static void
 reference_of_class_init (AZReferenceOfClass *klass, AZClass *inst_class)
 {
 	if (inst_class->alignment > klass->reference_klass.klass.alignment) klass->reference_klass.klass.alignment = inst_class->alignment;
-	klass->instance_type = inst_class->implementation.type;
+	klass->instance_type = AZ_CLASS_TYPE(inst_class);
 	klass->reference_klass.klass.to_string = reference_of_to_string;
 }
 
@@ -107,6 +107,6 @@ az_reference_of_new_value (unsigned int inst_type, const AZValue *value)
 {
 	unsigned int type = AZ_TYPE_REFERENCE_OF (inst_type);
 	AZReferenceOf *ref = (AZReferenceOf *) az_instance_new (type);
-	memcpy (az_reference_of_get_instance ((AZReferenceOfClass *) AZ_CLASS_FROM_TYPE(type), ref), value, az_classes[AZ_TYPE_INDEX(inst_type)]->instance_size);
+	memcpy (az_reference_of_get_instance ((AZReferenceOfClass *) AZ_CLASS_FROM_TYPE(type), ref), value, AZ_CLASS_FROM_TYPE(inst_type)->instance_size);
 	return ref;
 }

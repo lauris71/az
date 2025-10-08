@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 
+#include <az/class.h>
 #include <az/field.h>
 #include <az/object.h>
 #include <az/packed-value.h>
@@ -98,7 +99,7 @@ az_object_check_instance_cast (void *inst, unsigned int type)
 		fprintf (stderr, "az_object_check_instance_cast: inst == NULL\n");
 		return NULL;
 	}
-	if (!az_type_is_a (((AZObject *) inst)->klass->reference_klass.klass.implementation.type, type)) {
+	if (!az_type_is_a(AZ_OBJECT_TYPE(inst), type)) {
 		AZClass *klass = az_type_get_class (type);
 		fprintf (stderr, "az_object_check_instance_cast: %s is not %s\n", ((AZObject *) inst)->klass->reference_klass.klass.name, klass->name);
 		return NULL;
@@ -110,7 +111,7 @@ unsigned int
 az_object_check_instance_type (void *inst, unsigned int type)
 {
 	if (inst == NULL) return 0;
-	return az_type_is_a (((AZObject *) inst)->klass->reference_klass.klass.implementation.type, type);
+	return az_type_is_a(AZ_OBJECT_TYPE(inst), type);
 }
 
 unsigned int
@@ -118,7 +119,7 @@ az_object_implements (AZObject *obj, unsigned int type)
 {
 	arikkei_return_val_if_fail (obj != NULL, 0);
 	arikkei_return_val_if_fail (AZ_IS_OBJECT (obj), 0);
-	return az_type_implements (obj->klass->reference_klass.klass.implementation.type, type);
+	return az_type_implements(AZ_OBJECT_TYPE(obj), type);
 }
 
 const AZImplementation *
@@ -136,7 +137,7 @@ az_packed_value_set_object (AZPackedValue *val, AZObject *obj)
 	if (!obj) {
 		az_packed_value_set_reference (val, AZ_TYPE_OBJECT, NULL);
 	} else {
-		az_packed_value_set_reference (val, obj->klass->reference_klass.klass.implementation.type, (AZReference *) obj);
+		az_packed_value_set_reference(val, AZ_OBJECT_TYPE(obj), (AZReference *) obj);
 	}
 }
 
@@ -146,7 +147,7 @@ az_packed_value_transfer_object (AZPackedValue *val, AZObject *obj)
 	if (!obj) {
 		az_packed_value_set_reference (val, AZ_TYPE_OBJECT, NULL);
 	} else {
-		az_packed_value_transfer_reference (val, obj->klass->reference_klass.klass.implementation.type, (AZReference *) obj);
+		az_packed_value_transfer_reference (val, AZ_OBJECT_TYPE(obj), (AZReference *) obj);
 	}
 }
 

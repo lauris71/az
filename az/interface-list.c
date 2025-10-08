@@ -141,7 +141,7 @@ az_interface_list_append (AZInterfaceList* ifl, AZImplementation* impl, void* in
 	arikkei_return_if_fail (ifl != NULL);
 	arikkei_return_if_fail (impl != NULL);
 	arikkei_return_if_fail (inst != NULL);
-	arikkei_return_if_fail (az_type_is_a (impl->type, ifl->iface_type));
+	arikkei_return_if_fail (az_type_is_a (AZ_IMPL_TYPE(impl), ifl->iface_type));
 	if (ifl->length >= ifl->size) {
 		ifl->size = ifl->size << 1;
 		ifl->elements = (AZInterfaceValue *) realloc (ifl->elements, ifl->size * sizeof (AZInterfaceValue));

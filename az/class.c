@@ -22,25 +22,9 @@
 #endif
 #include <az/string.h>
 
-static unsigned int
-az_ifaces_all_reserve(unsigned int n_ifaces)
-{
-	unsigned int next = az_ifaces_all_len;
-	if ((next + n_ifaces) > az_ifaces_all_size) {
-		az_ifaces_all_size = az_ifaces_all_size << 2;
-		if ((next + n_ifaces) > az_ifaces_all_size) az_ifaces_all_size = next + n_ifaces;
-		if (az_ifaces_all_size < 256) az_ifaces_all_size = 256;
-		az_ifaces_all = (AZIFEntry *) realloc(az_ifaces_all, az_ifaces_all_size * sizeof(AZIFEntry));
-	}
-	az_ifaces_all_len += n_ifaces;
-	return next;
-}
-
 static void az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsigned int class_size, unsigned int instance_size, unsigned int flags, const uint8_t *name);
 
 static unsigned char zero_val[16] = { 0 };
-
-static unsigned int classes_size = 0;
 
 /* Method implementations */
 static unsigned int impl_call_setStaticProperty (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
@@ -53,18 +37,6 @@ enum {
 	FUNC_GETSTATICPROPERTY,
 	NUM_PROPERTIES
 };
-
-void
-az_classes_init (void)
-{
-	if (az_classes) return;
-	classes_size = AZ_NUM_BASE_TYPES + 32;
-	az_classes = (AZClass **) malloc (classes_size * sizeof (AZClass *));
-	az_types = (AZTypeInfo *) malloc (classes_size * sizeof (AZTypeInfo));
-	az_classes[AZ_TYPE_INDEX(AZ_TYPE_NONE)] = NULL;
-	az_num_classes = 1;
-	memset (&az_types[AZ_TYPE_INDEX(AZ_TYPE_NONE)], 0, sizeof(AZTypeInfo));
-}
 
 static AZClass *impl_class = NULL;
 static AZClass *class_class = NULL;
@@ -111,7 +83,7 @@ impl_call_setStaticProperty (const AZImplementation **arg_impls, const AZValue *
 	const AZImplementation *prop_impl;
 	void *prop_inst;
 	AZField *prop;
-	prop_idx = az_lookup_property (az_type_get_class (impl->type), impl, NULL, key->str, &sub_class, &prop_impl, &prop_inst, &prop);
+	prop_idx = az_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key->str, &sub_class, &prop_impl, &prop_inst, &prop);
 	arikkei_return_val_if_fail (prop_idx >= 0, 0);
 	arikkei_return_val_if_fail (prop->spec == AZ_FIELD_CLASS, 0);
 	arikkei_return_val_if_fail (!prop->is_final, 0);
@@ -130,7 +102,7 @@ impl_call_getstaticProperty (const AZImplementation **arg_impls, const AZValue *
 	const AZImplementation *prop_impl;
 	void *prop_inst;
 	AZField *prop;
-	prop_idx = az_lookup_property (az_type_get_class (impl->type), impl, NULL, key->str, &sub_class, &prop_impl, &prop_inst, &prop);
+	prop_idx = az_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key->str, &sub_class, &prop_impl, &prop_inst, &prop);
 	arikkei_return_val_if_fail (prop_idx >= 0, 0);
 	arikkei_return_val_if_fail (prop->spec == AZ_FIELD_CLASS, 0);
 	arikkei_return_val_if_fail (prop->read != AZ_FIELD_READ_NONE, 0);
@@ -159,17 +131,12 @@ az_class_new (uint32_t *type, const unsigned char *name, unsigned int parent_typ
 	void (*instance_finalize) (const AZImplementation *, void *))
 {
 #ifdef AZ_SAFETY_CHECKS
-	if (!az_classes) az_init ();
+	if (!az_num_classes) az_init ();
 	arikkei_return_val_if_fail ((parent_type == AZ_TYPE_NONE) || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size), 0);
 	arikkei_return_val_if_fail ((parent_type == AZ_TYPE_NONE) || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size), 0);
 #endif
 	arikkei_return_val_if_fail (!AZ_TYPE_IS_FINAL(parent_type), 0);
-	if (az_num_classes >= classes_size) {
-		classes_size += 32;
-		az_classes = (AZClass **) realloc (az_classes, classes_size * sizeof (AZClass *));
-		az_types = (AZTypeInfo *) realloc (az_types, classes_size * sizeof(AZTypeInfo));
-	}
-	*type = az_num_classes++;
+	*type = az_reserve_type();
 
 	AZClass *klass = az_class_new_with_type(*type, parent_type, class_size, instance_size, flags, name);
 	klass->instance_init = instance_init;
@@ -180,12 +147,9 @@ az_class_new (uint32_t *type, const unsigned char *name, unsigned int parent_typ
 AZClass *
 az_class_new_with_type (unsigned int type, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags, const uint8_t *name)
 {
-#ifdef AZ_SAFETY_CHECKS
-	arikkei_return_val_if_fail(AZ_TYPE_INDEX(type) < classes_size, NULL);
-#endif
 	AZClass *klass = (AZClass *) malloc (class_size);
 	az_class_pre_init (klass, type, parent_type, class_size, instance_size, flags, name);
-	az_classes[AZ_TYPE_INDEX(type)] = klass;
+	az_types[AZ_TYPE_INDEX(type)].klass = klass;
 	/* We have to use class flags here because of parent chaining */
 	az_types[AZ_TYPE_INDEX(type)].flags = klass->flags;
 	az_types[AZ_TYPE_INDEX(type)].pidx = parent_type;
@@ -195,11 +159,11 @@ az_class_new_with_type (unsigned int type, unsigned int parent_type, unsigned in
 void
 az_class_new_with_value (AZClass *klass)
 {
-	unsigned int type = AZ_TYPE_INDEX(klass->implementation.type);
-	az_classes[type] = klass;
+	unsigned int type = AZ_TYPE_INDEX(AZ_CLASS_TYPE(klass));
+	az_types[type].klass = klass;
 	/* We have to use class flags here because of parent chaining */
 	az_types[type].flags = klass->flags;
-	az_types[type].pidx = klass->parent ? klass->parent->implementation.type : AZ_TYPE_NONE;
+	az_types[type].pidx = klass->parent ? AZ_CLASS_TYPE(klass->parent) : AZ_TYPE_NONE;
 }
 
 static void
@@ -220,7 +184,7 @@ az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsig
 		klass->properties_self = NULL;
 #endif
 	}
-	klass->implementation.type = type;
+	klass->implementation._type = type;
 	klass->flags |= flags;
 	klass->name = name;
 	klass->class_size = class_size;
@@ -280,7 +244,7 @@ az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type,
 	/* az_class_declare_interface and */
 	/* az_implementation_declare_interface */
 	/* And maybe delay implementation initialization to post_init */
-	if (!az_type_is_a (klass->implementation.type, AZ_TYPE_INTERFACE)) az_implementation_init ((AZImplementation *) ((char *) klass + impl_offset), type);
+	if (!az_type_is_a (AZ_CLASS_TYPE(klass), AZ_TYPE_INTERFACE)) az_implementation_init ((AZImplementation *) ((char *) klass + impl_offset), type);
 }
 
 void
@@ -305,7 +269,7 @@ az_class_post_init (AZClass *klass)
 #endif
 	if (klass->n_ifaces_self || klass->instance_init || klass->instance_finalize) {
 		klass->flags |= AZ_FLAG_CONSTRUCT;
-		az_types[AZ_TYPE_INDEX(klass->implementation.type)].flags |= AZ_FLAG_CONSTRUCT;
+		az_types[AZ_TYPE_INDEX(AZ_CLASS_TYPE(klass))].flags |= AZ_FLAG_CONSTRUCT;
 	}
 	if (klass->n_ifaces_self) {
 		/* Count all interfaces */
@@ -403,7 +367,7 @@ void az_class_define_property (AZClass *klass, unsigned int idx, const unsigned 
 	arikkei_return_if_fail (key != NULL);
 	arikkei_return_if_fail (type != AZ_TYPE_NONE);
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
-	arikkei_return_if_fail (!impl || (az_type_is_assignable_to (impl->type, type)));
+	arikkei_return_if_fail (!impl || (az_type_is_assignable_to(AZ_IMPL_TYPE(impl), type)));
 #endif
 	az_field_setup (klass->properties_self + idx, key, type, is_final, spec, read, write, offset, impl, inst);
 }
@@ -471,7 +435,7 @@ az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *k
 {
 	AZFunctionSignature *sig;
 	AZFunctionValue fval;
-	sig = az_function_signature_new (klass->implementation.type, ret_type, n_args, arg_types);
+	sig = az_function_signature_new(AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
 	az_function_value_setup (&fval, sig, invoke);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class (AZ_TYPE_FUNCTION_VALUE), &fval);

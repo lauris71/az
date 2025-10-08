@@ -31,14 +31,14 @@
 static unsigned int
 any_to_string (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen)
 {
-	if (impl->type == AZ_TYPE_ANY) {
+	if (AZ_IMPL_TYPE(impl) == AZ_TYPE_ANY) {
 		/* Pure Any */
 		return arikkei_strncpy (d, dlen, (const unsigned char *) "Any");
 	} else {
 		/* Subclass that does not implement to_string */
 		char c[32];
 		unsigned int pos;
-		AZClass* klass = az_type_get_class (impl->type);
+		AZClass* klass = AZ_CLASS_FROM_IMPL(impl);
 		pos = arikkei_memcpy_str (d, dlen, (const unsigned char *) "Instance of ");
 		pos += arikkei_memcpy_str (d + pos, (dlen > pos) ? dlen - pos : 0, klass->name);
 		pos += arikkei_memcpy_str (d + pos, (dlen > pos) ? dlen - pos : 0, (const unsigned char *) " (");
@@ -77,14 +77,14 @@ boolean_to_string (const AZImplementation* impl, void *instance, unsigned char *
 static unsigned int
 serialize_int (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
 {
-	AZClass *klass = az_type_get_class (impl->type);
+	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 	return az_serialize_int (d, dlen, inst, klass->instance_size);
 }
 
 static unsigned int
 deserialize_int (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx)
 {
-	AZClass *klass = az_type_get_class (impl->type);
+	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 	return az_deserialize_int (value, klass->instance_size, s, slen);
 }
 
@@ -115,9 +115,9 @@ copy_int_to_buffer (unsigned char *d, unsigned int dlen, unsigned long long valu
 static unsigned int
 int_to_string_any (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen)
 {
-	AZClass* klass = az_type_get_class (impl->type);
+	AZClass* klass = AZ_CLASS_FROM_IMPL(impl);
 	unsigned int size = klass->instance_size;
-	unsigned int is_signed = ((klass->implementation.type & 1) != 0);
+	unsigned int is_signed = ((klass->implementation._type & 1) != 0);
 	unsigned long long value = 0;
 	unsigned int sign = 0;
 	if (size == 1) {
@@ -293,7 +293,7 @@ static unsigned int
 any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx)
 {
 	*prop_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_CLASS);
-	prop_val->block = AZ_CLASS_FROM_TYPE(impl->type);
+	prop_val->block = AZ_CLASS_FROM_IMPL(impl);
 	return 1;
 }
 
@@ -531,10 +531,10 @@ az_post_init_primitive_classes (void)
     /* Properties are set in post-init because property types have to be initialized first */
 	AZClass *any_class = AZ_CLASS_FROM_TYPE(AZ_TYPE_ANY);
 	az_class_set_num_properties (any_class, 2);
-	az_class_define_property (any_class, 0, (const unsigned char *) "type", AZ_TYPE_UINT32, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_VALUE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET (AZImplementation, type), NULL, NULL);
+	az_class_define_property (any_class, 0, (const unsigned char *) "type", AZ_TYPE_UINT32, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
 	az_class_define_property (any_class, 1, (const unsigned char *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
 	for (i = AZ_TYPE_ANY; i <= AZ_TYPE_BLOCK; i++) {
-		az_class_post_init (az_classes[i]);
+		az_class_post_init (AZ_CLASS_FROM_TYPE(i));
 	}
 }
 

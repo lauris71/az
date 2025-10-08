@@ -67,8 +67,8 @@ value_array_init (AZValueArrayClass *klass, AZValueArray *varray)
 static unsigned int
 value_array_element_size8 (AZValueArray *varray, unsigned int idx)
 {
-	if (AZ_TYPE_VALUE_SIZE(varray->values[idx].impl->type) <= 8) return 0;
-	return (AZ_TYPE_VALUE_SIZE(varray->values[idx].impl->type) + 7) >> 3;
+	if (AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(varray->values[idx].impl)) <= 8) return 0;
+	return (AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(varray->values[idx].impl)) + 7) >> 3;
 }
 
 static AZValue *
@@ -116,11 +116,11 @@ value_array_contains (const AZCollectionImplementation *collection_impl, void *c
 	for (i = 0; i < varray->length; i++) {
 		if (varray->values[i].impl != impl) continue;
 		if (!impl) return 1;
-		if (!AZ_TYPE_VALUE_SIZE(varray->values[i].impl->type)) return 1;
-		if (AZ_TYPE_IS_VALUE(varray->values[i].impl->type)) {
-			if (!memcmp (value_array_element_value (varray, i), inst, AZ_TYPE_VALUE_SIZE(varray->values[i].impl->type))) return 1;
+		if (!AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(varray->values[i].impl))) return 1;
+		if (AZ_TYPE_IS_VALUE(AZ_IMPL_TYPE(varray->values[i].impl))) {
+			if (!memcmp (value_array_element_value (varray, i), inst, AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(varray->values[i].impl)))) return 1;
 		} else {
-			if (!memcmp (value_array_element_value (varray, i), &inst, AZ_TYPE_VALUE_SIZE(varray->values[i].impl->type))) return 1;
+			if (!memcmp (value_array_element_value (varray, i), &inst, AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(varray->values[i].impl)))) return 1;
 		}
 	}
 	return 0;
@@ -232,10 +232,10 @@ az_value_array_set_element (AZValueArray* varray, unsigned int idx, const AZImpl
 	if (varray->values[idx].impl) az_clear_value (varray->values[idx].impl, value_array_element_value (varray, idx));
 	varray->values[idx].impl = impl;
 	if (impl) {
-		if (AZ_TYPE_VALUE_SIZE(impl->type) <= 8) {
+		if (AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(impl)) <= 8) {
 			az_copy_value (impl, (AZValue *) varray->values[idx].value, val);
 		} else {
-			value_array_ensure_room16 (varray, idx, (AZ_TYPE_VALUE_SIZE(impl->type) + 15) >> 4);
+			value_array_ensure_room16 (varray, idx, (AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(impl)) + 15) >> 4);
 			az_copy_value (impl, varray->data + varray->values[idx].val_idx, val);
 		}
 	}
@@ -247,10 +247,10 @@ az_value_array_transfer_element (AZValueArray* varray, unsigned int idx, const A
 	if (varray->values[idx].impl) az_clear_value (varray->values[idx].impl, value_array_element_value (varray, idx));
 	varray->values[idx].impl = impl;
 	if (impl) {
-		if (AZ_TYPE_VALUE_SIZE(impl->type) <= 8) {
+		if (AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(impl)) <= 8) {
 			az_transfer_value (impl, (AZValue *) varray->values[idx].value, val);
 		} else {
-			value_array_ensure_room16 (varray, idx, (AZ_TYPE_VALUE_SIZE(impl->type) + 15) >> 4);
+			value_array_ensure_room16 (varray, idx, (AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(impl)) + 15) >> 4);
 			az_transfer_value (impl, varray->data + varray->values[idx].val_idx, val);
 		}
 	}

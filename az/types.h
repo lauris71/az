@@ -32,6 +32,7 @@ struct _AZTypeInfo {
 	uint32_t flags;
 	/* Parent INDEX */
 	uint32_t pidx;
+	AZClass *klass;
 };
 
 struct _AZIFEntry {
@@ -40,25 +41,58 @@ struct _AZIFEntry {
 	uint16_t inst_offset;
 };
 
-/* C array of all defined classes */
+/*
+ * Three variants of handling global type arrays:
+ * AZ_GLOBALS_FIXED_SIZE - use compile-time fixed size arrays (AZ_MAX_GLOBALS)
+ * AZ_GLOBALS_SINGLE_THREAD - completely ignore concurrency 
+ * AZ_GLOBALS_MULTI_THREAD - use mutex
+ * 
+ * The following methods/macros are redefined depending on globals handling:
+ * az_init()
+ * az_reserve_type()
+ * az_type_get_class()
+ * az_type_get_info();
+ * AZ_CLASS_FROM_TYPE
+ * AZ_IMPL_FROM_TYPE
+ * AZ_TYPE_FLAGS
+ */
 
-#ifndef __AZ_TYPES_C__
-extern AZClass **az_classes;
-extern AZTypeInfo *az_types;
-extern unsigned int az_num_classes;
-#else
-AZClass **az_classes = NULL;
-AZTypeInfo *az_types = NULL;
-unsigned int az_num_classes = 0;
-#endif
+#define AZ_GLOBALS_FIXED_SIZE
+#define AZ_MAX_GLOBALS 256
 
 /*
  * Basic type queries
  */
 
+#if defined AZ_GLOBALS_FIXED_SIZE
+
+#ifndef __AZ_TYPES_C__
+extern AZTypeInfo az_types[];
+extern unsigned int az_num_classes;
+#else
+AZTypeInfo az_types[AZ_MAX_GLOBALS];
+unsigned int az_num_classes = 0;
+#endif
 /* No safety checking */
-#define AZ_CLASS_FROM_TYPE(t) az_classes[AZ_TYPE_INDEX(t)]
-#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_classes[AZ_TYPE_INDEX(t)])
+#define AZ_INFO_FROM_TYPE(t) &az_types[AZ_TYPE_INDEX(t)]
+#define AZ_CLASS_FROM_TYPE(t) az_types[AZ_TYPE_INDEX(t)].klass
+#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_types[AZ_TYPE_INDEX(t)].klass)
+#else
+
+/* C array of all defined classes */
+#ifndef __AZ_TYPES_C__
+extern AZTypeInfo *az_types;
+extern unsigned int az_num_classes;
+#else
+AZTypeInfo *az_types = NULL;
+unsigned int az_num_classes = 0;
+#endif
+/* No safety checking */
+#define AZ_INFO_FROM_TYPE(t) &az_types[AZ_TYPE_INDEX(t)]
+#define AZ_CLASS_FROM_TYPE(t) az_types[AZ_TYPE_INDEX(t)].klass
+#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_types[AZ_TYPE_INDEX(t)].klass)
+
+#endif
 
 #define AZ_TYPE_FLAGS(t) az_types[AZ_TYPE_INDEX(t)].flags
 #define AZ_TYPE_IS_REFERENCE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_REFERENCE)
@@ -68,18 +102,26 @@ unsigned int az_num_classes = 0;
 #define AZ_TYPE_IS_FINAL(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_FINAL)
 
 #ifdef AZ_SAFETY_CHECKS
+ARIKKEI_INLINE AZTypeInfo *
+az_type_get_info (unsigned int type)
+{
+	if (!az_num_classes) az_init ();
+	arikkei_return_val_if_fail (type < az_num_classes, NULL);
+	return AZ_INFO_FROM_TYPE(type);
+}
 ARIKKEI_INLINE AZClass *
 az_type_get_class (unsigned int type)
 {
-	if (!az_classes) az_init ();
+	if (!az_num_classes) az_init ();
 	arikkei_return_val_if_fail (type < az_num_classes, NULL);
-	return az_classes[AZ_TYPE_INDEX(type)];
+	return AZ_CLASS_FROM_TYPE(type);
 }
-#define az_type_get_impl(t) ((AZImplementation *) az_type_get_class(t))
 #else
+#define az_type_get_info AZ_INFO_FROM_TYPE
 #define az_type_get_class AZ_CLASS_FROM_TYPE
-#define az_type_get_impl AZ_IMPL_FROM_TYPE
 #endif
+
+#define az_type_get_impl(t) ((AZImplementation *) az_type_get_class(t))
 
 /** @ingroup types
  * @brief Get parent primitive type

@@ -25,9 +25,9 @@ az_value_init (const AZImplementation *impl, AZValue *val)
 	AZClass *klass;
 	arikkei_return_if_fail (impl != 0);
 	arikkei_return_if_fail (val != NULL);
-	klass = az_type_get_class (impl->type);
+	klass = AZ_CLASS_FROM_IMPL(impl);
 	if (klass->flags & AZ_FLAG_VALUE) {
-		az_instance_init(val, impl->type);
+		az_instance_init(val, AZ_IMPL_TYPE(impl));
 	} else if (klass->flags & AZ_FLAG_BLOCK) {
 		val->block = NULL;
 	}
@@ -39,7 +39,7 @@ az_clear_value (const AZImplementation *impl, AZValue *val)
 	AZClass *klass;
 	arikkei_return_if_fail (impl != 0);
 	arikkei_return_if_fail (val != NULL);
-	klass = az_type_get_class (impl->type);
+	klass = AZ_CLASS_FROM_IMPL(impl);
 	if (klass->flags & AZ_FLAG_REFERENCE) {
 		if (val->reference) az_reference_unref ((AZReferenceClass *) impl, val->reference);
 	}
@@ -52,7 +52,7 @@ az_transfer_value (const AZImplementation *impl, AZValue *dst, const AZValue *sr
 	arikkei_return_if_fail (impl != 0);
 	arikkei_return_if_fail (dst != NULL);
 	arikkei_return_if_fail (src != NULL);
-	klass = az_type_get_class (impl->type);
+	klass = AZ_CLASS_FROM_IMPL(impl);
 	if (az_class_value_size(klass)) memcpy (dst, src, az_class_value_size(klass));
 }
 
@@ -62,7 +62,7 @@ az_instance_from_value (const AZImplementation *impl, const AZValue *value)
 	AZClass *klass;
 	arikkei_return_val_if_fail (impl != 0, NULL);
 	arikkei_return_val_if_fail (value != NULL, NULL);
-	klass = az_type_get_class (impl->type);
+	klass = AZ_CLASS_FROM_IMPL(impl);
 	if (klass->flags & AZ_FLAG_BLOCK) {
 		return value->block;
 	} else {
@@ -75,7 +75,7 @@ unsigned int
 az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue *rhs)
 {
 	AZClass *klass;
-	klass = az_type_get_class (impl->type);
+	klass = AZ_CLASS_FROM_IMPL(impl);
 	if (klass->flags & AZ_FLAG_BLOCK) {
 		return lhs->block == rhs->block;
 	}
@@ -89,7 +89,7 @@ unsigned int
 az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, const void *rhs)
 {
 	AZClass *klass;
-	klass = az_type_get_class (impl->type);
+	klass = AZ_CLASS_FROM_IMPL(impl);
 	if (klass->flags & AZ_FLAG_BLOCK) {
 		return lhs->block == rhs;
 	}
@@ -109,7 +109,7 @@ az_copy_value (const AZImplementation *impl, AZValue *dst, const AZValue *src)
 	arikkei_return_if_fail (dst != NULL);
 	arikkei_return_if_fail (src != NULL);
 #endif
-	klass = az_type_get_class (impl->type);
+	klass = AZ_CLASS_FROM_IMPL(impl);
 	if (az_class_value_size(klass)) memcpy (dst, src, az_class_value_size(klass));
 	if (klass->flags & AZ_FLAG_REFERENCE) {
 		if (src->reference) az_reference_ref (src->reference);
@@ -125,7 +125,7 @@ az_set_value_from_instance (const AZImplementation *impl, AZValue *dst, void *in
 	arikkei_return_if_fail (dst != NULL);
 	arikkei_return_if_fail (inst != NULL);
 #endif
-	klass = az_type_get_class (impl->type);
+	klass = AZ_CLASS_FROM_IMPL(impl);
 	if (klass->flags & AZ_FLAG_BLOCK) {
 		dst->block = inst;
 		if (klass->flags & AZ_FLAG_REFERENCE) {
@@ -153,22 +153,22 @@ az_value_convert_auto (const AZImplementation **dst_impl, AZValue *dst_val, cons
 		}
 	}
 	/* Anything can be converted to the same or supertype (this includes Any) */
-	if (az_type_is_a ((*src_impl)->type, to_type)) {
+	if (az_type_is_a(AZ_IMPL_TYPE(*src_impl), to_type)) {
 		*dst_impl = *src_impl;
 		az_copy_value (*src_impl, dst_val, src_val);
 		return 1;
 	}
 	/* Anything can be converted to implemented interface */
-	if ((to_klass->flags & AZ_FLAG_INTERFACE) && az_type_implements ((*src_impl)->type, to_type)) {
+	if ((to_klass->flags & AZ_FLAG_INTERFACE) && az_type_implements (AZ_IMPL_TYPE(*src_impl), to_type)) {
 		dst_val->reference = (AZReference *) az_boxed_interface_new_from_impl_value (*src_impl, src_val, to_type);
 		*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BOXED_INTERFACE);
 		return 1;
 	}
 	/* Arithemtic types */
-	if (AZ_TYPE_IS_ARITHMETIC (to_type) && AZ_TYPE_IS_ARITHMETIC ((*src_impl)->type)) {
-		if (az_primitive_can_convert (to_type, (*src_impl)->type) <= AZ_CONVERT_CONDITIONAL) {
+	if (AZ_TYPE_IS_ARITHMETIC (to_type) && AZ_TYPE_IS_ARITHMETIC (AZ_IMPL_TYPE(*src_impl))) {
+		if (az_primitive_can_convert (to_type, AZ_IMPL_TYPE(*src_impl)) <= AZ_CONVERT_CONDITIONAL) {
 			*dst_impl = &to_klass->implementation;
-			az_convert_arithmetic_type (to_type, dst_val, (*src_impl)->type, src_val);
+			az_convert_arithmetic_type (to_type, dst_val, AZ_IMPL_TYPE(*src_impl), src_val);
 			return 1;
 		} else {
 			return 0;
@@ -194,19 +194,19 @@ az_value_convert_in_place (const AZImplementation **impl, AZValue *val, unsigned
 		return 0;
 	}
 	/* Anything can be converted to supertype (this includes Any) */
-	if (az_type_is_a ((*impl)->type, to_type)) {
+	if (az_type_is_a (AZ_IMPL_TYPE(*impl), to_type)) {
 		return 1;
 	}
 	/* Anything can be converted to implemented interface */
-	if ((to_klass->flags & AZ_FLAG_INTERFACE) && az_type_implements ((*impl)->type, to_type)) {
+	if ((to_klass->flags & AZ_FLAG_INTERFACE) && az_type_implements (AZ_IMPL_TYPE(*impl), to_type)) {
 		val->reference = (AZReference *) az_boxed_interface_new_from_impl_value (*impl, val, to_type);
 		*impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BOXED_INTERFACE);
 		return 1;
 	}
 	/* Arithmetic types */
-	if (AZ_TYPE_IS_ARITHMETIC (to_type) && AZ_TYPE_IS_ARITHMETIC ((*impl)->type)) {
-		if (az_primitive_can_convert (to_type, (*impl)->type) <= AZ_CONVERT_CONDITIONAL) {
-			az_convert_arithmetic_type (to_type, val, (*impl)->type, val);
+	if (AZ_TYPE_IS_ARITHMETIC (to_type) && AZ_TYPE_IS_ARITHMETIC (AZ_IMPL_TYPE(*impl))) {
+		if (az_primitive_can_convert (to_type, AZ_IMPL_TYPE(*impl)) <= AZ_CONVERT_CONDITIONAL) {
+			az_convert_arithmetic_type (to_type, val, AZ_IMPL_TYPE(*impl), val);
 			*impl = &to_klass->implementation;
 			return 1;
 		}
@@ -219,8 +219,8 @@ az_value_convert_in_place (const AZImplementation **impl, AZValue *val, unsigned
 AZImplementation *
 az_value_box (AZValue *dst_val, const AZImplementation *src_impl, const AZValue *src_val)
 {
-	dst_val->reference = (AZReference *) az_reference_of_new_value (src_impl->type, src_val);
-	return (AZImplementation *) az_type_get_class (AZ_TYPE_REFERENCE_OF (src_impl->type));
+	dst_val->reference = (AZReference *) az_reference_of_new_value (AZ_IMPL_TYPE(src_impl), src_val);
+	return (AZImplementation *) az_type_get_class (AZ_TYPE_REFERENCE_OF (AZ_IMPL_TYPE(src_impl)));
 }
 
 AZImplementation *

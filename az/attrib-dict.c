@@ -132,7 +132,7 @@ attrd_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImple
 {
 	AZAttribDictImplementation *impl = (AZAttribDictImplementation *) map_impl;
 	unsigned int flags;
-	if (!key_impl || (key_impl->type != AZ_TYPE_STRING)) return NULL;
+	if (!key_impl || (AZ_IMPL_TYPE(key_impl) != AZ_TYPE_STRING)) return NULL;
 	return impl->lookup (impl, map_inst, (AZString *) key_inst, val, &flags);
 }
 

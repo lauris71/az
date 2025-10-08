@@ -76,7 +76,7 @@ az_reference_drop (AZReferenceClass *klass, AZReference *ref)
 	if (!klass->drop || klass->drop (klass, ref)) {
 		/* No one took ownership of the object */
 		if (klass->dispose) klass->dispose (klass, ref);
-		az_instance_delete (klass->klass.implementation.type, ref);
+		az_instance_delete(AZ_CLASS_TYPE(&klass->klass), ref);
 	} else {
 		/* Someone took ownership but may have dropped it in another thread */
 		AZ_REFERENCE_LOCK ();
@@ -85,7 +85,7 @@ az_reference_drop (AZReferenceClass *klass, AZReference *ref)
 		if (ref->refcount == 1) {
 			AZ_REFERENCE_UNLOCK ();
 			if (klass->dispose) klass->dispose (klass, ref);
-			az_instance_delete (klass->klass.implementation.type, ref);
+			az_instance_delete(AZ_CLASS_TYPE(&klass->klass), ref);
 		} else {
             ref->refcount -= 1;
 			AZ_REFERENCE_UNLOCK ();
@@ -110,7 +110,7 @@ az_reference_dispose (AZReferenceClass *klass, AZReference *ref)
 	ref->refcount -= 1;
 	if (!ref->refcount) {
 		AZ_REFERENCE_UNLOCK ();
-		az_instance_delete (klass->klass.implementation.type, ref);
+		az_instance_delete(AZ_CLASS_TYPE(&klass->klass), ref);
 	} else {
 		AZ_REFERENCE_UNLOCK ();
 	}

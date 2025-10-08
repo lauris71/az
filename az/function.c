@@ -113,7 +113,7 @@ az_function_invoke (const AZFunctionImplementation *impl, AZFunctionInstance *in
 {
 #if AZ_SAFETY_CHECKS
 	arikkei_return_val_if_fail (impl != NULL, 0);
-	arikkei_return_val_if_fail (az_type_is_a (impl->implementation.type, AZ_TYPE_FUNCTION), 0);
+	arikkei_return_val_if_fail (az_type_is_a (AZ_IMPL_TYPE(&impl->implementation), AZ_TYPE_FUNCTION), 0);
 	arikkei_return_val_if_fail (inst != NULL, 0);
 #endif
 	ARIKKEI_CHECK_INTEGRITY ();
@@ -128,7 +128,7 @@ az_function_convert_args_in_place (const AZFunctionImplementation *impl, AZFunct
 	unsigned int i;
 #if AZ_SAFETY_CHECKS
 	arikkei_return_val_if_fail (impl != NULL, 0);
-	arikkei_return_val_if_fail (az_type_is_a (impl->implementation.type, AZ_TYPE_FUNCTION), 0);
+	arikkei_return_val_if_fail (az_type_is_a (AZ_IMPL_TYPE(&impl->implementation), AZ_TYPE_FUNCTION), 0);
 	arikkei_return_val_if_fail (inst != NULL, 0);
 #endif
 	/* fixme: Not sure whether converting this is meaningful or not */
@@ -143,15 +143,15 @@ az_function_invoke_packed (const AZFunctionImplementation *impl, AZFunctionInsta
 {
 	unsigned int s, d;
 	arikkei_return_val_if_fail (impl != NULL, 0);
-	arikkei_return_val_if_fail (az_type_is_a (impl->implementation.type, AZ_TYPE_FUNCTION), 0);
+	arikkei_return_val_if_fail (az_type_is_a (AZ_IMPL_TYPE(&impl->implementation), AZ_TYPE_FUNCTION), 0);
 	arikkei_return_val_if_fail (inst != NULL, 0);
 	if (checktypes) {
 		s = d = 0;
 		if (thisval->impl) {
-			if (!az_type_is_a (thisval->impl->type, inst->signature->arg_types[d])) {
+			if (!az_type_is_a (AZ_IMPL_TYPE(thisval->impl), inst->signature->arg_types[d])) {
 				fprintf (stderr, ".");
 			}
-			arikkei_return_val_if_fail (az_type_is_a (thisval->impl->type, inst->signature->arg_types[d]), 0);
+			arikkei_return_val_if_fail (az_type_is_a(AZ_IMPL_TYPE(thisval->impl), inst->signature->arg_types[d]), 0);
 			d += 1;
 		}
 		while (d < inst->signature->n_args) {
@@ -160,8 +160,8 @@ az_function_invoke_packed (const AZFunctionImplementation *impl, AZFunctionInsta
 				d += 1;
 				continue;
 			}
-			if (!az_type_is_a (args[s].impl->type, inst->signature->arg_types[d])) {
-				fprintf (stderr, "az_function_invoke: Invalid argument type (%u) %u is not %u\n", d, args[s].impl->type, inst->signature->arg_types[d]);
+			if (!az_type_is_a (AZ_PACKED_VALUE_TYPE(&args[s]), inst->signature->arg_types[d])) {
+				fprintf (stderr, "az_function_invoke: Invalid argument type (%u) %u is not %u\n", d, AZ_PACKED_VALUE_TYPE(&args[s]), inst->signature->arg_types[d]);
 				return 0;
 			}
 			s += 1;
@@ -214,7 +214,7 @@ az_instance_invoke_function (const AZImplementation *impl, void *inst, AZPackedV
 	AZFunctionImplementation *func_impl;
 	AZFunctionInstance *func_inst;
 #if AZ_SAFETY_CHECKS
-	arikkei_return_val_if_fail (az_type_implements (impl->type, AZ_TYPE_FUNCTION), 0);
+	arikkei_return_val_if_fail (az_type_implements(AZ_IMPL_TYPE(impl), AZ_TYPE_FUNCTION), 0);
 	arikkei_return_val_if_fail (inst != NULL, 0);
 #endif
 	func_impl = (AZFunctionImplementation *) az_get_interface (impl, inst, AZ_TYPE_FUNCTION, (void **) &func_inst);
