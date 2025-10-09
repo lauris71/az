@@ -204,7 +204,7 @@ az_function_invoke_by_type_instance (unsigned int type, void *instance, AZPacked
 	arikkei_return_val_if_fail (az_type_implements (type, AZ_TYPE_FUNCTION), 0);
 	arikkei_return_val_if_fail (instance != NULL, 0);
 	klass = az_type_get_class (type);
-	impl = (AZFunctionImplementation *) az_get_interface (&klass->implementation, instance, AZ_TYPE_FUNCTION, (void **) &inst);
+	impl = (AZFunctionImplementation *) az_get_interface (&klass->impl, instance, AZ_TYPE_FUNCTION, (void **) &inst);
 	return az_function_invoke_packed (impl, inst, thisval, retval, args, checktypes);
 }
 
@@ -289,10 +289,10 @@ function_build_arguments_arm64 (const AZFunctionSignature *sig, va_list ap, cons
 	unsigned int i;
 	for (i = 0; i < sig->n_args; i++) {
 		AZClass *klass = AZ_CLASS_FROM_TYPE(sig->arg_types[i]);
-		if (klass->flags & AZ_FLAG_VALUE) {
-			if (klass->flags & AZ_FLAG_FINAL) {
+		if (klass->impl.flags & AZ_FLAG_VALUE) {
+			if (klass->impl.flags & AZ_FLAG_FINAL) {
 				/* Final value type, no implementation */
-				arg_impls[i] = &klass->implementation;
+				arg_impls[i] = &klass->impl;
 				if (az_class_value_size(klass) <= 8) {
                                     /* fixme: Do the proper copying */
                                     arg_vals[i].uint64_v = va_arg(ap, uint64_t);
@@ -316,14 +316,14 @@ function_build_arguments_arm64 (const AZFunctionSignature *sig, va_list ap, cons
 		} else if (az_type_is_a (sig->arg_types[i], AZ_TYPE_OBJECT)) {
 			/* Object, no implementation, value is pointer to instance */
 			AZObject *obj = (AZObject *) va_arg(ap, AZObject *);
-			arg_impls[i] = (obj) ? (AZImplementation *) obj->klass : &klass->implementation;
+			arg_impls[i] = (obj) ? (AZImplementation *) obj->klass : &klass->impl;
                         arg_vals[i].block = obj;
 			arg_ptrs[i] = &arg_vals[i];
 		} else {
 			/* Non-object block types */
-			if (klass->flags & AZ_FLAG_FINAL) {
+			if (klass->impl.flags & AZ_FLAG_FINAL) {
                                 /* Implementation is omitted for final types */
-				arg_impls[i] = &klass->implementation;
+				arg_impls[i] = &klass->impl;
                                 arg_vals[i].block = (void *) va_arg(ap, void *);
                                 arg_ptrs[i] = &arg_vals[i];
 			} else {

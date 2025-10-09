@@ -151,7 +151,7 @@ az_class_new_with_type (unsigned int type, unsigned int parent_type, unsigned in
 	az_class_pre_init (klass, type, parent_type, class_size, instance_size, flags, name);
 	az_types[AZ_TYPE_INDEX(type)].klass = klass;
 	/* We have to use class flags here because of parent chaining */
-	az_types[AZ_TYPE_INDEX(type)].flags = klass->flags;
+	az_types[AZ_TYPE_INDEX(type)].flags = klass->impl.flags;
 	az_types[AZ_TYPE_INDEX(type)].pidx = parent_type;
 	return klass;
 }
@@ -162,7 +162,7 @@ az_class_new_with_value (AZClass *klass)
 	unsigned int type = AZ_TYPE_INDEX(AZ_CLASS_TYPE(klass));
 	az_types[type].klass = klass;
 	/* We have to use class flags here because of parent chaining */
-	az_types[type].flags = klass->flags;
+	az_types[type].flags = klass->impl.flags;
 	az_types[type].pidx = klass->parent ? AZ_CLASS_TYPE(klass->parent) : AZ_TYPE_NONE;
 }
 
@@ -173,10 +173,9 @@ az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsig
 	klass->default_val = zero_val;
 	if (parent) {
 		AZClass *parent_class = AZ_CLASS_FROM_TYPE(parent);
-		unsigned int i;
 		memcpy (klass, parent_class, parent_class->class_size);
 		/* Overwrite values from supertype */
-		klass->flags &= ~AZ_FLAG_ABSTRACT;
+		klass->impl.flags &= ~AZ_FLAG_ABSTRACT;
 		klass->parent = parent_class;
 		klass->n_ifaces_self = 0;
 #ifdef AZ_HAS_PROPERTIES
@@ -184,8 +183,8 @@ az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsig
 		klass->properties_self = NULL;
 #endif
 	}
-	klass->implementation._type = type;
-	klass->flags |= flags;
+	klass->impl._type = type;
+	klass->impl.flags |= flags;
 	klass->name = name;
 	klass->class_size = class_size;
 	klass->instance_size = instance_size;
@@ -268,7 +267,7 @@ az_class_post_init (AZClass *klass)
 #endif
 #endif
 	if (klass->n_ifaces_self || klass->instance_init || klass->instance_finalize) {
-		klass->flags |= AZ_FLAG_CONSTRUCT;
+		klass->impl.flags |= AZ_FLAG_CONSTRUCT;
 		az_types[AZ_TYPE_INDEX(AZ_CLASS_TYPE(klass))].flags |= AZ_FLAG_CONSTRUCT;
 	}
 	if (klass->n_ifaces_self) {

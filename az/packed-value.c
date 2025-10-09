@@ -61,7 +61,7 @@ az_packed_value_can_convert (unsigned int to_type, const AZPackedValue *from)
 	/* None can be converted to NULL block */
 	if (!from->impl) {
 		AZClass *klass = az_type_get_class (to_type);
-		return (klass->flags & AZ_FLAG_REFERENCE) != 0;
+		return (AZ_CLASS_FLAGS(klass) & AZ_FLAG_REFERENCE) != 0;
 	}
 	/* Anything can be converted to supertype */
 	if (az_type_is_a(AZ_PACKED_VALUE_TYPE(from), to_type)) return 1;
@@ -85,7 +85,7 @@ az_packed_value_convert (AZPackedValue *dst, unsigned int to_type, const AZPacke
 	/* None can be converted to NULL reference */
 	if (!from->impl) {
 		AZClass *klass = az_type_get_class (to_type);
-		if (klass->flags & AZ_FLAG_REFERENCE) {
+		if (AZ_CLASS_FLAGS(klass) & AZ_FLAG_REFERENCE) {
 			az_packed_value_clear (dst);
 			return 1;
 		}
@@ -145,11 +145,11 @@ az_packed_value_set_from_type_value (AZPackedValue *dst, unsigned int type, cons
 			dst->impl = NULL;
 			return;
 		}
-		dst->impl = &klass->implementation;
+		dst->impl = &klass->impl;
 		if (az_class_value_size(klass)) {
 			memcpy (&dst->v, src, az_class_value_size(klass));
 		}
-		if ((klass->flags & AZ_FLAG_REFERENCE) && dst->v.reference) {
+		if ((AZ_CLASS_FLAGS(klass) & AZ_FLAG_REFERENCE) && dst->v.reference) {
 			az_reference_ref (dst->v.reference);
 		}
 	}
@@ -174,7 +174,7 @@ az_packed_value_set_from_impl_value (AZPackedValue *dst, const AZImplementation 
 		if (az_class_value_size(klass)) {
 			memcpy (&dst->v, src, az_class_value_size(klass));
 		}
-		if ((klass->flags & AZ_FLAG_REFERENCE) && dst->v.reference) {
+		if ((AZ_CLASS_FLAGS(klass) & AZ_FLAG_REFERENCE) && dst->v.reference) {
 			az_reference_ref (dst->v.reference);
 		}
 	}
@@ -196,14 +196,14 @@ az_packed_value_set_from_type_instance (AZPackedValue *dst, unsigned int type, v
 			dst->impl = NULL;
 			return;
 		}
-		dst->impl = &klass->implementation;
-		if (klass->flags & AZ_FLAG_VALUE) {
+		dst->impl = &klass->impl;
+		if (AZ_CLASS_FLAGS(klass) & AZ_FLAG_VALUE) {
 			if (az_class_value_size(klass)) {
 				memcpy (&dst->v, inst, az_class_value_size(klass));
 			}
 		} else {
 			dst->v.block = inst;
-			if ((klass->flags & AZ_FLAG_REFERENCE) && dst->v.reference) {
+			if ((AZ_CLASS_FLAGS(klass) & AZ_FLAG_REFERENCE) && dst->v.reference) {
 				az_reference_ref (dst->v.reference);
 			}
 		}
@@ -227,13 +227,13 @@ az_packed_value_set_from_impl_instance (AZPackedValue *dst, const AZImplementati
 			return;
 		}
 		dst->impl = impl;
-		if (klass->flags & AZ_FLAG_VALUE) {
+		if (AZ_CLASS_FLAGS(klass) & AZ_FLAG_VALUE) {
 			if (az_class_value_size(klass)) {
 				memcpy (&dst->v, inst, az_class_value_size(klass));
 			}
 		} else {
 			dst->v.block = inst;
-			if ((klass->flags & AZ_FLAG_REFERENCE) && dst->v.reference) {
+			if ((AZ_CLASS_FLAGS(klass) & AZ_FLAG_REFERENCE) && dst->v.reference) {
 				az_reference_ref (dst->v.reference);
 			}
 		}

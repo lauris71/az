@@ -46,7 +46,7 @@ static void
 array_of_class_init (AZArrayOfClass *klass, AZClass *element_class)
 {
 	klass->klass.alignment = element_class->alignment;
-	klass->element_type = element_class->implementation._type;
+	klass->element_type = AZ_CLASS_TYPE(element_class);
 }
 
 static void

@@ -13,41 +13,57 @@
 extern "C" {
 #endif
 
+/* Implementation flags */
+#define AZ_FLAG_IMPL_IS_CLASS 0x01
+
 /**
- * @brief Superclass of all implementations
+ * @brief Superclass of all implementations and classes
  * 
+ * The flag AZ_FLAG_IMPL_IS_CLASS marks whether it is class or standalone implementation. In the
+ * former case the union contains flags and type, otherwise pointer to the class.
+ * We use the fact that pointers are aligned to 8 bytes and thus the 3 lowest bits, including the
+ * flag bit, are always zero.
  */
+
 struct _AZImplementation {
-	unsigned int _type;
+	union {
+		struct {
+			uint32_t flags;
+			uint32_t _type;
+		};
+		AZClass *klass;
+	};
 };
 
-#define AZ_CLASS_FROM_IMPL(i) AZ_CLASS_FROM_TYPE(i->_type)
-/* todo: flag has to be NOT_INTERFACE */
-#define AZ_IMPL_IS_INTERFACE(i) (AZ_CLASS_FROM_IMPL(i)->flags & AZ_FLAG_INTERFACE)
-#define AZ_IMPL_IS_REFERENCE(i) (AZ_CLASS_FROM_IMPL(i)->flags & AZ_FLAG_REFERENCE)
+#define AZ_IMPL_IS_CLASS(i) ((i)->flags & AZ_FLAG_IMPL_IS_CLASS)
+#define AZ_CLASS_FROM_IMPL(i) (AZ_IMPL_IS_CLASS(i) ? (AZClass *) (i) : (i)->klass)
 
-#define AZ_IMPL_TYPE(i) ((i)->_type)
-#define AZ_CLASS_TYPE(c) ((c)->implementation._type)
+#define AZ_IMPL_TYPE(i) (AZ_IMPL_IS_CLASS(i) ? (i)->_type : (i)->klass->impl._type)
+#define AZ_IMPL_FLAGS(i) (AZ_IMPL_IS_CLASS(i) ? (i)->flags : (i)->klass->impl.flags)
+#define AZ_CLASS_TYPE(c) ((c)->impl._type)
+#define AZ_CLASS_FLAGS(c) ((c)->impl.flags)
 
-/* Class flags */
+#define AZ_IMPL_IS_VALUE(i) (((i)->flags & (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_VALUE)) == (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_VALUE))
+#define AZ_IMPL_IS_BLOCK(i) (((i)->flags & (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_BLOCK)) == (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_BLOCK))
+#define AZ_IMPL_IS_REFERENCE(i) (((i)->flags & (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_REFERENCE)) == (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_REFERENCE))
 
-/* These flags have to be zero if interpreted as class pointer */
+/* Type flags */
 /* Interface type, implementation is not class */
-#define AZ_FLAG_INTERFACE 1
+#define AZ_FLAG_INTERFACE 0x01000000
 /* Reference type, copying needs reference counting */
-#define AZ_FLAG_REFERENCE 2
+#define AZ_FLAG_REFERENCE 0x02000000
 
 /* No instancing is allowed (this is not propagated to subclasses) */
-#define AZ_FLAG_ABSTRACT 4
+#define AZ_FLAG_ABSTRACT 0x04000000
 /* No subclasses */
-#define AZ_FLAG_FINAL 8
+#define AZ_FLAG_FINAL 0x08000000
 /* Instance is value */
-#define AZ_FLAG_VALUE 16
+#define AZ_FLAG_VALUE 0x10000000
 /* Subclasses should not remove flag set by parent */
-#define AZ_FLAG_ZERO_MEMORY 32
-#define AZ_FLAG_CONSTRUCT 64
+#define AZ_FLAG_ZERO_MEMORY 0x20000000
+#define AZ_FLAG_CONSTRUCT 0x40000000
 /* Special handling */
-#define AZ_FLAG_BLOCK 128
+#define AZ_FLAG_BLOCK 0x80000000
 
 #define AZ_CLASS_ELEMENT_SIZE(klass) ((klass->instance_size + klass->alignment) & ~klass->alignment)
 
@@ -61,8 +77,8 @@ struct _AZInstanceAllocator {
 };
 
 struct _AZClass {
-	AZImplementation implementation;
-	unsigned int flags;
+	AZImplementation impl;
+	//unsigned int flags;
 
 	AZClass *parent;
 
@@ -215,7 +231,7 @@ az_class_iface_all(const AZClass *klass, uint16_t idx)
 static inline unsigned int
 az_class_value_size(const AZClass *klass)
 {
-	return (klass->flags & AZ_FLAG_BLOCK) ? sizeof(void *) : klass->instance_size;
+	return (klass->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : klass->instance_size;
 }
 
 /* To be called from class constructors */

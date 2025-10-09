@@ -47,7 +47,7 @@ ARIKKEI_INLINE unsigned int
 az_type_is_a_reference_of (unsigned int type, unsigned int referenced_type)
 {
 	AZClass *klass = az_type_get_class (type);
-	return (klass->flags & AZ_FLAG_REFERENCE) &&
+	return (AZ_CLASS_FLAGS(klass) & AZ_FLAG_REFERENCE) &&
 		az_type_is_a (type, AZ_TYPE_ABSTRACT_REFERENCE_OF) &&
 		az_type_is_a (((AZReferenceOfClass *) klass)->instance_type, referenced_type);
 }

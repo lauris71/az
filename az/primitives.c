@@ -117,7 +117,7 @@ int_to_string_any (const AZImplementation* impl, void *instance, unsigned char *
 {
 	AZClass* klass = AZ_CLASS_FROM_IMPL(impl);
 	unsigned int size = klass->instance_size;
-	unsigned int is_signed = ((klass->implementation._type & 1) != 0);
+	unsigned int is_signed = ((klass->impl._type & 1) != 0);
 	unsigned long long value = 0;
 	unsigned int sign = 0;
 	if (size == 1) {
@@ -300,7 +300,7 @@ any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, co
 static unsigned char zero_val[16] = { 0 };
 
 static AZClass AnyClass = {
-	AZ_TYPE_ANY, AZ_FLAG_ABSTRACT,
+	{AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_ANY},
 	NULL,
 	/* Interfaces */
 	0, 0, {0},
@@ -321,7 +321,7 @@ unsigned int AnyType[] = { AZ_TYPE_ANY };
 
 static AZClass primitive_classes[] = {
 	{
-		AZ_TYPE_BOOLEAN, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOOLEAN},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,
@@ -333,7 +333,7 @@ static AZClass primitive_classes[] = {
 		serialize_boolean, deserialize_boolean, boolean_to_string,
 		NULL, NULL
 	}, {
-		AZ_TYPE_INT8, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT8},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,
@@ -345,7 +345,7 @@ static AZClass primitive_classes[] = {
 		serialize_int, deserialize_int, int_to_string_any,
 		NULL, NULL
 	}, {
-		AZ_TYPE_UINT8, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT8},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,
@@ -357,7 +357,7 @@ static AZClass primitive_classes[] = {
 		serialize_int, deserialize_int, int_to_string_any,
 		NULL, NULL
 	}, {
-		AZ_TYPE_INT16, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT16},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,
@@ -369,7 +369,7 @@ static AZClass primitive_classes[] = {
 		serialize_int, deserialize_int, int_to_string_any,
 		NULL, NULL
 	}, {
-		AZ_TYPE_UINT16, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT16},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,
@@ -381,7 +381,7 @@ static AZClass primitive_classes[] = {
 		serialize_int, deserialize_int, int_to_string_any,
 		NULL, NULL
 	}, {
-		AZ_TYPE_INT32, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT32},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,
@@ -393,7 +393,7 @@ static AZClass primitive_classes[] = {
 		serialize_int, deserialize_int, int_to_string_any,
 		NULL, NULL
 	}, {
-		AZ_TYPE_UINT32, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT32},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,
@@ -405,7 +405,7 @@ static AZClass primitive_classes[] = {
 		serialize_int, deserialize_int, int_to_string_any,
 		NULL, NULL
 	}, {
-		AZ_TYPE_INT64, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT64},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,
@@ -417,7 +417,7 @@ static AZClass primitive_classes[] = {
 		serialize_int, deserialize_int, int_to_string_any,
 		NULL, NULL
 	}, {
-		AZ_TYPE_UINT64, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT64},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,
@@ -429,7 +429,7 @@ static AZClass primitive_classes[] = {
 		serialize_int, deserialize_int, int_to_string_any,
 		NULL, NULL
 	}, {
-		AZ_TYPE_FLOAT, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FLOAT},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,
@@ -441,7 +441,7 @@ static AZClass primitive_classes[] = {
 		serialize_int, deserialize_int, float_to_string,
 		NULL, NULL
 	}, {
-		AZ_TYPE_DOUBLE, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_DOUBLE},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,
@@ -453,7 +453,7 @@ static AZClass primitive_classes[] = {
 		serialize_int, deserialize_int, double_to_string,
 		NULL, NULL
 	}, {
-		AZ_TYPE_COMPLEX_FLOAT, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_FLOAT},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,
@@ -465,7 +465,7 @@ static AZClass primitive_classes[] = {
 		serialize_complex_float, deserialize_complex_float, complex_float_to_string,
 		NULL, NULL
 	}, {
-		AZ_TYPE_COMPLEX_DOUBLE, AZ_FLAG_VALUE | AZ_FLAG_FINAL,
+		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_DOUBLE},
 		&AnyClass,
 		0, 0, {0},
 		0, NULL,

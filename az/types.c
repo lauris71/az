@@ -113,7 +113,7 @@ az_type_implements (unsigned int type, unsigned int test)
 	arikkei_return_val_if_fail (AZ_TYPE_IS_INTERFACE(test), 0);
 #endif
 	if (!type) return 0;
-	return az_get_interface (&AZ_CLASS_FROM_TYPE(type)->implementation, NULL, test, NULL) != NULL;
+	return az_get_interface (&AZ_CLASS_FROM_TYPE(type)->impl, NULL, test, NULL) != NULL;
 }
 
 unsigned int
@@ -167,11 +167,11 @@ az_instance_initialize (void *inst, unsigned int type)
 #endif
 	AZClass *klass = AZ_CLASS_FROM_TYPE(type);
 #ifdef AZ_SAFETY_CHECKS
-	arikkei_return_if_fail (!(klass->flags & AZ_FLAG_ABSTRACT));
+	arikkei_return_if_fail (!(klass->impl.flags & AZ_FLAG_ABSTRACT));
 #endif
-	if (klass->flags & AZ_FLAG_ZERO_MEMORY) memset (inst, 0, klass->instance_size);
+	if (klass->impl.flags & AZ_FLAG_ZERO_MEMORY) memset (inst, 0, klass->instance_size);
 	/* fixme: This is checked in frontend if safety checks are on */
-	if (klass->flags & AZ_FLAG_CONSTRUCT) instance_init_recursive (klass, &klass->implementation, inst, klass->flags & AZ_FLAG_ZERO_MEMORY);
+	if (klass->impl.flags & AZ_FLAG_CONSTRUCT) instance_init_recursive (klass, &klass->impl, inst, klass->impl.flags & AZ_FLAG_ZERO_MEMORY);
 }
 
 void
@@ -185,9 +185,9 @@ az_instance_finalize (void *inst, unsigned int type)
 #endif
 	AZClass *klass = AZ_CLASS_FROM_TYPE(type);
 #ifdef AZ_SAFETY_CHECKS
-	arikkei_return_if_fail (!(klass->flags & AZ_FLAG_ABSTRACT));
+	arikkei_return_if_fail (!(klass->impl.flags & AZ_FLAG_ABSTRACT));
 #endif
-	instance_finalize_recursive (klass, &klass->implementation, inst);
+	instance_finalize_recursive (klass, &klass->impl, inst);
 }
 
 void
@@ -197,10 +197,12 @@ az_implementation_init (AZImplementation *impl, unsigned int type)
 	arikkei_return_if_fail (impl != NULL);
 	arikkei_return_if_fail (type != 0);
 	arikkei_return_if_fail (type < az_num_classes);
-	arikkei_return_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE));
+	arikkei_return_if_fail (az_type_is_a(type, AZ_TYPE_INTERFACE));
 #endif
-	AZInterfaceClass *ifclass = (AZInterfaceClass *) az_type_get_class (type);
-	impl->_type = type;
+	AZInterfaceClass *ifclass = (AZInterfaceClass *) AZ_CLASS_FROM_TYPE(type);
+	//impl->flags = ifclass->klass.impl.flags & ~AZ_FLAG_IMPL_IS_CLASS;
+	//impl->_type = type;
+	impl->klass = &ifclass->klass;
 	implementation_init_recursive (ifclass, impl);
 }
 
@@ -212,11 +214,11 @@ az_interface_init (const AZImplementation *impl, void *inst)
 	arikkei_return_if_fail (inst != NULL);
 	arikkei_return_if_fail (AZ_TYPE_INDEX(AZ_IMPL_TYPE(impl)) != 0);
 	arikkei_return_if_fail (AZ_TYPE_INDEX(AZ_IMPL_TYPE(impl)) < az_num_classes);
-	arikkei_return_if_fail (AZ_IMPL_IS_INTERFACE(impl));
+	arikkei_return_if_fail (!AZ_IMPL_IS_CLASS(impl));
 #endif
 	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
-	if (klass->flags & AZ_FLAG_ZERO_MEMORY) memset (inst, 0, klass->instance_size);
-	instance_init_recursive (klass, impl, inst, klass->flags & AZ_FLAG_ZERO_MEMORY);
+	if (klass->impl.flags & AZ_FLAG_ZERO_MEMORY) memset (inst, 0, klass->instance_size);
+	instance_init_recursive (klass, impl, inst, klass->impl.flags & AZ_FLAG_ZERO_MEMORY);
 }
 
 void
@@ -227,7 +229,7 @@ az_interface_finalize (const AZImplementation *impl, void *inst)
 	arikkei_return_if_fail (inst != NULL);
 	arikkei_return_if_fail (AZ_TYPE_INDEX(AZ_IMPL_TYPE(impl)) != 0);
 	arikkei_return_if_fail (AZ_TYPE_INDEX(AZ_IMPL_TYPE(impl)) < az_num_classes);
-	arikkei_return_if_fail (AZ_IMPL_IS_INTERFACE(impl));
+	arikkei_return_if_fail (!AZ_IMPL_IS_CLASS(impl));
 #endif
 	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 	instance_finalize_recursive (klass, impl, inst);
@@ -243,15 +245,15 @@ az_instance_new (unsigned int type)
 	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_classes, NULL);
 	arikkei_return_val_if_fail (!az_type_is_a (type, AZ_TYPE_INTERFACE), NULL);
 #endif
-	klass = az_type_get_class (type);
-	arikkei_return_val_if_fail (!(klass->flags & AZ_FLAG_ABSTRACT), NULL);
+	klass = AZ_CLASS_FROM_TYPE(type);
+	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_ABSTRACT), NULL);
 	if (klass->allocator && klass->allocator->allocate) {
 		inst = klass->allocator->allocate (klass);
 	} else {
 		inst = malloc (klass->instance_size);
 	}
-	if (klass->flags & AZ_FLAG_ZERO_MEMORY) memset (inst, 0, klass->instance_size);
-	instance_init_recursive (klass, &klass->implementation, inst, klass->flags & AZ_FLAG_ZERO_MEMORY);
+	if (klass->impl.flags & AZ_FLAG_ZERO_MEMORY) memset (inst, 0, klass->instance_size);
+	instance_init_recursive (klass, &klass->impl, inst, klass->impl.flags & AZ_FLAG_ZERO_MEMORY);
 	return inst;
 }
 
@@ -272,10 +274,10 @@ az_instance_new_array (unsigned int type, unsigned int nelements)
 	} else {
 		elements = malloc (nelements * AZ_CLASS_ELEMENT_SIZE(klass));
 	}
-	if (klass->flags & AZ_FLAG_ZERO_MEMORY) memset (elements, 0, nelements * AZ_CLASS_ELEMENT_SIZE(klass));
+	if (klass->impl.flags & AZ_FLAG_ZERO_MEMORY) memset (elements, 0, nelements * AZ_CLASS_ELEMENT_SIZE(klass));
 	for (i = 0; i < nelements; i++) {
 		void *instance = (char *) elements + i * AZ_CLASS_ELEMENT_SIZE(klass);
-		instance_init_recursive (klass, &klass->implementation, instance, klass->flags & AZ_FLAG_ZERO_MEMORY);
+		instance_init_recursive (klass, &klass->impl, instance, klass->impl.flags & AZ_FLAG_ZERO_MEMORY);
 	}
 	return elements;
 }
@@ -290,7 +292,7 @@ az_instance_delete (unsigned int type, void *instance)
 	arikkei_return_if_fail (!az_type_is_a (type, AZ_TYPE_INTERFACE));
 #endif
 	klass = az_type_get_class (type);
-	instance_finalize_recursive (klass, &klass->implementation, instance);
+	instance_finalize_recursive (klass, &klass->impl, instance);
 	if (klass->allocator && klass->allocator->free) {
 		klass->allocator->free (klass, instance);
 	} else {
@@ -311,7 +313,7 @@ az_instance_delete_array (unsigned int type, void *elements, unsigned int neleme
 	klass = az_type_get_class (type);
 	for (i = 0; i < nelements; i++) {
 		void *instance = (char *) elements + i * AZ_CLASS_ELEMENT_SIZE(klass);
-		instance_finalize_recursive (klass, &klass->implementation, instance);
+		instance_finalize_recursive (klass, &klass->impl, instance);
 	}
 	if (klass->allocator && klass->allocator->free_array) {
 		klass->allocator->free_array (klass, elements, nelements);
@@ -393,7 +395,7 @@ az_instance_to_string (const AZImplementation* impl, void *inst, unsigned char *
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_val_if_fail (klass != NULL, 0);
 #endif
-	return klass->to_string (&klass->implementation, inst, buf, len);
+	return klass->to_string (&klass->impl, inst, buf, len);
 }
 
 AZClass *
@@ -455,8 +457,8 @@ instance_init_recursive (const AZClass *klass, const AZImplementation *impl, voi
 		AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
 		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
 		void *sub_inst = (void *) ((char *) inst + ifentry->inst_offset);
-		if (!zeroed && (sub_class->flags & AZ_FLAG_ZERO_MEMORY)) memset (sub_inst, 0, sub_class->instance_size);
-		instance_init_recursive (sub_class, sub_impl, sub_inst, zeroed || (sub_class->flags & AZ_FLAG_ZERO_MEMORY));
+		if (!zeroed && (sub_class->impl.flags & AZ_FLAG_ZERO_MEMORY)) memset (sub_inst, 0, sub_class->instance_size);
+		instance_init_recursive (sub_class, sub_impl, sub_inst, zeroed || (sub_class->impl.flags & AZ_FLAG_ZERO_MEMORY));
 		ifentry += 1;
 	}
 	/* Instance itself */
@@ -702,9 +704,9 @@ az_instance_get_property_by_id (const AZClass *klass, const AZImplementation *im
 			az_value_set_object (prop_impl, &prop_val->value, *((AZObject **) val));
 		} else {
 			AZClass *prop_class = AZ_CLASS_FROM_TYPE(klass->properties_self[idx].type);
-			arikkei_return_val_if_fail (prop_class->flags & AZ_FLAG_FINAL, 0);
-			*prop_impl = &prop_class->implementation;
-			az_copy_value (&prop_class->implementation, &prop_val->value, val);
+			arikkei_return_val_if_fail (prop_class->impl.flags & AZ_FLAG_FINAL, 0);
+			*prop_impl = &prop_class->impl;
+			az_copy_value (&prop_class->impl, &prop_val->value, val);
 		}
 	} else if (klass->properties_self[idx].read == AZ_FIELD_READ_STORED_STATIC) {
 		if (klass->properties_self[idx].value) {
@@ -727,7 +729,7 @@ az_instance_get_property_by_id (const AZClass *klass, const AZImplementation *im
 		return klass->get_property (impl, inst, idx, prop_impl, &prop_val->value, ctx);
 	} else if (klass->properties_self[idx].read == AZ_FIELD_READ_BOXED_INTERFACE) {
 		AZClass *prop_class = AZ_CLASS_FROM_TYPE(klass->properties_self[idx].type);
-		arikkei_return_val_if_fail (prop_class->flags & AZ_FLAG_INTERFACE, 0);
+		arikkei_return_val_if_fail (prop_class->impl.flags & AZ_FLAG_INTERFACE, 0);
 		AZBoxedInterface *boxed = az_boxed_interface_new (impl, inst, (const AZImplementation *) ((char *) impl + klass->properties_self[idx].offset), (char *) inst + klass->properties_self[idx].offset);
 		*prop_impl = (const AZImplementation *) az_boxed_interface_class;
 		az_value_transfer_reference (&prop_val->value, (AZReference *) boxed);

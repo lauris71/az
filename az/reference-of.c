@@ -91,7 +91,7 @@ reference_of_to_string (const AZImplementation* impl, void *instance, unsigned c
 	pos = arikkei_memcpy_str (buf, len, (const unsigned char *) "Reference of ");
 	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, inst_class->name);
 	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) " (");
-	pos += az_instance_to_string (&inst_class->implementation, az_reference_of_get_instance (ref_class, instance), buf + pos, (len > pos) ? len - pos : 0);
+	pos += az_instance_to_string (&inst_class->impl, az_reference_of_get_instance (ref_class, instance), buf + pos, (len > pos) ? len - pos : 0);
 	pos += arikkei_strncpy (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) ")");
 	return pos;
 }

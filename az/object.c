@@ -127,7 +127,7 @@ az_object_get_interface (AZObject *obj, unsigned int type, void **inst)
 {
 	arikkei_return_val_if_fail (obj != NULL, NULL);
 	arikkei_return_val_if_fail (AZ_IS_OBJECT (obj), NULL);
-	return az_get_interface (&obj->klass->reference_klass.klass.implementation, obj, type, inst);
+	return az_get_interface (&obj->klass->reference_klass.klass.impl, obj, type, inst);
 }
 
 #ifdef AZ_HAS_PACKED_VALUE
