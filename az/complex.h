@@ -7,8 +7,6 @@
 * Copyright (C) Lauris Kaplinski 2018
 */
 
-#include <complex.h>
-
 typedef struct _AZComplexFloat AZComplexFloat;
 typedef struct _AZComplexDouble AZComplexDouble;
 

@@ -9,6 +9,7 @@
  * Licensed under GNU General Public License version 3 or any later version.
  */
 
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -43,7 +44,7 @@ struct _AZIFEntry {
 
 /*
  * Three variants of handling global type arrays:
- * AZ_GLOBALS_FIXED_SIZE - use compile-time fixed size arrays (AZ_MAX_GLOBALS)
+ * AZ_GLOBALS_FIXED_SIZE - use compile-time fixed size arrays (AZ_MAX_TYPES)
  * AZ_GLOBALS_SINGLE_THREAD - completely ignore concurrency 
  * AZ_GLOBALS_MULTI_THREAD - use mutex
  * 
@@ -58,7 +59,7 @@ struct _AZIFEntry {
  */
 
 #define AZ_GLOBALS_FIXED_SIZE
-#define AZ_MAX_GLOBALS 256
+#define AZ_MAX_TYPES 256
 
 /*
  * Basic type queries
@@ -68,10 +69,10 @@ struct _AZIFEntry {
 
 #ifndef __AZ_TYPES_C__
 extern AZTypeInfo az_types[];
-extern unsigned int az_num_classes;
+extern atomic_uint az_num_types;
 #else
-AZTypeInfo az_types[AZ_MAX_GLOBALS];
-unsigned int az_num_classes = 0;
+AZTypeInfo az_types[AZ_MAX_TYPES];
+atomic_uint az_num_types = 0;
 #endif
 /* No safety checking */
 #define AZ_INFO_FROM_TYPE(t) &az_types[AZ_TYPE_INDEX(t)]
@@ -82,10 +83,10 @@ unsigned int az_num_classes = 0;
 /* C array of all defined classes */
 #ifndef __AZ_TYPES_C__
 extern AZTypeInfo *az_types;
-extern unsigned int az_num_classes;
+extern unsigned int az_num_types;
 #else
 AZTypeInfo *az_types = NULL;
-unsigned int az_num_classes = 0;
+unsigned int az_num_types = 0;
 #endif
 /* No safety checking */
 #define AZ_INFO_FROM_TYPE(t) &az_types[AZ_TYPE_INDEX(t)]
@@ -105,15 +106,15 @@ unsigned int az_num_classes = 0;
 ARIKKEI_INLINE AZTypeInfo *
 az_type_get_info (unsigned int type)
 {
-	if (!az_num_classes) az_init ();
-	arikkei_return_val_if_fail (type < az_num_classes, NULL);
+	if (!az_num_types) az_init ();
+	arikkei_return_val_if_fail (type < az_num_types, NULL);
 	return AZ_INFO_FROM_TYPE(type);
 }
 ARIKKEI_INLINE AZClass *
 az_type_get_class (unsigned int type)
 {
-	if (!az_num_classes) az_init ();
-	arikkei_return_val_if_fail (type < az_num_classes, NULL);
+	if (!az_num_types) az_init ();
+	arikkei_return_val_if_fail (type < az_num_types, NULL);
 	return AZ_CLASS_FROM_TYPE(type);
 }
 #else

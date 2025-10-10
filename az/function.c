@@ -289,7 +289,7 @@ function_build_arguments_arm64 (const AZFunctionSignature *sig, va_list ap, cons
 	unsigned int i;
 	for (i = 0; i < sig->n_args; i++) {
 		AZClass *klass = AZ_CLASS_FROM_TYPE(sig->arg_types[i]);
-		if (klass->impl.flags & AZ_FLAG_VALUE) {
+		if (AZ_CLASS_IS_VALUE(klass)) {
 			if (klass->impl.flags & AZ_FLAG_FINAL) {
 				/* Final value type, no implementation */
 				arg_impls[i] = &klass->impl;

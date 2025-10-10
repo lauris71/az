@@ -197,7 +197,7 @@ az_packed_value_set_from_type_instance (AZPackedValue *dst, unsigned int type, v
 			return;
 		}
 		dst->impl = &klass->impl;
-		if (AZ_CLASS_FLAGS(klass) & AZ_FLAG_VALUE) {
+		if (AZ_CLASS_IS_VALUE(klass)) {
 			if (az_class_value_size(klass)) {
 				memcpy (&dst->v, inst, az_class_value_size(klass));
 			}
@@ -227,7 +227,7 @@ az_packed_value_set_from_impl_instance (AZPackedValue *dst, const AZImplementati
 			return;
 		}
 		dst->impl = impl;
-		if (AZ_CLASS_FLAGS(klass) & AZ_FLAG_VALUE) {
+		if (AZ_CLASS_IS_VALUE(klass)) {
 			if (az_class_value_size(klass)) {
 				memcpy (&dst->v, inst, az_class_value_size(klass));
 			}

@@ -29,7 +29,7 @@ struct _AZImplementation {
 	union {
 		struct {
 			uint32_t flags;
-			uint32_t _type;
+			uint32_t type;
 		};
 		AZClass *klass;
 	};
@@ -38,32 +38,36 @@ struct _AZImplementation {
 #define AZ_IMPL_IS_CLASS(i) ((i)->flags & AZ_FLAG_IMPL_IS_CLASS)
 #define AZ_CLASS_FROM_IMPL(i) (AZ_IMPL_IS_CLASS(i) ? (AZClass *) (i) : (i)->klass)
 
-#define AZ_IMPL_TYPE(i) (AZ_IMPL_IS_CLASS(i) ? (i)->_type : (i)->klass->impl._type)
+#define AZ_IMPL_TYPE(i) (AZ_IMPL_IS_CLASS(i) ? (i)->type : (i)->klass->impl.type)
 #define AZ_IMPL_FLAGS(i) (AZ_IMPL_IS_CLASS(i) ? (i)->flags : (i)->klass->impl.flags)
-#define AZ_CLASS_TYPE(c) ((c)->impl._type)
+#define AZ_CLASS_TYPE(c) ((c)->impl.type)
 #define AZ_CLASS_FLAGS(c) ((c)->impl.flags)
 
 #define AZ_IMPL_IS_VALUE(i) (((i)->flags & (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_VALUE)) == (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_VALUE))
 #define AZ_IMPL_IS_BLOCK(i) (((i)->flags & (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_BLOCK)) == (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_BLOCK))
 #define AZ_IMPL_IS_REFERENCE(i) (((i)->flags & (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_REFERENCE)) == (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_REFERENCE))
 
+#define AZ_CLASS_IS_VALUE(c) !((c)->impl.flags & AZ_FLAG_BLOCK)
 /* Type flags */
 /* Interface type, implementation is not class */
 #define AZ_FLAG_INTERFACE 0x01000000
+/* Instance is referenced by pointer */
+#define AZ_FLAG_BLOCK 0x02000000
 /* Reference type, copying needs reference counting */
-#define AZ_FLAG_REFERENCE 0x02000000
+#define AZ_FLAG_REFERENCE 0x04000000
+/* Instance is a container of another type */
+#define AZ_FLAG_BOXED 0x08000000
 
 /* No instancing is allowed (this is not propagated to subclasses) */
-#define AZ_FLAG_ABSTRACT 0x04000000
+#define AZ_FLAG_ABSTRACT 0x10000000
 /* No subclasses */
-#define AZ_FLAG_FINAL 0x08000000
-/* Instance is value */
-#define AZ_FLAG_VALUE 0x10000000
+#define AZ_FLAG_FINAL 0x20000000
 /* Subclasses should not remove flag set by parent */
-#define AZ_FLAG_ZERO_MEMORY 0x20000000
-#define AZ_FLAG_CONSTRUCT 0x40000000
-/* Special handling */
-#define AZ_FLAG_BLOCK 0x80000000
+#define AZ_FLAG_ZERO_MEMORY 0x40000000
+#define AZ_FLAG_CONSTRUCT 0x80000000
+
+// fixme: remove
+#define AZ_FLAG_VALUE 0
 
 #define AZ_CLASS_ELEMENT_SIZE(klass) ((klass->instance_size + klass->alignment) & ~klass->alignment)
 

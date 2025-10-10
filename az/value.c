@@ -90,7 +90,7 @@ az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, cons
 	if (klass->impl.flags & AZ_FLAG_BLOCK) {
 		return lhs->block == rhs;
 	}
-	if ((klass->impl.flags & AZ_FLAG_VALUE) && klass->instance_size) {
+	if (AZ_CLASS_IS_VALUE(klass) && klass->instance_size) {
 		return !memcmp (lhs, rhs, klass->instance_size);
 	}
 	return 0;

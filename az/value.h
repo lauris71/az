@@ -98,6 +98,8 @@ unsigned int az_value_equals_instance (const AZImplementation *impl, const AZVal
 
 void az_copy_value (const AZImplementation *impl, AZValue *dst, const AZValue *src);
 void az_set_value_from_instance (const AZImplementation *impl, AZValue *dst, void *inst);
+#define az_value_set_from_impl_value(dst, impl, src) az_copy_value(impl, dst, src)
+#define az_value_set_from_impl_instance(dst, impl, src) az_set_value_from_instance(impl, dst, src)
 
 /* Transfer reference instance to destination */
 

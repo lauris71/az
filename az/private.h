@@ -25,9 +25,9 @@ void arikkei_check_integrity (void);
 ARIKKEI_INLINE unsigned int
 az_type_is_valid(uint32_t type) {
 	if (AZ_TYPE_INDEX(type) == 0) return 0;
-	if (AZ_TYPE_INDEX(type) >= az_num_classes) return 0;
+	if (AZ_TYPE_INDEX(type) >= az_num_types) return 0;
 	AZImplementation *impl = AZ_IMPL_FROM_TYPE(type);
-	return type == impl->_type;
+	return type == impl->type;
 }
 
 /* Library internals */

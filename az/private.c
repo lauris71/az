@@ -9,7 +9,7 @@ static unsigned int classes_size = 0;
 void
 az_globals_init (void)
 {
-	if (az_num_classes) return;
+	if (az_num_types) return;
 #if defined AZ_GLOBALS_FIXED_SIZE
 #else
 	classes_size = AZ_NUM_BASE_TYPES + 32;
@@ -32,7 +32,7 @@ az_reserve_type()
 		az_types = (AZTypeInfo *) realloc (az_types, classes_size * sizeof(AZTypeInfo));
 	}
 #endif
-	return az_num_classes++;
+	return az_num_types++;
 }
 
 void

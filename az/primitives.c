@@ -117,7 +117,7 @@ int_to_string_any (const AZImplementation* impl, void *instance, unsigned char *
 {
 	AZClass* klass = AZ_CLASS_FROM_IMPL(impl);
 	unsigned int size = klass->instance_size;
-	unsigned int is_signed = ((klass->impl._type & 1) != 0);
+	unsigned int is_signed = ((impl->type & 1) != 0);
 	unsigned long long value = 0;
 	unsigned int sign = 0;
 	if (size == 1) {
