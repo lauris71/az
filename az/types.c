@@ -15,6 +15,7 @@
 
 #include <arikkei/arikkei-utils.h>
 
+#include <az/boxed-value.h>
 #include <az/class.h>
 #include <az/function.h>
 #include <az/interface.h>
@@ -704,8 +705,7 @@ az_instance_get_property_by_id (const AZClass *klass, const AZImplementation *im
 		} else {
 			AZClass *prop_class = AZ_CLASS_FROM_TYPE(klass->properties_self[idx].type);
 			arikkei_return_val_if_fail (prop_class->impl.flags & AZ_FLAG_FINAL, 0);
-			*prop_impl = &prop_class->impl;
-			az_copy_value (&prop_class->impl, &prop_val->value, val);
+			*prop_impl = az_value_copy_autobox (&prop_val->value, &prop_class->impl, val, 64);
 		}
 	} else if (klass->properties_self[idx].read == AZ_FIELD_READ_STORED_STATIC) {
 		if (klass->properties_self[idx].value) {

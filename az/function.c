@@ -237,12 +237,12 @@ function_build_arguments (const AZFunctionSignature *sig, uint64_t *p, const AZI
 {
 	unsigned int i;
 	for (i = 0; i < sig->n_args; i++) {
-		AZClass *klass = az_classes[sig->arg_types[i]];
-		if (klass->flags & AZ_FLAG_VALUE) {
-			if (klass->flags & AZ_FLAG_FINAL) {
+		AZClass *klass = AZ_CLASS_FROM_TYPE(sig->arg_types[i]);
+		if (AZ_CLASS_IS_VALUE(klass)) {
+			if (klass->impl.flags & AZ_FLAG_FINAL) {
 				/* Final value types */
-				arg_impls[i] = &klass->implementation;
-				if (klass->value_size <= 8) {
+				arg_impls[i] = &klass->impl;
+				if (AZ_CLASS_VALUE_SIZE(klass) <= 8) {
 					arg_ptrs[i] = (const AZValue *) p;
 				} else {
 					arg_ptrs[i] = (const AZValue *) *p;
@@ -252,7 +252,7 @@ function_build_arguments (const AZFunctionSignature *sig, uint64_t *p, const AZI
 				/* Nonfinal value types */
 				arg_impls[i] = (const AZImplementation *) *p;
 				p += ARG_STEP;
-				if (klass->value_size <= 8) {
+				if (AZ_CLASS_VALUE_SIZE(klass) <= 8) {
 					arg_ptrs[i] = (const AZValue *) p;
 				} else {
 					arg_ptrs[i] = (const AZValue *) *p;
@@ -267,8 +267,8 @@ function_build_arguments (const AZFunctionSignature *sig, uint64_t *p, const AZI
 			p += ARG_STEP;
 		} else {
 			/* Non-object block types */
-			if (klass->flags & AZ_FLAG_FINAL) {
-				arg_impls[i] = &klass->implementation;
+			if (klass->impl.flags & AZ_FLAG_FINAL) {
+				arg_impls[i] = &klass->impl;
 				arg_ptrs[i] = (const AZValue *) p;
 				p += ARG_STEP;
 			} else {

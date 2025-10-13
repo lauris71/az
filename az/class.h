@@ -69,7 +69,9 @@ struct _AZImplementation {
 // fixme: remove
 #define AZ_FLAG_VALUE 0
 
-#define AZ_CLASS_ELEMENT_SIZE(klass) ((klass->instance_size + klass->alignment) & ~klass->alignment)
+#define AZ_CLASS_ELEMENT_SIZE(k) (((k)->instance_size + (k)->alignment) & ~(k)->alignment)
+#define AZ_CLASS_VALUE_SIZE(k) (((k)->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : (k)->instance_size)
+#define AZ_CLASS_VALUE_ARRAY_SIZE(k) (((k)->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : AZ_CLASS_ELEMENT_SIZE(k))
 
 typedef struct _AZInstanceAllocator AZInstanceAllocator;
 
