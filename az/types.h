@@ -9,7 +9,6 @@
  * Licensed under GNU General Public License version 3 or any later version.
  */
 
-#include <stdatomic.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -69,10 +68,10 @@ struct _AZIFEntry {
 
 #ifndef __AZ_TYPES_C__
 extern AZTypeInfo az_types[];
-extern atomic_uint az_num_types;
+extern unsigned int az_num_types;
 #else
 AZTypeInfo az_types[AZ_MAX_TYPES];
-atomic_uint az_num_types = 0;
+unsigned int az_num_types = 0;
 #endif
 /* No safety checking */
 #define AZ_INFO_FROM_TYPE(t) &az_types[AZ_TYPE_INDEX(t)]
