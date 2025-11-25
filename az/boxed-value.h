@@ -24,7 +24,7 @@ extern "C" {
 struct _AZBoxedValue {
 	AZReference ref;
     uint32_t filler_1;
-	const AZImplementation *impl;
+	const AZClass *klass;
 	AZValue val;
 };
 
@@ -38,8 +38,8 @@ extern AZBoxedValueClass *az_boxed_value_class;
 AZBoxedValueClass *az_boxed_value_class = NULL;
 #endif
 
-AZBoxedValue *az_boxed_value_new (const AZImplementation *impl, void *inst);
-AZBoxedValue *az_boxed_value_new_from_impl_value (const AZImplementation *impl, const AZValue *val);
+AZBoxedValue *az_boxed_value_new (const AZClass *klass, void *inst);
+AZBoxedValue *az_boxed_value_new_from_val (const AZClass *klass, const AZValue *val);
 
 ARIKKEI_INLINE void
 az_boxed_value_ref (AZBoxedValue *boxed)
@@ -58,7 +58,7 @@ az_value_set_autobox(AZValue *dst, const AZImplementation *impl, void *inst, uns
 {
 	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 	if (AZ_CLASS_IS_VALUE(klass) && (klass->instance_size > value_size)) {
-		dst->block = az_boxed_value_new(impl, inst);
+		dst->block = az_boxed_value_new(klass, inst);
 		return AZ_BOXED_VALUE_IMPL;
 	} else {
 		az_value_set_from_impl_instance(dst, impl, inst);
@@ -70,8 +70,8 @@ static inline const AZImplementation *
 az_value_copy_autobox(AZValue *dst, const AZImplementation *impl, const AZValue *src, unsigned int value_size)
 {
 	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
-	if (AZ_CLASS_IS_VALUE(klass) && (klass->instance_size > value_size)) {
-		dst->block = az_boxed_value_new_from_impl_value(impl, src);
+	if (impl && AZ_CLASS_IS_VALUE(klass) && (klass->instance_size > value_size)) {
+		dst->block = az_boxed_value_new_from_val(klass, src);
 		return AZ_BOXED_VALUE_IMPL;
 	} else {
 		az_value_set_from_impl_value(dst, impl, src);
@@ -84,7 +84,7 @@ az_value_copy_autounbox(AZValue *dst, const AZImplementation *impl, const AZValu
 {
 	if (impl == AZ_BOXED_VALUE_IMPL) {
 		AZBoxedValue *boxed = (AZBoxedValue *) src->block;
-		impl = boxed->impl;
+		impl = &boxed->klass->impl;
 		az_value_set_from_impl_value(dst, impl, &boxed->val);
 	} else {
 		az_value_set_from_impl_value(dst, impl, src);
@@ -97,11 +97,27 @@ az_value_autounbox(const AZImplementation *impl, AZValue *val)
 {
 	if (impl == AZ_BOXED_VALUE_IMPL) {
 		AZBoxedValue *boxed = (AZBoxedValue *) val->block;
-		impl = boxed->impl;
+		impl = &boxed->klass->impl;
 		az_value_set_from_impl_value(val, impl, &boxed->val);
 		az_boxed_value_unref(boxed);
 	}
 	return impl;
+}
+
+static inline unsigned int
+az_value_is_boxed(const AZImplementation *impl, const AZValue *value)
+{
+	return AZ_IMPL_IS_BOXED_VALUE(impl);
+}
+
+static inline unsigned int
+az_value_get_unboxed_size(const AZImplementation *impl, const AZValue *value)
+{
+	if (AZ_IMPL_IS_BOXED_VALUE(impl)) {
+		return ((AZBoxedValue *) value)->klass->instance_size;
+	} else {
+		return az_class_value_size(AZ_CLASS_FROM_IMPL(impl));
+	}
 }
 
 #ifdef AZ_INTERNAL

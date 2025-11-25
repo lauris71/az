@@ -11,8 +11,9 @@
 #include <string.h>
 
 #include <arikkei/arikkei-strlib.h>
-#include <az/class.h>
+
 #include <az/private.h>
+#include <az/extend.h>
 
 #include <az/reference-of.h>
 

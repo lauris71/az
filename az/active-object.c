@@ -14,6 +14,7 @@
 
 #include <az/packed-value.h>
 #include <az/string.h>
+#include <az/extend.h>
 
 #include <az/active-object.h>
 

@@ -9,6 +9,7 @@ set(AZ_HEADERS
 	class.h
 	collection.h
 	complex.h
+	extend.h
 	field.h
 	function-value.h
 	function.h

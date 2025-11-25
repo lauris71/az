@@ -14,8 +14,8 @@
 #include <arikkei/arikkei-strlib.h>
 
 #include <az/class.h>
+#include <az/extend.h>
 #ifdef AZ_HAS_PROPERTIES
-#include <az/field.h>
 #include <az/function-value.h>
 #include <az/packed-value.h>
 #include <az/private.h>
@@ -83,7 +83,7 @@ impl_call_setStaticProperty (const AZImplementation **arg_impls, const AZValue *
 	const AZImplementation *prop_impl;
 	void *prop_inst;
 	AZField *prop;
-	prop_idx = az_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key->str, &sub_class, &prop_impl, &prop_inst, &prop);
+	prop_idx = az_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &sub_class, &prop_impl, &prop_inst, &prop);
 	arikkei_return_val_if_fail (prop_idx >= 0, 0);
 	arikkei_return_val_if_fail (prop->spec == AZ_FIELD_CLASS, 0);
 	arikkei_return_val_if_fail (!prop->is_final, 0);
@@ -102,11 +102,11 @@ impl_call_getstaticProperty (const AZImplementation **arg_impls, const AZValue *
 	const AZImplementation *prop_impl;
 	void *prop_inst;
 	AZField *prop;
-	prop_idx = az_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key->str, &sub_class, &prop_impl, &prop_inst, &prop);
+	prop_idx = az_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &sub_class, &prop_impl, &prop_inst, &prop);
 	arikkei_return_val_if_fail (prop_idx >= 0, 0);
 	arikkei_return_val_if_fail (prop->spec == AZ_FIELD_CLASS, 0);
 	arikkei_return_val_if_fail (prop->read != AZ_FIELD_READ_NONE, 0);
-	az_instance_get_property_by_id (sub_class, prop_impl, NULL, prop_idx, ret_impl, ret_val, NULL);
+	az_instance_get_property_by_id (sub_class, prop_impl, NULL, prop_idx, ret_impl, ret_val, 64, NULL);
 	return 1;
 }
 
@@ -171,7 +171,6 @@ static void
 az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsigned int class_size, unsigned int instance_size, unsigned int flags, const uint8_t *name)
 {
 	memset (klass, 0, class_size);
-	klass->default_val = zero_val;
 	if (parent) {
 		AZClass *parent_class = AZ_CLASS_FROM_TYPE(parent);
 		memcpy (klass, parent_class, parent_class->class_size);
@@ -180,7 +179,7 @@ az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsig
 		klass->parent = parent_class;
 		klass->n_ifaces_self = 0;
 #ifdef AZ_HAS_PROPERTIES
-		klass->n_properties_self = 0;
+		klass->n_props_self = 0;
 		klass->properties_self = NULL;
 #endif
 	}
@@ -189,16 +188,6 @@ az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsig
 	klass->name = name;
 	klass->class_size = class_size;
 	klass->instance_size = instance_size;
-	klass->init_recursive = NULL;
-}
-
-static void
-az_class_init_recursive (AZClass* klass, AZClass* new_class)
-{
-	if (klass->parent) az_class_init_recursive (klass->parent, new_class);
-	if (klass->init_recursive) {
-        klass->init_recursive (new_class);
-    }
 }
 
 void
@@ -224,9 +213,13 @@ az_class_set_num_interfaces (AZClass *klass, unsigned int n_ifaces)
 void
 az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type, unsigned int impl_offset, unsigned int inst_offset)
 {
+#ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (klass != NULL);
 	arikkei_return_if_fail (idx < klass->n_ifaces_self);
-	arikkei_return_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE));
+	arikkei_return_if_fail (AZ_TYPE_IS_INTERFACE(type));
+	arikkei_return_if_fail (impl_offset <= UINT16_MAX);
+	arikkei_return_if_fail (inst_offset <= UINT16_MAX);
+#endif
 	if (klass->n_ifaces_self <= 2) {
 #ifdef AZ_SAFETY_CHECKS
 	    arikkei_return_if_fail (!klass->ifaces[idx].type);
@@ -238,21 +231,14 @@ az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type,
 #endif
 		klass->ifaces_self[idx] = (AZIFEntry) {type, impl_offset, inst_offset};
 	}
-	/* For standalone types implementation is in class and should be initialized */
-	/* For interface types sub-implementation is inside implementation and should be initialized later */
-	/* fixme: The correct way to do this is to create two methods: */
-	/* az_class_declare_interface and */
-	/* az_implementation_declare_interface */
-	/* And maybe delay implementation initialization to post_init */
-	if (!az_type_is_a (AZ_CLASS_TYPE(klass), AZ_TYPE_INTERFACE)) az_implementation_init ((AZImplementation *) ((char *) klass + impl_offset), type);
 }
 
 void
 az_class_post_init (AZClass *klass)
 {
 	unsigned int i;
-	arikkei_return_if_fail (!(klass->alignment & (klass->alignment + 1)));
 #ifdef AZ_SAFETY_CHECKS
+	arikkei_return_if_fail (!(klass->alignment & (klass->alignment + 1)));
 	for (i = 0; i < klass->n_ifaces_self; i++) {
 		AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[i] : &klass->ifaces_self[i];
 		if (!ifentry->type) {
@@ -260,7 +246,7 @@ az_class_post_init (AZClass *klass)
 		}
 	}
 #ifdef AZ_HAS_PROPERTIES
-	for (i = 0; i < klass->n_properties_self; i++) {
+	for (i = 0; i < klass->n_props_self; i++) {
 		if (!klass->properties_self[i].key) {
 			fprintf (stderr, "az_class_post_init: Klass %s property %u is not defined\n", klass->name, i);
 		}
@@ -272,10 +258,17 @@ az_class_post_init (AZClass *klass)
 		az_types[AZ_TYPE_INDEX(AZ_CLASS_TYPE(klass))].flags |= AZ_FLAG_CONSTRUCT;
 	}
 	if (klass->n_ifaces_self) {
+		if (!AZ_CLASS_IS_INTERFACE(klass)) {
+			/* Init implementations */
+			for (i = 0; i < klass->n_ifaces_self; i++) {
+				AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[i] : &klass->ifaces_self[i];
+				AZClass *iface_class = AZ_CLASS_FROM_TYPE(ifentry->type);
+				az_implementation_init ((AZImplementation *) ((char *) klass + ifentry->impl_offset), ifentry->type);
+			}
+		}
 		/* Count all interfaces */
-		klass->n_ifaces_all = klass->parent->n_ifaces_all;
+		/* Initially n_ifaces_all has the value from parent class */
 		for (i = 0; i < klass->n_ifaces_self; i++) {
-			/* At this stage n_ifaces_all has still parent class value */
 			AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[i] : &klass->ifaces_self[i];
 			AZClass *iface_class = AZ_CLASS_FROM_TYPE(ifentry->type);
 			klass->n_ifaces_all += (1 + iface_class->n_ifaces_all);
@@ -344,15 +337,13 @@ az_class_post_init (AZClass *klass)
 			fprintf (stderr, "    %d: type %d\n", i, ifentry->type);
 		}
 	}
-	/* Init recursively */
-	az_class_init_recursive (klass, klass);
 }
 
 #ifdef AZ_HAS_PROPERTIES
 void
 az_class_set_num_properties (AZClass *klass, unsigned int nproperties)
 {
-	klass->n_properties_self = nproperties;
+	klass->n_props_self = nproperties;
 	klass->properties_self = (AZField *) malloc (nproperties * sizeof (AZField));
 	memset (klass->properties_self, 0, nproperties * sizeof (AZField));
 }
@@ -363,7 +354,7 @@ void az_class_define_property (AZClass *klass, unsigned int idx, const unsigned 
 {
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (klass != NULL);
-	arikkei_return_if_fail (idx < klass->n_properties_self);
+	arikkei_return_if_fail (idx < klass->n_props_self);
 	arikkei_return_if_fail (key != NULL);
 	arikkei_return_if_fail (type != AZ_TYPE_NONE);
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
@@ -379,7 +370,7 @@ az_class_define_property_function_val (AZClass *klass, unsigned int idx, const u
 {
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (klass != NULL);
-	arikkei_return_if_fail (idx < klass->n_properties_self);
+	arikkei_return_if_fail (idx < klass->n_props_self);
 	arikkei_return_if_fail (key != NULL);
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
 #endif
@@ -392,7 +383,7 @@ az_class_define_property_function_packed (AZClass *klass, unsigned int idx, cons
 {
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (klass != NULL);
-	arikkei_return_if_fail (idx < klass->n_properties_self);
+	arikkei_return_if_fail (idx < klass->n_props_self);
 	arikkei_return_if_fail (key != NULL);
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
 #endif
@@ -407,7 +398,7 @@ unsigned int value_type, void *inst)
 	unsigned int spec, read, write;
 	AZImplementation *impl;
 	arikkei_return_if_fail (klass != NULL);
-	arikkei_return_if_fail (idx < klass->n_properties_self);
+	arikkei_return_if_fail (idx < klass->n_props_self);
 	arikkei_return_if_fail (key != NULL);
 	arikkei_return_if_fail (type != AZ_TYPE_NONE);
 	arikkei_return_if_fail (!(can_write && is_final));

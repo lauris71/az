@@ -10,9 +10,9 @@
 
 #include <arikkei/arikkei-utils.h>
 
-#include <az/class.h>
 #include <az/interface.h>
 #include <az/private.h>
+#include <az/extend.h>
 
 AZInterfaceClass *az_register_interface_type (unsigned int *type, const unsigned char *name, unsigned int parent,
 	unsigned int class_size, unsigned int impl_size, unsigned int inst_size, unsigned int flags,

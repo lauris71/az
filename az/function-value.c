@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 #include <az/function-value.h>
+#include <az/extend.h>
 
 static void function_value_class_init (AZFunctionValueClass *klass);
 

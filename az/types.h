@@ -26,19 +26,12 @@ extern "C" {
 #define AZ_TYPE_INDEX(t) ((t) & AZ_TYPE_MASK)
 
 typedef struct _AZTypeInfo AZTypeInfo;
-typedef struct _AZIFEntry AZIFEntry;
 
 struct _AZTypeInfo {
 	uint32_t flags;
 	/* Parent INDEX */
 	uint32_t pidx;
 	AZClass *klass;
-};
-
-struct _AZIFEntry {
-	uint32_t type;
-	uint16_t impl_offset;
-	uint16_t inst_offset;
 };
 
 /*
@@ -217,63 +210,29 @@ unsigned int az_deserialize_value (const AZImplementation *impl, AZValue *value,
 /* If len > 0 writes the terminating 0 */
 unsigned int az_instance_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
 
-/** @ingroup types
- * @brief Get new typecode, allocate and initialize a class structure
- * 
- * Gets a new typecode, initializes its class to the minimal functional state and then calls class_init,
- * where a more specialized setup (e.g. registering interfaces and fields) should be done. The final setup
- * is performed only after class_init returns (and thus the interfaces and fields are known).
- * 
- * @param type pointer where the typecode will be written
- * @param name the name of the new class
- * @param parent_type the parent typecode
- * @param class_size the size of the class
- * @param instance_size  the size of the instance
- * @param flags type flags
- * @param class_init a callback for initialzaton of the class
- * @param instance_init a callback for the intialization of an instance
- * @param instance_finalize a callback for the finalization of an instance
- * @return allocated and initialized class
- */
-
-AZClass *az_register_type (unsigned int *type, const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
-	void (*class_init) (AZClass *),
-	void (*instance_init) (const AZImplementation *, void *),
-	void (*instance_finalize) (const AZImplementation *, void *));
-
-/** @ingroup types
- * @brief Get new typecode, allocate and initialize a class structure
- * 
- * Gets a new typecode, initializes its class to the minimal functional state and then calls class_init,
- * where a more specialized setup (e.g. registering interfaces and fields) should be done. The final setup
- * is performed only after class_init returns (and thus the interfaces and fields are known).
- * Unlike az_register_type this method allows passing extra parameter to the class_init method.
- * It is used to build composite classes (e.g. reference of another type). 
- * 
- * @param type pointer where the typecode will be written
- * @param name the name of the new class
- * @param parent_type the parent typecode
- * @param class_size the size of the class
- * @param instance_size  the size of the instance
- * @param flags type flags
- * @param class_init a callback for initialzaton of the class
- * @param instance_init a callback for the intialization of an instance
- * @param instance_finalize a callback for the finalization of an instance
- * @param data extra parameter to the class_init function
- * @return allocated and initialized class
- */
-AZClass *az_register_composite_type (unsigned int *type, const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
-	void (*class_init) (AZClass *, void *),
-	void (*instance_init) (const AZImplementation *, void *),
-	void (*instance_finalize) (const AZImplementation *, void *),
-	void *data);
-
 #ifdef AZ_HAS_PROPERTIES
 /*
  * Get index of topmost property with given name and handling class, implementation and instance, return -1 if not found
  * The order is class->interface[0]->superinterfaces->interface[1]...->superclasses
  */
-int az_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const unsigned char *key, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst, AZField **prop);
+
+/**
+ * @brief get the definition and the actual containing implementation and instance of given property
+ * 
+ * Searches class and interface definitions recursively for a property.
+ * The order is class->interface[0]->superinterfaces->interface[1]...->superclasses
+ * 
+ * @param klass the current class (either the same as implementation or a superclass)
+ * @param impl the current implementation
+ * @param inst the current instance
+ * @param key the property key
+ * @param def_class the actual class where the property is defined
+ * @param def_impl the actual implementation corresponding to def_class
+ * @param def_inst the actual instance corresponding to def_class (can be null)
+ * @param prop the property definition (can be null)
+ * @return the property index in def_class
+ */
+int az_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst, AZField **prop);
 int az_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst, AZField **prop);
 
 unsigned int az_instance_set_property (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
@@ -281,7 +240,7 @@ unsigned int az_instance_get_property (const AZImplementation *impl, void *inst,
 unsigned int az_instance_get_function (const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val);
 
 unsigned int az_instance_set_property_by_id (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
-unsigned int az_instance_get_property_by_id (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation **prop_impl, AZValue64 *prop_val, AZContext *ctx);
+unsigned int az_instance_get_property_by_id (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation **prop_impl, AZValue64 *prop_val, unsigned int val_size, AZContext *ctx);
 #endif
 
 #ifdef __cplusplus

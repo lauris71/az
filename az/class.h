@@ -9,6 +9,9 @@
 
 #include <az/types.h>
 
+typedef struct _AZIFEntry AZIFEntry;
+typedef struct _AZInstanceAllocator AZInstanceAllocator;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,9 +46,12 @@ struct _AZImplementation {
 #define AZ_CLASS_TYPE(c) ((c)->impl.type)
 #define AZ_CLASS_FLAGS(c) ((c)->impl.flags)
 
-#define AZ_IMPL_IS_VALUE(i) (((i)->flags & (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_VALUE)) == (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_VALUE))
-#define AZ_IMPL_IS_BLOCK(i) (((i)->flags & (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_BLOCK)) == (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_BLOCK))
-#define AZ_IMPL_IS_REFERENCE(i) (((i)->flags & (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_REFERENCE)) == (AZ_FLAG_IMPL_IS_CLASS | AZ_FLAG_REFERENCE))
+/* Interfaces are blocks */
+#define AZ_IMPL_IS_BLOCK(i) (!AZ_IMPL_IS_CLASS(i) || ((i)->flags &  AZ_FLAG_BLOCK))
+#define AZ_IMPL_IS_VALUE(i) (AZ_IMPL_IS_CLASS(i) && !((i)->flags & AZ_FLAG_BLOCK))
+#define AZ_IMPL_IS_REFERENCE(i) (AZ_IMPL_IS_CLASS(i) && ((i)->flags & AZ_FLAG_REFERENCE))
+#define AZ_IMPL_IS_BOXED_VALUE(i) (AZ_IMPL_IS_CLASS(i) && ((i)->type == AZ_TYPE_BOXED_VALUE))
+#define AZ_IMPL_IS_BOXED_INTERFACE(i) (AZ_IMPL_IS_CLASS(i) && ((i)->type == AZ_TYPE_BOXED_INTERFACE))
 
 #define AZ_CLASS_IS_VALUE(c) !((c)->impl.flags & AZ_FLAG_BLOCK)
 /* Type flags */
@@ -73,23 +79,28 @@ struct _AZImplementation {
 #define AZ_CLASS_VALUE_SIZE(k) (((k)->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : (k)->instance_size)
 #define AZ_CLASS_VALUE_ARRAY_SIZE(k) (((k)->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : AZ_CLASS_ELEMENT_SIZE(k))
 
-typedef struct _AZInstanceAllocator AZInstanceAllocator;
+struct _AZIFEntry {
+	uint32_t type;
+	uint16_t impl_offset;
+	uint16_t inst_offset;
+};
 
 struct _AZInstanceAllocator {
 	void *(*allocate) (AZClass *klass);
-	void *(*allocate_array) (AZClass *klass, unsigned int nelements);
+	void *(*allocate_array) (AZClass *klass, unsigned int n_elements);
 	void (*free) (AZClass *klass, void *location);
-	void (*free_array) (AZClass *klass, void *location, unsigned int nelements);
+	void (*free_array) (AZClass *klass, void *location, unsigned int n_elements);
 };
 
 struct _AZClass {
 	AZImplementation impl;
-	//unsigned int flags;
 
 	AZClass *parent;
 
 	uint16_t n_ifaces_self;
 	uint16_t n_ifaces_all;
+	uint16_t n_props_self;
+	uint16_t _filler;
 	union {
 		AZIFEntry ifaces[2];
 		struct {
@@ -101,7 +112,6 @@ struct _AZClass {
 	};
 
 #ifdef AZ_HAS_PROPERTIES
-	unsigned int n_properties_self;
 	AZField *properties_self;
 #endif
 
@@ -113,20 +123,9 @@ struct _AZClass {
 	/* Size of instance */
 	uint32_t instance_size;
 
-	/* Default value */
-	void *default_val;
-
 	/* Memory management */
 	AZInstanceAllocator *allocator;
 
-	/*
-	* This allows superclasses to adjust values, that depend on the actual type and are not
-	* handled by pre_init and post_init
-	* 
-	* Called from post_init
-	* 
-	*/
-	void (*init_recursive) (AZClass *klass);
 	/* Constructors and destructors */
 	void (*instance_init) (const AZImplementation *impl, void *inst);
 	void (*instance_finalize) (const AZImplementation *impl, void *inst);
@@ -163,6 +162,8 @@ struct _AZClass {
 #endif
 };
 
+#define AZ_CLASS_IS_INTERFACE(c) ((c)->impl.flags & AZ_FLAG_INTERFACE)
+
 /*
  * We trade some branching for cache locality here
  *
@@ -198,11 +199,6 @@ static inline const AZIFEntry *
 az_class_iface_self(const AZClass *klass, uint16_t idx)
 {
 	return az_class_ifaces_self(klass) + idx;
-//	if (klass->n_ifaces_self == klass->n_ifaces_all) {
-//		return (klass->n_ifaces_self <= 2) ? &klass->ifaces[idx] : &klass->ifaces_self[idx];
-//	} else {
-//		return (klass->n_ifaces_self <= 1) ? &klass->ifaces[idx] : &klass->ifaces_self[idx];
-//	}
 }
 
 static inline const AZIFEntry *
@@ -223,15 +219,6 @@ static inline const AZIFEntry *
 az_class_iface_all(const AZClass *klass, uint16_t idx)
 {
 	return az_class_ifaces_all(klass) + idx;
-//	if (klass->n_ifaces_self == klass->n_ifaces_all) {
-//		return (klass->n_ifaces_self <= 2) ? &klass->ifaces[idx] : &klass->ifaces_all[idx];
-//	} else {
-//		if (klass->n_ifaces_self <= 1) {
-//			return (klass->n_ifaces_all <= 2) ? &klass->ifaces[idx] : &klass->ifaces_all[idx];
-//		} else {
-//			return &klass->ifaces_all[idx];
-//		}
-//	}
 }
 
 static inline unsigned int
@@ -239,38 +226,6 @@ az_class_value_size(const AZClass *klass)
 {
 	return (klass->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : klass->instance_size;
 }
-
-/* To be called from class constructors */
-void az_class_set_num_interfaces (AZClass *klass, unsigned int ninterfaces);
-void az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type, unsigned int impl_offset, unsigned int inst_offset);
-
-#ifdef AZ_HAS_PROPERTIES
-void az_class_set_num_properties (AZClass *klass, unsigned int nproperties);
-void az_class_define_property (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int type,
-	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset,
-	const AZImplementation *impl, void *inst);
-void az_class_define_property_function_val (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write,
-	const AZFunctionSignature *sig, const AZImplementation *impl, void *inst);
-void az_class_define_property_function_packed (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset, const AZFunctionSignature *sig);
-void az_class_property_setup (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int type,
-	unsigned int is_static, unsigned int can_read, unsigned int can_write, unsigned int is_final, unsigned int is_value,
-	unsigned int value_type, void *inst);
-
-void az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
-	unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *));
-void az_class_define_method_va (AZClass *klass, unsigned int idx, const unsigned char* key,
-	unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *),
-	unsigned int ret_type, unsigned int n_args, ...);
-void az_class_define_static_method (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
-	unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *));
-void az_class_define_static_method_va (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *),
-	unsigned int ret_type, unsigned int n_args, ...);
-#endif
 
 #ifdef __cplusplus
 };

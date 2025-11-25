@@ -8,6 +8,7 @@
 */
 
 #include <stdint.h>
+#include <string.h>
 
 #include <arikkei/arikkei-utils.h>
 
@@ -39,7 +40,6 @@ struct _AZValue {
 		AZComplexDouble cdouble_v;
 		void *pointer_v;
 		void *block;
-		AZInterfaceValue iface;
 		AZReference *reference;
 		AZString *string;
 		uint8_t data[16];
@@ -51,52 +51,61 @@ struct _AZValue64 {
 	uint8_t data[48];
 };
 
-#ifdef AZ_SAFETY_CHECKS
-void az_value_init (const AZImplementation *impl, AZValue *val);
-void az_clear_value (const AZImplementation *impl, AZValue *val);
-void az_transfer_value (const AZImplementation *impl, AZValue *dst, const AZValue *src);
-void *az_instance_from_value (const AZImplementation *impl, const AZValue *value);
-#else
-ARIKKEI_INLINE void
+static inline void
 az_value_init (const AZImplementation *impl, AZValue *val)
 {
-	AZClass *klass = az_type_get_class (impl->type);
-	if (klass->flags & AZ_FLAG_VALUE) {
-		az_instance_init(val, impl->type);
-	} else if (klass->flags & AZ_FLAG_BLOCK) {
+	if (AZ_IMPL_IS_VALUE(impl)) {
+		az_instance_init(val, AZ_IMPL_TYPE(impl));
+	} else if (AZ_IMPL_IS_BLOCK(impl)) {
 		val->block = NULL;
 	}
 }
 
-ARIKKEI_INLINE void
-az_clear_value (const AZImplementation *impl, AZValue *val)
+static inline void
+az_value_clear (const AZImplementation *impl, AZValue *val)
 {
 	if (impl && (AZ_TYPE_IS_REFERENCE(impl->type))) {
-		if (val->reference) az_reference_unref (( AZReferenceClass *) impl, val->reference);
+		if (val->reference) az_reference_unref ((AZReferenceClass *) impl, val->reference);
 	}
 }
+#define az_clear_value az_value_clear
 
-ARIKKEI_ININE void
-az_transfer_value (const AZImplementation *impl, AZValue *dst, const AZValue *src)
+static inline void
+az_value_transfer (const AZImplementation *impl, AZValue *dst, const AZValue *src)
 {
-	if (impl && az_classes[impl->type]->value_size) memcpy (dst, src, az_classes[impl->type]->value_size);
+	if (impl && az_class_value_size(AZ_CLASS_FROM_IMPL(impl))) {
+		memcpy (dst, src, az_class_value_size(AZ_CLASS_FROM_IMPL(impl)));
+	}
 }
+#define az_transfer_value az_value_transfer
 
-ARIKKEI_INLINE void *
+static inline void
+az_value_copy (const AZImplementation *impl, AZValue *dst, const AZValue *src)
+{
+	if (impl) {
+		if (az_class_value_size(AZ_CLASS_FROM_IMPL(impl))) {
+			memcpy (dst, src, az_class_value_size(AZ_CLASS_FROM_IMPL(impl)));
+		}
+		if (AZ_IMPL_IS_REFERENCE(impl)) {
+			if (src->reference) az_reference_ref (src->reference);
+		}
+	}
+}
+#define az_copy_value az_value_copy
+
+static inline void *
 az_instance_from_value (const AZImplementation *impl, const AZValue *value)
 {
-	if (impl && (AZ_FLAG_BLOCK(impl->type))) {
+	if (impl && (AZ_IMPL_IS_BLOCK(impl))) {
 		return value->block;
 	} else {
 		return (void *) value;
 	}
 }
-#endif
 
 unsigned int az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue *rhs);
 unsigned int az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, const void *rhs);
 
-void az_copy_value (const AZImplementation *impl, AZValue *dst, const AZValue *src);
 void az_set_value_from_instance (const AZImplementation *impl, AZValue *dst, void *inst);
 #define az_value_set_from_impl_value(dst, impl, src) az_copy_value(impl, dst, src)
 #define az_value_set_from_impl_instance(dst, impl, src) az_set_value_from_instance(impl, dst, src)

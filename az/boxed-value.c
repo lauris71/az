@@ -15,10 +15,9 @@ static unsigned int
 boxed_value_to_string (const AZImplementation *impl, void *inst, unsigned char *buf, unsigned int len)
 {
 	AZBoxedValue *boxed = (AZBoxedValue *) inst;
-	AZClass *klass = AZ_CLASS_FROM_IMPL(boxed->impl);
 	unsigned int pos;
 	pos = arikkei_memcpy_str (buf, len, (const unsigned char *) "Boxed ");
-	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, klass->name);
+	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, boxed->klass->name);
 	if (pos < len) buf[pos] = 0;
 	return pos;
 }
@@ -31,27 +30,27 @@ az_init_boxed_value_class (void)
 }
 
 AZBoxedValue *
-az_boxed_value_new (const AZImplementation *impl, void *inst)
+az_boxed_value_new (const AZClass *klass, void *inst)
 {
-	arikkei_return_val_if_fail (impl != NULL, NULL);
-	unsigned int val_size = AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(impl));
-    val_size = (val_size > 16) ? val_size - 16 : 0;
-	AZBoxedValue *boxed = (AZBoxedValue *) malloc (sizeof (AZBoxedValue) + val_size);
+	arikkei_return_val_if_fail (klass != NULL, NULL);
+	arikkei_return_val_if_fail (AZ_CLASS_IS_VALUE(klass), NULL);
+	unsigned int ext_size = (klass->instance_size > 16) ? klass->instance_size - 16 : 0;
+	AZBoxedValue *boxed = (AZBoxedValue *) malloc (sizeof (AZBoxedValue) + ext_size);
 	az_instance_init (boxed, AZ_TYPE_BOXED_VALUE);
-	boxed->impl = impl;
-	az_value_set_from_impl_instance (&boxed->val, impl, inst);
+	boxed->klass = klass;
+	az_value_set_from_impl_instance (&boxed->val, &klass->impl, inst);
 	return boxed;
 }
 
 AZBoxedValue *
-az_boxed_value_new_from_impl_value (const AZImplementation *impl, const AZValue *val)
+az_boxed_value_new_from_val (const AZClass *klass, const AZValue *val)
 {
-	arikkei_return_val_if_fail (impl != NULL, NULL);
-	unsigned int val_size = AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(impl));
-    val_size = (val_size > 16) ? val_size - 16 : 0;
-	AZBoxedValue *boxed = (AZBoxedValue *) malloc (sizeof (AZBoxedValue) + val_size);
+	arikkei_return_val_if_fail (klass != NULL, NULL);
+	arikkei_return_val_if_fail (AZ_CLASS_IS_VALUE(klass), NULL);
+	unsigned int ext_size = (klass->instance_size > 16) ? klass->instance_size - 16 : 0;
+	AZBoxedValue *boxed = (AZBoxedValue *) malloc (sizeof (AZBoxedValue) + ext_size);
 	az_instance_init (boxed, AZ_TYPE_BOXED_VALUE);
-	boxed->impl = impl;
-	az_value_set_from_impl_value (&boxed->val, impl, val);
+	boxed->klass = klass;
+	az_value_set_from_impl_value (&boxed->val, &klass->impl, val);
 	return boxed;
 }

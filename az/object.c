@@ -8,11 +8,10 @@
 
 #include <stdio.h>
 
-#include <az/class.h>
-#include <az/field.h>
 #include <az/object.h>
 #include <az/packed-value.h>
 #include <az/private.h>
+#include <az/extend.h>
 
 /* AZInstance implementation */
 static void object_class_init (AZObjectClass *klass);

@@ -11,63 +11,13 @@
 #include <string.h>
 
 #include <az/boxed-interface.h>
+#include <az/boxed-value.h>
 #include <az/class.h>
 #include <az/primitives.h>
 #include <az/private.h>
 #include <az/reference-of.h>
 
 #include <az/value.h>
-
-#ifdef AZ_SAFETY_CHECKS
-void
-az_value_init (const AZImplementation *impl, AZValue *val)
-{
-	AZClass *klass;
-	arikkei_return_if_fail (impl != 0);
-	arikkei_return_if_fail (val != NULL);
-	if (AZ_IMPL_IS_VALUE(impl)) {
-		az_instance_init(val, AZ_IMPL_TYPE(impl));
-	} else if (AZ_IMPL_IS_BLOCK(impl)) {
-		val->block = NULL;
-	}
-}
-
-void
-az_clear_value (const AZImplementation *impl, AZValue *val)
-{
-	AZClass *klass;
-	arikkei_return_if_fail (impl != 0);
-	arikkei_return_if_fail (val != NULL);
-	klass = AZ_CLASS_FROM_IMPL(impl);
-	if (AZ_IMPL_IS_REFERENCE(impl)) {
-		if (val->reference) az_reference_unref ((AZReferenceClass *) impl, val->reference);
-	}
-}
-
-void
-az_transfer_value (const AZImplementation *impl, AZValue *dst, const AZValue *src)
-{
-	AZClass *klass;
-	arikkei_return_if_fail (impl != 0);
-	arikkei_return_if_fail (dst != NULL);
-	arikkei_return_if_fail (src != NULL);
-	klass = AZ_CLASS_FROM_IMPL(impl);
-	if (az_class_value_size(klass)) memcpy (dst, src, az_class_value_size(klass));
-}
-
-void *
-az_instance_from_value (const AZImplementation *impl, const AZValue *value)
-{
-	AZClass *klass;
-	arikkei_return_val_if_fail (impl != 0, NULL);
-	arikkei_return_val_if_fail (value != NULL, NULL);
-	if (AZ_IMPL_IS_BLOCK(impl)) {
-		return value->block;
-	} else {
-		return (void *) value;
-	}
-}
-#endif
 
 unsigned int
 az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue *rhs)
@@ -94,23 +44,6 @@ az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, cons
 		return !memcmp (lhs, rhs, klass->instance_size);
 	}
 	return 0;
-}
-
-
-void
-az_copy_value (const AZImplementation *impl, AZValue *dst, const AZValue *src)
-{
-	AZClass *klass;
-#ifdef AZ_SAFETY_CHECKS
-	arikkei_return_if_fail (impl != 0);
-	arikkei_return_if_fail (dst != NULL);
-	arikkei_return_if_fail (src != NULL);
-#endif
-	klass = AZ_CLASS_FROM_IMPL(impl);
-	if (az_class_value_size(klass)) memcpy (dst, src, az_class_value_size(klass));
-	if (klass->impl.flags & AZ_FLAG_REFERENCE) {
-		if (src->reference) az_reference_ref (src->reference);
-	}
 }
 
 void

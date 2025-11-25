@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include <az/array-of.h>
+#include <az/extend.h>
 
 static void array_of_class_init (AZArrayOfClass *klass, AZClass *element_class);
 static void array_of_instance_init (AZArrayOfClass *klass, AZArrayOf *array_of);

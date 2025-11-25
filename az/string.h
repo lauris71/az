@@ -52,6 +52,12 @@ az_string_unref (AZString *astr)
 	az_reference_unref (&az_string_class->reference_class, &astr->reference);
 }
 
+static inline unsigned int
+az_string_equals (const AZString *lhs, const AZString *rhs)
+{
+	return lhs == rhs;
+}
+
 AZString *az_string_concat (AZString *lhs, AZString *rhs);
 
 /* Get serialized string as char array */

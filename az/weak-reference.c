@@ -7,6 +7,8 @@
 * Copyright (C) Lauris Kaplinski 2019
 */
 
+#include <az/extend.h>
+
 #include "weak-reference.h"
 
 static void weak_reference_finalize (AZWeakReferenceClass *klass, AZWeakReference *ref);

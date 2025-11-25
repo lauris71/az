@@ -518,19 +518,14 @@ implementation_init_recursive (AZInterfaceClass *iface_class, AZImplementation *
 
 #ifdef AZ_HAS_PROPERTIES
 int
-az_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const unsigned char *key, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst, AZField **prop)
+az_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst, AZField **prop)
 {
 	int result, i;
 	arikkei_return_val_if_fail (impl != NULL, -1);
 	arikkei_return_val_if_fail (key != NULL, -1);
-#if 0
-	if (!strcmp (klass->name, "AosoraImage")) {
-		fprintf (stderr, ".");
-	}
-#endif
 	/* NB! Until "new" is handled differently we have to go subclass-first */
-	for (i = 0; i < (int) klass->n_properties_self; i++) {
-		if (!strcmp ((const char *) key, (const char *) klass->properties_self[i].key->str)) {
+	for (i = 0; i < (int) klass->n_props_self; i++) {
+		if (az_string_equals(key, klass->properties_self[i].key)) {
 			*def_class = klass;
 			*def_impl = impl;
 			if (def_inst) *def_inst = inst;
@@ -562,7 +557,7 @@ az_lookup_function (const AZClass *klass, const AZImplementation *impl, void *in
 	arikkei_return_val_if_fail (impl != NULL, -1);
 	arikkei_return_val_if_fail (key != NULL, -1);
 	/* NB! Until "new" is handled differently we have to go subclass-first */
-	for (i = 0; i < (int) klass->n_properties_self; i++) {
+	for (i = 0; i < (int) klass->n_props_self; i++) {
 		if (!strcmp ((const char *) key, (const char *) klass->properties_self[i].key->str) && klass->properties_self->is_function) {
 			if (klass->properties_self[i].signature && !az_function_signature_is_assignable_to (klass->properties_self[i].signature, sig, 0)) {
 				continue;
@@ -600,7 +595,9 @@ az_instance_set_property (const AZImplementation *impl, void *inst, const unsign
 	void *sub_inst;
 	arikkei_return_val_if_fail (impl != NULL, 0);
 	arikkei_return_val_if_fail (key != NULL, 0);
-	idx = az_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, inst, key, &sub_class, &sub_impl, &sub_inst, NULL);
+	AZString *str = az_string_new(key);
+	idx = az_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, inst, str, &sub_class, &sub_impl, &sub_inst, NULL);
+	az_string_unref(str);
 	if (idx < 0) return 0;
 	return az_instance_set_property_by_id (sub_class, sub_impl, sub_inst, idx, prop_impl, prop_inst, ctx);
 }
@@ -663,9 +660,11 @@ az_instance_get_property (const AZImplementation *impl, void *inst, const unsign
 	void *sub_inst;
 	arikkei_return_val_if_fail (impl != NULL, 0);
 	arikkei_return_val_if_fail (key != NULL, 0);
-	idx = az_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, inst, key, &sub_class, &sub_impl, &sub_inst, NULL);
+	AZString *str = az_string_new(key);
+	idx = az_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, inst, str, &sub_class, &sub_impl, &sub_inst, NULL);
+	az_string_unref(str);
 	if (idx < 0) return 0;
-	return az_instance_get_property_by_id (sub_class, sub_impl, sub_inst, idx, dst_impl, dst_val, NULL);
+	return az_instance_get_property_by_id (sub_class, sub_impl, sub_inst, idx, dst_impl, dst_val, 64, NULL);
 }
 
 unsigned int
@@ -679,12 +678,11 @@ az_instance_get_function (const AZImplementation *impl, void *inst, const unsign
 	arikkei_return_val_if_fail (key != NULL, 0);
 	idx = az_lookup_function (AZ_CLASS_FROM_IMPL(impl), impl, inst, key, sig, &sub_class, &sub_impl, &sub_inst, NULL);
 	if (idx < 0) return 0;
-	az_instance_get_property_by_id (sub_class, sub_impl, sub_inst, idx, dst_impl, (AZValue64 *) dst_val, NULL);
-	return 1;
+	return az_instance_get_property_by_id (sub_class, sub_impl, sub_inst, idx, dst_impl, (AZValue64 *) dst_val, 16, NULL);
 }
 
 unsigned int
-az_instance_get_property_by_id (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue64 *prop_val, AZContext *ctx)
+az_instance_get_property_by_id (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue64 *prop_val, unsigned int val_size, AZContext *ctx)
 {
 	arikkei_return_val_if_fail (impl != NULL, 0);
 	arikkei_return_val_if_fail (prop_impl != NULL, 0);
@@ -705,12 +703,11 @@ az_instance_get_property_by_id (const AZClass *klass, const AZImplementation *im
 		} else {
 			AZClass *prop_class = AZ_CLASS_FROM_TYPE(klass->properties_self[idx].type);
 			arikkei_return_val_if_fail (prop_class->impl.flags & AZ_FLAG_FINAL, 0);
-			*prop_impl = az_value_copy_autobox (&prop_val->value, &prop_class->impl, val, 64);
+			*prop_impl = az_value_copy_autobox (&prop_val->value, &prop_class->impl, val, val_size);
 		}
 	} else if (klass->properties_self[idx].read == AZ_FIELD_READ_STORED_STATIC) {
 		if (klass->properties_self[idx].value) {
-			*prop_impl = klass->properties_self[idx].value->impl;
-			az_copy_value (klass->properties_self[idx].value->impl, &prop_val->value, &klass->properties_self[idx].value->v);
+			*prop_impl = az_value_copy_autobox (&prop_val->value, klass->properties_self[idx].value->impl, &klass->properties_self[idx].value->v, val_size);
 		} else {
 			*prop_impl = NULL;
 		}
@@ -723,7 +720,7 @@ az_instance_get_property_by_id (const AZClass *klass, const AZImplementation *im
 		} else {
 			val = (AZPackedValue *) ((char *) klass + klass->properties_self[idx].offset);
 		}
-		az_value_set_from_packed_value (prop_impl, &prop_val->value, val);
+		*prop_impl = az_value_copy_autobox (&prop_val->value, val->impl, &val->v, val_size);
 	} else if (klass->properties_self[idx].read == AZ_FIELD_READ_METHOD) {
 		return klass->get_property (impl, inst, idx, prop_impl, &prop_val->value, ctx);
 	} else if (klass->properties_self[idx].read == AZ_FIELD_READ_BOXED_INTERFACE) {

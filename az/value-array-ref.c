@@ -6,8 +6,8 @@
 * Copyright (C) Lauris Kaplinski 2020
 */
 
-#include <az/field.h>
 #include <az/value-array-ref.h>
+#include <az/extend.h>
 
 static void value_array_ref_class_init (AZValueArrayRefClass* klass);
 static void value_array_ref_init (AZValueArrayRefClass* klass, AZValueArrayRef* varef);
