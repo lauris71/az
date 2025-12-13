@@ -16,8 +16,34 @@ typedef struct _AZInstanceAllocator AZInstanceAllocator;
 extern "C" {
 #endif
 
-/* Implementation flags */
+/*
+ * High-order flags, can be put in typecode
+ */
+/* Interface type, implementation is not class */
+#define AZ_FLAG_INTERFACE 0x01000000
+/* Instance is referenced by pointer */
+#define AZ_FLAG_BLOCK 0x02000000
+/* Reference type, copying needs reference counting */
+#define AZ_FLAG_REFERENCE 0x04000000
+/* Instance is a container of another type */
+#define AZ_FLAG_BOXED 0x08000000
+/* Instance is a container of another type */
+#define AZ_FLAG_OBJECT 0x10000000
+/* No subclasses */
+#define AZ_FLAG_FINAL 0x20000000
+/* Subclasses should not remove flag set by parent */
+#define AZ_FLAG_CONSTRUCT 0x40000000
+/* fixme: Make this dependent on construction */
+#define AZ_FLAG_ZERO_MEMORY 0x80000000
+
+/*
+ * Low-order flags, only present in class and type info
+ */
+/* Standalone type (not interface) */
+/* This has to be one of the lowest 3 bits to differentiate the pointer/flags union */
 #define AZ_FLAG_IMPL_IS_CLASS 0x01
+/* No instancing is allowed (this is not propagated to subclasses) */
+#define AZ_FLAG_ABSTRACT 0x02
 
 /**
  * @brief Superclass of all implementations and classes
@@ -54,23 +80,6 @@ struct _AZImplementation {
 #define AZ_IMPL_IS_BOXED_INTERFACE(i) (AZ_IMPL_IS_CLASS(i) && ((i)->type == AZ_TYPE_BOXED_INTERFACE))
 
 #define AZ_CLASS_IS_VALUE(c) !((c)->impl.flags & AZ_FLAG_BLOCK)
-/* Type flags */
-/* Interface type, implementation is not class */
-#define AZ_FLAG_INTERFACE 0x01000000
-/* Instance is referenced by pointer */
-#define AZ_FLAG_BLOCK 0x02000000
-/* Reference type, copying needs reference counting */
-#define AZ_FLAG_REFERENCE 0x04000000
-/* Instance is a container of another type */
-#define AZ_FLAG_BOXED 0x08000000
-
-/* No instancing is allowed (this is not propagated to subclasses) */
-#define AZ_FLAG_ABSTRACT 0x10000000
-/* No subclasses */
-#define AZ_FLAG_FINAL 0x20000000
-/* Subclasses should not remove flag set by parent */
-#define AZ_FLAG_ZERO_MEMORY 0x40000000
-#define AZ_FLAG_CONSTRUCT 0x80000000
 
 // fixme: remove
 #define AZ_FLAG_VALUE 0
@@ -112,7 +121,7 @@ struct _AZClass {
 	};
 
 #ifdef AZ_HAS_PROPERTIES
-	AZField *properties_self;
+	AZField *props_self;
 #endif
 
 	const uint8_t *name;

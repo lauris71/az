@@ -3,7 +3,7 @@
 /*
 * A run-time type library
 *
-* Copyright (C) Lauris Kaplinski 2016
+* Copyright (C) Lauris Kaplinski 2016-2025
 */
 
 #include <stdio.h>
@@ -14,7 +14,6 @@
 #include <az/extend.h>
 
 /* AZInstance implementation */
-static void object_class_init (AZObjectClass *klass);
 static void object_init (AZObjectClass *klass, AZObject *object);
 /* AZReference implementation */
 void object_dispose (AZReferenceClass *klass, AZReference *ref);
@@ -27,28 +26,31 @@ enum {
 	NUM_PROPERTIES
 };
 
-static unsigned int object_type = 0;
-static AZObjectClass *object_class;
+AZObjectClass AZObjectKlass = {
+	{{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE | AZ_FLAG_ZERO_MEMORY | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_OBJECT},
+			&AZReferenceKlass.klass,
+			0, 0, 0, 0, {0}, NULL,
+			(const uint8_t *) "object",
+			7, sizeof(AZObjectClass), 0,
+			NULL,
+			/* instance_init, instance_finalize */
+			(void (*) (const AZImplementation *, void *)) object_init, NULL,
+			/* serialize, deserialize, to_string */
+			NULL, NULL, NULL,
+			/* get_property, set_property */
+			NULL, NULL},
+		/* drop, dispose */
+		NULL, object_dispose},
+	/* shutdown */
+	NULL
+};
 
-unsigned int
-az_object_get_type (void)
+void
+az_init_object_class (void)
 {
-	if (!object_type) {
-		az_register_type (&object_type, (const unsigned char *) "AZObject", AZ_TYPE_REFERENCE, sizeof (AZObjectClass), sizeof (AZObject), AZ_FLAG_ABSTRACT | AZ_FLAG_ZERO_MEMORY,
-			(void (*) (AZClass *)) object_class_init,
-			(void (*) (const AZImplementation *, void *)) object_init,
-			NULL);
-		object_class = (AZObjectClass *) AZ_CLASS_FROM_TYPE(object_type);
-	}
-	return object_type;
-}
-
-static void
-object_class_init (AZObjectClass *klass)
-{
-	az_class_set_num_properties ((AZClass *) klass, NUM_PROPERTIES);
-	az_class_define_property ((AZClass *) klass, PROP_CLASS, (const unsigned char *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZObject, klass), NULL, NULL);
-	klass->reference_klass.dispose = object_dispose;
+	az_class_new_with_value(&AZObjectKlass.reference_klass.klass);
+	az_class_set_num_properties (&AZObjectKlass.reference_klass.klass, NUM_PROPERTIES);
+	az_class_define_property (&AZObjectKlass.reference_klass.klass, PROP_CLASS, (const unsigned char *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZObject, klass), NULL, NULL);
 }
 
 static void

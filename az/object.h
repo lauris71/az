@@ -4,12 +4,11 @@
 /*
 * A run-time type library
 *
-* Copyright (C) Lauris Kaplinski 2016
+* Copyright (C) Lauris Kaplinski 2016-2025
 */
 
 typedef struct _AZObjectClass AZObjectClass;
 
-#define AZ_TYPE_OBJECT (az_object_get_type ())
 #define AZ_OBJECT(o) (AZ_CHECK_INSTANCE_CAST ((o), AZ_TYPE_OBJECT, AZObject))
 #define AZ_IS_OBJECT(o) (AZ_CHECK_INSTANCE_TYPE ((o), AZ_TYPE_OBJECT))
 
@@ -44,15 +43,15 @@ struct _AZObjectClass {
 	void (*shutdown) (AZObject *obj);
 };
 
-unsigned int az_object_get_type (void);
+extern AZObjectClass AZObjectKlass;
 
-ARIKKEI_INLINE void
+static inline void
 az_object_ref (AZObject *obj)
 {
 	az_reference_ref (&obj->reference);
 }
 
-ARIKKEI_INLINE void
+static inline void
 az_object_unref (AZObject *obj)
 {
 	az_reference_unref (&obj->klass->reference_klass, &obj->reference);

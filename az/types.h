@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <arikkei/arikkei-utils.h>
+
 #include <az/az.h>
 
 #ifdef __cplusplus
@@ -95,14 +97,14 @@ unsigned int az_num_types = 0;
 #define AZ_TYPE_IS_FINAL(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_FINAL)
 
 #ifdef AZ_SAFETY_CHECKS
-ARIKKEI_INLINE AZTypeInfo *
+static inline AZTypeInfo *
 az_type_get_info (unsigned int type)
 {
 	if (!az_num_types) az_init ();
 	arikkei_return_val_if_fail (type < az_num_types, NULL);
 	return AZ_INFO_FROM_TYPE(type);
 }
-ARIKKEI_INLINE AZClass *
+static inline AZClass *
 az_type_get_class (unsigned int type)
 {
 	if (!az_num_types) az_init ();
@@ -199,7 +201,7 @@ void az_instance_delete_array (unsigned int type, void *elements, unsigned int n
 
 /* Get rootmost interface */
 const AZImplementation *az_get_interface (const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
-ARIKKEI_INLINE const AZImplementation *
+static inline const AZImplementation *
 az_get_interface_from_type (unsigned int type, void *inst, unsigned int if_type, void **if_inst)
 {
 	return az_get_interface (AZ_IMPL_FROM_TYPE(type), inst, if_type, if_inst);

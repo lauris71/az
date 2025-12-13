@@ -10,6 +10,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <arikkei/arikkei-strlib.h>
+
+#include <az/base.h>
 #include <az/class.h>
 #include <az/primitives.h>
 #include <az/private.h>
@@ -18,13 +21,33 @@
 
 #include <az/packed-value.h>
 
-static AZClass *value_class = NULL;
+static unsigned int
+packed_value_to_string (const AZImplementation *impl, void *inst, unsigned char *buf, unsigned int len)
+{
+	AZPackedValue *pval = (AZPackedValue *) inst;
+	unsigned int pos;
+	pos = arikkei_memcpy_str (buf, len, (const unsigned char *) "Packed ");
+	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0,AZ_CLASS_FROM_IMPL(pval->impl)->name);
+	if (pos < len) buf[pos] = 0;
+	return pos;
+}
+
+AZClass AZPackedValueKlass = {
+	{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_PACKED_VALUE},
+	&AZBlockClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "packed value",
+	15, sizeof(AZPackedValue), 0,
+	NULL,
+	NULL, NULL,
+	NULL, NULL, packed_value_to_string,
+	NULL, NULL
+};
 
 void
 az_init_packed_value_class (void)
 {
-	value_class = az_class_new_with_type (AZ_TYPE_PACKED_VALUE, AZ_TYPE_BLOCK, sizeof (AZClass), sizeof (AZPackedValue), AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY, (const uint8_t *) "value");
-	value_class->alignment = 15;
+	az_class_new_with_value(&AZPackedValueKlass);
 }
 
 void

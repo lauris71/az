@@ -12,7 +12,7 @@
 #include <az/interface.h>
 #include <az/packed-value.h>
 
-#include <az/map.h>
+#include "map.h"
 
 /* AZInterface implementation */
 static void map_class_init (AZMapClass *klass);

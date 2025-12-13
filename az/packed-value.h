@@ -181,9 +181,6 @@ void az_packed_value_set_from_impl_value (AZPackedValue *dst, const AZImplementa
 void az_packed_value_set_from_type_instance (AZPackedValue *dst, unsigned int type, void *inst);
 void az_packed_value_set_from_impl_instance (AZPackedValue *dst, const AZImplementation *impl, void *inst);
 
-/* Library internal */
-void az_init_packed_value_class (void);
-
 #ifdef __cplusplus
 };
 #endif

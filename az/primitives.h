@@ -13,10 +13,6 @@
 extern "C" {
 #endif
 
-/* Library internals */
-void az_init_primitive_classes (void);
-void az_post_init_primitive_classes (void);
-
 #define AZ_CONVERT_AUTO 0
 #define AZ_CONVERT_CONDITIONAL 1
 #define AZ_CONVERT_EXPLICIT 2

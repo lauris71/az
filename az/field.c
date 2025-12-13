@@ -11,17 +11,29 @@
 
 #include <arikkei/arikkei-utils.h>
 
+#include <az/base.h>
 #include <az/string.h>
 #include <az/field.h>
 #include <az/packed-value.h>
 #include <az/private.h>
 
-static AZClass *field_class = NULL;
+AZClass AZFieldKlass = {
+	{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FIELD},
+	&AZBlockClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "field",
+	7, sizeof(AZClass), 0,
+	NULL,
+	NULL, NULL,
+	NULL, NULL, NULL,
+	NULL, NULL
+};
 
 void
 az_init_field_class (void)
 {
-	field_class = az_class_new_with_type (AZ_TYPE_FIELD, AZ_TYPE_BLOCK, sizeof (AZClass), sizeof (AZField), AZ_FLAG_FINAL, (const uint8_t *) "field");
+	az_class_new_with_value(&AZFieldKlass);
+	//field_class = az_class_new_with_type (AZ_TYPE_FIELD, AZ_TYPE_BLOCK, sizeof (AZClass), sizeof (AZField), AZ_FLAG_FINAL, (const uint8_t *) "field");
 }
 
 void

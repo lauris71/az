@@ -118,18 +118,33 @@ static void
 string_dispose (AZReferenceClass *klass, AZReference *ref)
 {
 	AZString *str = (AZString *) ref;
-	arikkei_dict_remove (&az_string_class->chr2str, str);
+	arikkei_dict_remove (&AZStringKlass.chr2str, str);
 }
+
+AZStringClass AZStringKlass = {
+	{{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_STRING},
+	&AZReferenceKlass.klass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "string",
+	7, sizeof(AZStringClass), 0,
+	NULL,
+	NULL, NULL,
+	serialize_string, deserialize_string, string_to_string,
+	NULL, NULL},
+	NULL, string_dispose},
+	{0}
+};
 
 void
 az_init_string_class (void)
 {
-	az_string_class = (AZStringClass *) az_class_new_with_type (AZ_TYPE_STRING, AZ_TYPE_REFERENCE, sizeof (AZStringClass), 0, AZ_FLAG_FINAL, (const uint8_t *) "string");
-	az_string_class->reference_class.klass.serialize = serialize_string;
-	az_string_class->reference_class.klass.deserialize = deserialize_string;
-	az_string_class->reference_class.klass.to_string = string_to_string;
-	az_string_class->reference_class.dispose = string_dispose;
-	arikkei_dict_setup_full (&az_string_class->chr2str, 701, string_hash, string_equal);
+	az_class_new_with_value(&AZStringKlass.reference_class.klass);
+	//az_string_class = (AZStringClass *) az_class_new_with_type (AZ_TYPE_STRING, AZ_TYPE_REFERENCE, sizeof (AZStringClass), 0, AZ_FLAG_FINAL, (const uint8_t *) "string");
+	//az_string_class->reference_class.klass.serialize = serialize_string;
+	//az_string_class->reference_class.klass.deserialize = deserialize_string;
+	//az_string_class->reference_class.klass.to_string = string_to_string;
+	//az_string_class->reference_class.dispose = string_dispose;
+	arikkei_dict_setup_full (&AZStringKlass.chr2str, 701, string_hash, string_equal);
 }
 
 AZString *
@@ -146,7 +161,7 @@ az_string_new_length (const unsigned char *str, unsigned int length)
 	AZString *astr;
 	lookup.len = length;
 	lookup.str = str;
-	astr = (AZString *) arikkei_dict_lookup_foreign (&az_string_class->chr2str, &lookup, string_data_hash, string_data_equal);
+	astr = (AZString *) arikkei_dict_lookup_foreign (&AZStringKlass.chr2str, &lookup, string_data_hash, string_data_equal);
 	if (astr) {
 		az_string_ref (astr);
 	} else {
@@ -155,7 +170,7 @@ az_string_new_length (const unsigned char *str, unsigned int length)
 		astr->length = length;
 		memcpy ((unsigned char *) astr->str, str, length);
 		((unsigned char *) astr->str)[length] = 0;
-		arikkei_dict_insert (&az_string_class->chr2str, astr, astr);
+		arikkei_dict_insert (&AZStringKlass.chr2str, astr, astr);
 	}
 	return astr;
 }
@@ -174,7 +189,7 @@ az_string_lookup_length (const unsigned char *chars, unsigned int length)
 	AZString *astr;
 	lookup.len = length;
 	lookup.str = chars;
-	astr = (AZString *) arikkei_dict_lookup_foreign (&az_string_class->chr2str, &lookup, string_data_hash, string_data_equal);
+	astr = (AZString *) arikkei_dict_lookup_foreign (&AZStringKlass.chr2str, &lookup, string_data_hash, string_data_equal);
 	if (astr) az_string_ref (astr);
 	return astr;
 }
@@ -191,12 +206,12 @@ az_string_concat (AZString *lhs, AZString *rhs)
 	if (lhs->length) memcpy ((unsigned char *) built->str, lhs->str, lhs->length);
 	if (rhs->length) memcpy ((unsigned char *) built->str + lhs->length, rhs->str, rhs->length);
 	((unsigned char *) built->str)[lhs->length + rhs->length] = 0;
-	astr = (AZString *) arikkei_dict_lookup (&az_string_class->chr2str, built);
+	astr = (AZString *) arikkei_dict_lookup (&AZStringKlass.chr2str, built);
 	if (astr) {
 		az_string_unref (built);
 	} else {
 		astr = built;
-		arikkei_dict_insert (&az_string_class->chr2str, astr, astr);
+		arikkei_dict_insert (&AZStringKlass.chr2str, astr, astr);
 	}
 	return astr;
 }

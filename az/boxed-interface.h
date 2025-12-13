@@ -12,7 +12,7 @@
 #include <az/reference.h>
 #include <az/packed-value.h>
 
-typedef struct _AZBoxedInterfaceClass AZBoxedInterfaceClass;
+typedef struct _AZReferenceClass AZBoxedInterfaceClass;
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,11 +30,7 @@ struct _AZBoxedInterfaceClass {
 	AZReferenceClass reference_class;
 };
 
-#ifndef __AZ_BOXED_INTERFACE_C__
-extern AZBoxedInterfaceClass *az_boxed_interface_class;
-#else
-AZBoxedInterfaceClass *az_boxed_interface_class = NULL;
-#endif
+extern AZBoxedInterfaceClass AZBoxedInterfaceKlass;
 
 AZBoxedInterface *az_boxed_interface_new (const AZImplementation *impl, void *inst, const AZImplementation *if_impl, void *if_inst);
 AZBoxedInterface *az_boxed_interface_new_from_impl_value (const AZImplementation *impl, const AZValue *val, unsigned int type);
@@ -50,7 +46,7 @@ az_boxed_interface_ref(AZBoxedInterface *astr)
 ARIKKEI_INLINE void
 az_boxed_interface_unref(AZBoxedInterface *astr)
 {
-	az_reference_unref (&az_boxed_interface_class->reference_class, &astr->reference);
+	az_reference_unref (&AZBoxedInterfaceKlass, &astr->reference);
 }
 
 ARIKKEI_INLINE void
@@ -59,11 +55,6 @@ az_boxed_interface_unbox(const AZImplementation **impl, void **inst) {
 	*impl = boxed->impl;
 	*inst = boxed->inst;
 }
-
-#ifdef AZ_INTERNAL
-/* Library internal */
-void az_init_boxed_interface_class (void);
-#endif
 
 #ifdef __cplusplus
 };

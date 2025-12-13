@@ -16,7 +16,7 @@ typedef struct _AZInterfaceListClass AZInterfaceListClass;
 
 #define AZ_TYPE_INTERFACE_LIST (az_interface_list_get_type ())
 
-#include <az/list.h>
+#include <az/classes/list.h>
 
 #ifdef __cplusplus
 extern "C" {

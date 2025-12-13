@@ -29,6 +29,8 @@ struct _AZInterfaceClass {
 	void (*implementation_init) (AZImplementation *impl);
 };
 
+extern AZInterfaceClass AZInterfaceKlass;
+
 /* Register new interface type */
 AZInterfaceClass *az_register_interface_type (unsigned int *type, const unsigned char *name, unsigned int parent_type,
 	unsigned int class_size, unsigned int implementation_size, unsigned int instance_size, unsigned int flags,
@@ -36,9 +38,6 @@ AZInterfaceClass *az_register_interface_type (unsigned int *type, const unsigned
 	void (*implementation_init) (AZImplementation *),
 	void (*instance_init) (const AZImplementation *, void *),
 	void (*instance_finalize) (const AZImplementation *, void *));
-
-/* Library internal */
-void az_init_interface_class (void);
 
 #ifdef __cplusplus
 };

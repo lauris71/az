@@ -275,20 +275,6 @@ pointer_to_string (const AZImplementation* impl, void *instance, unsigned char *
 	return arikkei_strncpy (buf, len, (const unsigned char *) t);
 }
 
-struct _PrimitiveDef {
-	unsigned int type;
-	unsigned int parent;
-	unsigned int is_abstract;
-	unsigned int is_final;
-	unsigned int is_value;
-	unsigned int instance_size;
-	unsigned int alignment;
-	const char *name;
-	unsigned int (*serialize) (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx);
-	unsigned int (*deserialize) (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
-	unsigned int (*to_string) (const AZImplementation* impl, void *instance, unsigned char *buf, unsigned int len);
-};
-
 static unsigned int
 any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx)
 {
@@ -299,7 +285,7 @@ any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, co
 
 static unsigned char zero_val[16] = { 0 };
 
-static AZClass AnyClass = {
+AZClass AZAnyClass = {
 	{AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_ANY},
 	NULL,
 	/* Num interfaces, num props, ifaces, props */
@@ -315,184 +301,202 @@ static AZClass AnyClass = {
 	any_get_property, NULL
 };
 
-unsigned int AnyType[] = { AZ_TYPE_ANY };
+//unsigned int AnyType[] = { AZ_TYPE_ANY };
 
-static AZClass primitive_classes[] = {
-	{
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOOLEAN},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "boolean",
-		3, sizeof(AZClass), 4,
-		NULL,
-		NULL, NULL,
-		serialize_boolean, deserialize_boolean, boolean_to_string,
-		NULL, NULL
-	}, {
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT8},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "int8",
-		0, sizeof(AZClass), 1,
-		NULL,
-		NULL, NULL,
-		serialize_int, deserialize_int, int_to_string_any,
-		NULL, NULL
-	}, {
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT8},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "uint8",
-		0, sizeof(AZClass), 1,
-		NULL,
-		NULL, NULL,
-		serialize_int, deserialize_int, int_to_string_any,
-		NULL, NULL
-	}, {
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT16},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "int16",
-		1, sizeof(AZClass), 2,
-		NULL,
-		NULL, NULL,
-		serialize_int, deserialize_int, int_to_string_any,
-		NULL, NULL
-	}, {
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT16},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "uint16",
-		1, sizeof(AZClass), 2,
-		NULL,
-		NULL, NULL,
-		serialize_int, deserialize_int, int_to_string_any,
-		NULL, NULL
-	}, {
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT32},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "int32",
-		3, sizeof(AZClass), 4,
-		NULL,
-		NULL, NULL,
-		serialize_int, deserialize_int, int_to_string_any,
-		NULL, NULL
-	}, {
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT32},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "uint32",
-		3, sizeof(AZClass), 4,
-		NULL,
-		NULL, NULL,
-		serialize_int, deserialize_int, int_to_string_any,
-		NULL, NULL
-	}, {
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT64},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "int64",
-		7, sizeof(AZClass), 8,
-		NULL,
-		NULL, NULL,
-		serialize_int, deserialize_int, int_to_string_any,
-		NULL, NULL
-	}, {
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT64},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "uint64",
-		7, sizeof(AZClass), 8,
-		NULL,
-		NULL, NULL,
-		serialize_int, deserialize_int, int_to_string_any,
-		NULL, NULL
-	}, {
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FLOAT},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "float",
-		3, sizeof(AZClass), 4,
-		NULL,
-		NULL, NULL,
-		serialize_int, deserialize_int, float_to_string,
-		NULL, NULL
-	}, {
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_DOUBLE},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "double",
-		7, sizeof(AZClass), 8,
-		NULL,
-		NULL, NULL,
-		serialize_int, deserialize_int, double_to_string,
-		NULL, NULL
-	}, {
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_FLOAT},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "complex float",
-		7, sizeof(AZClass), 8,
-		NULL,
-		NULL, NULL,
-		serialize_complex_float, deserialize_complex_float, complex_float_to_string,
-		NULL, NULL
-	}, {
-		{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_DOUBLE},
-		&AnyClass,
-		0, 0, 0, 0, {0}, NULL,
-		(const uint8_t *) "complex double",
-		7, sizeof(AZClass), 16,
-		NULL,
-		NULL, NULL,
-		serialize_complex_double, deserialize_complex_double, complex_double_to_string,
-		NULL, NULL
-	}
+AZClass AZBooleanClass = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOOLEAN},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "boolean",
+	3, sizeof(AZClass), 4,
+	NULL,
+	NULL, NULL,
+	serialize_boolean, deserialize_boolean, boolean_to_string,
+	NULL, NULL
 };
 
-struct _PrimitiveDef defs[] = {
-	{ AZ_TYPE_NONE, AZ_TYPE_NONE, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL },
-	{ AZ_TYPE_ANY, AZ_TYPE_NONE, 1, 0, 0, 0, 0, "any", NULL, NULL, any_to_string },
-	{ AZ_TYPE_BOOLEAN, AZ_TYPE_ANY, 0, 1, 1, 4, 3, "boolean", serialize_boolean, deserialize_boolean, boolean_to_string },
-	{ AZ_TYPE_INT8, AZ_TYPE_ANY, 0, 1, 1, 1, 0, "int8", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_UINT8, AZ_TYPE_ANY, 0, 1, 1, 1, 0, "uint8", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_INT16, AZ_TYPE_ANY, 0, 1, 1, 2, 1, "int16", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_UINT16, AZ_TYPE_ANY, 0, 1, 1, 2, 1, "uint16", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_INT32, AZ_TYPE_ANY, 0, 1, 1, 4, 3, "int32", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_UINT32, AZ_TYPE_ANY, 0, 1, 1, 4, 3, "uint32", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_INT64, AZ_TYPE_ANY, 0, 1, 1, 8, 7, "int64", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_UINT64, AZ_TYPE_ANY, 0, 1, 1, 8, 7, "uint64", serialize_int, deserialize_int, int_to_string_any },
-	{ AZ_TYPE_FLOAT, AZ_TYPE_ANY, 0, 1, 1, 4, 3, "float", serialize_int, deserialize_int, float_to_string },
-	{ AZ_TYPE_DOUBLE, AZ_TYPE_ANY, 0, 1, 1, 8, 7, "double", serialize_int, deserialize_int, double_to_string },
-	{ AZ_TYPE_COMPLEX_FLOAT, AZ_TYPE_ANY, 0, 1, 1, 8, 7, "complex float", serialize_complex_float, deserialize_complex_float, complex_float_to_string },
-	{ AZ_TYPE_COMPLEX_DOUBLE, AZ_TYPE_ANY, 0, 1, 1, 16, 7, "complex double", serialize_complex_double, deserialize_complex_double, complex_double_to_string },
-	{ AZ_TYPE_POINTER, AZ_TYPE_ANY, 0, 0, 1, 8, 7, "pointer", serialize_int, deserialize_int, pointer_to_string },
-	{ AZ_TYPE_STRUCT, AZ_TYPE_ANY, 1, 0, 1, 0, 3, "struct", NULL, NULL, NULL },
-	{ AZ_TYPE_BLOCK, AZ_TYPE_ANY, 1, 0, 0, 0, 7, "block", NULL, NULL, NULL }
+AZClass AZInt8Class = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT8},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "int8",
+	0, sizeof(AZClass), 1,
+	NULL,
+	NULL, NULL,
+	serialize_int, deserialize_int, int_to_string_any,
+	NULL, NULL
 };
 
+AZClass AZUint8Class = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT8},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "uint8",
+	0, sizeof(AZClass), 1,
+	NULL,
+	NULL, NULL,
+	serialize_int, deserialize_int, int_to_string_any,
+	NULL, NULL
+};
+
+AZClass AZInt16Class = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT16},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "int16",
+	1, sizeof(AZClass), 2,
+	NULL,
+	NULL, NULL,
+	serialize_int, deserialize_int, int_to_string_any,
+	NULL, NULL
+};
+
+AZClass AZUint16Class = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT16},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "uint16",
+	1, sizeof(AZClass), 2,
+	NULL,
+	NULL, NULL,
+	serialize_int, deserialize_int, int_to_string_any,
+	NULL, NULL
+};
+
+AZClass AZInt32Class = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT32},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "int32",
+	3, sizeof(AZClass), 4,
+	NULL,
+	NULL, NULL,
+	serialize_int, deserialize_int, int_to_string_any,
+	NULL, NULL
+};
+
+AZClass AZUint32Class = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT32},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "uint32",
+	3, sizeof(AZClass), 4,
+	NULL,
+	NULL, NULL,
+	serialize_int, deserialize_int, int_to_string_any,
+	NULL, NULL
+};
+
+AZClass AZInt64Class = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT64},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "int64",
+	7, sizeof(AZClass), 8,
+	NULL,
+	NULL, NULL,
+	serialize_int, deserialize_int, int_to_string_any,
+	NULL, NULL
+};
+
+AZClass AZUint64Class = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT64},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "uint64",
+	7, sizeof(AZClass), 8,
+	NULL,
+	NULL, NULL,
+	serialize_int, deserialize_int, int_to_string_any,
+	NULL, NULL
+};
+
+AZClass AZFloatClass = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FLOAT},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "float",
+	3, sizeof(AZClass), 4,
+	NULL,
+	NULL, NULL,
+	serialize_int, deserialize_int, float_to_string,
+	NULL, NULL
+};
+
+AZClass AZDoubleClass = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_DOUBLE},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "double",
+	7, sizeof(AZClass), 8,
+	NULL,
+	NULL, NULL,
+	serialize_int, deserialize_int, double_to_string,
+	NULL, NULL
+};
+
+AZClass AZComplexFloatClass = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_FLOAT},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "complex float",
+	7, sizeof(AZClass), 8,
+	NULL,
+	NULL, NULL,
+	serialize_complex_float, deserialize_complex_float, complex_float_to_string,
+	NULL, NULL
+};
+
+AZClass AZCompleDoubleClass = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_DOUBLE},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "complex double",
+	7, sizeof(AZClass), 16,
+	NULL,
+	NULL, NULL,
+	serialize_complex_double, deserialize_complex_double, complex_double_to_string,
+	NULL, NULL
+};
+
+AZClass AZPointerClass = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_POINTER},
+	&AZAnyClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "pointer",
+	7, sizeof(AZClass), 8,
+	NULL,
+	NULL, NULL,
+	serialize_int, deserialize_int, pointer_to_string,
+	NULL, NULL
+};
+
+static AZClass *primitive_classes[] = {
+	&AZBooleanClass,
+	&AZInt8Class,
+	&AZUint8Class,
+	&AZInt16Class,
+	&AZUint16Class,
+	&AZInt32Class,
+	&AZUint32Class,
+	&AZInt64Class,
+	&AZUint64Class,
+	&AZFloatClass,
+	&AZDoubleClass,
+	&AZComplexFloatClass,
+	&AZCompleDoubleClass,
+	&AZPointerClass
+};
+
+#define AZ_NUM_PRIMITIVE_CLASSES (sizeof(primitive_classes) / sizeof(primitive_classes[0]))
 
 void
 az_init_primitive_classes (void)
 {
 	unsigned int i;
-	az_class_new_with_value(&AnyClass);
-	for (i = AZ_TYPE_BOOLEAN; i <= AZ_TYPE_COMPLEX_DOUBLE; i++) {
-		az_class_new_with_value(&primitive_classes[i - AZ_TYPE_BOOLEAN]);
-	}
-	for (i = AZ_TYPE_POINTER; i <= AZ_TYPE_BLOCK; i++) {
-		unsigned int flags = 0;
-		assert (defs[i].type == i);
-		if (defs[i].is_abstract) flags |= AZ_FLAG_ABSTRACT;
-		if (defs[i].is_final) flags |= AZ_FLAG_FINAL;
-		if (defs[i].is_value) flags |= AZ_FLAG_VALUE;
-		if (i == AZ_TYPE_BLOCK) flags |= AZ_FLAG_BLOCK;
-		AZClass *klass = az_class_new_with_type (defs[i].type, defs[i].parent, sizeof (AZClass), defs[i].instance_size, flags, (const uint8_t *) defs[i].name);
-		klass->alignment = defs[i].alignment;
-		klass->serialize = defs[i].serialize;
-		klass->deserialize = defs[i].deserialize;
-		if (defs[i].to_string) klass->to_string = defs[i].to_string;
+	az_class_new_with_value(&AZAnyClass);
+	for (unsigned int i = 0; i < AZ_NUM_PRIMITIVE_CLASSES; i++) {
+		az_class_new_with_value(primitive_classes[i]);
 	}
 }
 
@@ -505,7 +509,7 @@ az_post_init_primitive_classes (void)
 	az_class_set_num_properties (any_class, 2);
 	az_class_define_property (any_class, 0, (const unsigned char *) "type", AZ_TYPE_UINT32, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
 	az_class_define_property (any_class, 1, (const unsigned char *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
-	for (i = AZ_TYPE_ANY; i <= AZ_TYPE_BLOCK; i++) {
+	for (i = AZ_TYPE_ANY; i <= AZ_TYPE_POINTER; i++) {
 		az_class_post_init (AZ_CLASS_FROM_TYPE(i));
 	}
 }

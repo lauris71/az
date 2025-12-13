@@ -10,7 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <az/array-of.h>
+#include "array-of.h"
+
 #include <az/extend.h>
 
 static void array_of_class_init (AZArrayOfClass *klass, AZClass *element_class);

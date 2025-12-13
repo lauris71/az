@@ -57,14 +57,7 @@ struct _AZReferenceClass {
 	void (*dispose) (AZReferenceClass *klass, AZReference *ref);
 };
 
-/**
- * @cond For library internal use
- */
-void az_init_reference_class (void);
-void az_reference_drop (AZReferenceClass *klass, AZReference *ref);
-/**
- * @endcond
- */
+extern AZReferenceClass AZReferenceKlass;
 
 #ifdef AZ_MT_REFERENCES
 void az_reference_ref (AZReference* ref);

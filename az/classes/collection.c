@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 #include <az/boxed-interface.h>
-#include <az/collection.h>
+#include <az/classes/collection.h>
 #include <az/private.h>
 #include <az/extend.h>
 

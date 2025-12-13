@@ -10,8 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <az/object-interface-list.h>
 #include <az/extend.h>
+
+#include "object-interface-list.h"
 
 static void object_interface_list_class_init (AZObjectInterfaceListClass *klass);
 static void object_interface_list_init (AZObjectInterfaceListClass *klass, AZObjectInterfaceList *objifl);

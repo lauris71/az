@@ -20,6 +20,12 @@
 #include <az/serialization.h>
 
 static unsigned int
+serialize_boxed_interface (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx) {
+	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
+	return az_instance_serialize(boxed->impl, boxed->inst, d, dlen, ctx);
+}
+
+static unsigned int
 boxed_interface_to_string (const AZImplementation *impl, void *inst, unsigned char *buf, unsigned int len)
 {
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
@@ -34,11 +40,23 @@ boxed_interface_to_string (const AZImplementation *impl, void *inst, unsigned ch
 	return pos;
 }
 
+AZBoxedInterfaceClass AZBoxedInterfaceKlass = {
+	{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOXED_INTERFACE},
+	&AZReferenceKlass.klass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "boxed interface",
+	7, sizeof(AZBoxedInterfaceClass), 0,
+	NULL,
+	NULL, NULL,
+	serialize_boxed_interface, NULL, boxed_interface_to_string,
+	NULL, NULL},
+	NULL, NULL
+};
+
 void
 az_init_boxed_interface_class (void)
 {
-	az_boxed_interface_class = (AZBoxedInterfaceClass *) az_class_new_with_type (AZ_TYPE_BOXED_INTERFACE, AZ_TYPE_REFERENCE, sizeof (AZBoxedInterfaceClass), 0, AZ_FLAG_FINAL, (const uint8_t *) "boxed interface");
-	az_boxed_interface_class->reference_class.klass.to_string = boxed_interface_to_string;
+	az_class_new_with_value(&AZBoxedInterfaceKlass.klass);
 }
 
 AZBoxedInterface *

@@ -13,8 +13,9 @@
 
 #include <az/packed-value.h>
 #include <az/private.h>
-#include <az/value-array.h>
 #include <az/extend.h>
+
+#include "value-array.h"
 
 static void value_array_class_init (AZValueArrayClass *klass);
 static void value_array_init (AZValueArrayClass *klass, AZValueArray *varray);

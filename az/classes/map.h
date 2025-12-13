@@ -12,7 +12,7 @@
 typedef struct _AZMapImplementation AZMapImplementation;
 typedef struct _AZMapClass AZMapClass;
 
-#include <az/collection.h>
+#include <az/classes/collection.h>
 
 #ifdef __cplusplus
 extern "C" {

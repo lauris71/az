@@ -12,10 +12,10 @@
 #include <az/reference.h>
 #include <az/packed-value.h>
 
-typedef struct _AZBoxedValueClass AZBoxedValueClass;
+typedef struct _AZReferenceClass AZBoxedValueClass;
 
-#define AZ_BOXED_VALUE_CLASS az_boxed_value_class
-#define AZ_BOXED_VALUE_IMPL ((AZImplementation *) az_boxed_value_class)
+#define AZ_BOXED_VALUE_CLASS (&AZBoxedValueKlass)
+#define AZ_BOXED_VALUE_IMPL ((AZImplementation *) &AZBoxedValueKlass)
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,15 +28,7 @@ struct _AZBoxedValue {
 	AZValue val;
 };
 
-struct _AZBoxedValueClass {
-	AZReferenceClass ref_class;
-};
-
-#ifndef __AZ_BOXED_VALUE_C__
-extern AZBoxedValueClass *az_boxed_value_class;
-#else
-AZBoxedValueClass *az_boxed_value_class = NULL;
-#endif
+extern AZBoxedValueClass AZBoxedValueKlass;
 
 AZBoxedValue *az_boxed_value_new (const AZClass *klass, void *inst);
 AZBoxedValue *az_boxed_value_new_from_val (const AZClass *klass, const AZValue *val);
@@ -50,7 +42,7 @@ az_boxed_value_ref (AZBoxedValue *boxed)
 ARIKKEI_INLINE void
 az_boxed_value_unref (AZBoxedValue *boxed)
 {
-	az_reference_unref(&az_boxed_value_class->ref_class, &boxed->ref);
+	az_reference_unref(&AZBoxedValueKlass, &boxed->ref);
 }
 
 static inline const AZImplementation *
@@ -119,11 +111,6 @@ az_value_get_unboxed_size(const AZImplementation *impl, const AZValue *value)
 		return az_class_value_size(AZ_CLASS_FROM_IMPL(impl));
 	}
 }
-
-#ifdef AZ_INTERNAL
-/* Library internal */
-void az_init_boxed_value_class (void);
-#endif
 
 #ifdef __cplusplus
 };

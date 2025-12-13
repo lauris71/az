@@ -11,8 +11,9 @@
 #include <string.h>
 
 #include <az/value.h>
-#include <az/interface-list.h>
 #include <az/extend.h>
+
+#include "interface-list.h"
 
 static void interface_list_class_init (AZInterfaceListClass* klass);
 static void interface_list_init (AZInterfaceListClass* klass, AZInterfaceList* ifl);

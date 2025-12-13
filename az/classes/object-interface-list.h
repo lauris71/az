@@ -17,7 +17,7 @@ typedef struct _AZObjectInterfaceListElement AZObjectInterfaceListElement;
 
 #define AZ_TYPE_OBJECT_INTERFACE_LIST (az_object_interface_list_get_type ())
 
-#include <az/list.h>
+#include <az/classes/list.h>
 #include <az/object.h>
 
 #ifdef __cplusplus

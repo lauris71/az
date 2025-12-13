@@ -29,8 +29,6 @@ extern "C" {
 #define AZ_FIELD_READ_STORED_STATIC 3
 /* Read via get_property method */
 #define AZ_FIELD_READ_METHOD 4
-/* Read as boxed interface of the owner instance */
-#define AZ_FIELD_READ_BOXED_INTERFACE 5
 
 /* Not writeable */
 #define AZ_FIELD_WRITE_NONE 0
@@ -62,6 +60,8 @@ struct _AZField {
 	};
 };
 
+extern AZClass AZFieldKlass;
+
 void az_field_setup (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
 	unsigned int spec, unsigned int read, unsigned int write, unsigned int offset,
 	const AZImplementation *impl, void *inst);
@@ -72,9 +72,6 @@ void az_field_setup_function (AZField *prop, const unsigned char *key, unsigned 
 
 void az_field_setup_function_packed (AZField *prop, const unsigned char *key, unsigned int is_final,
 	unsigned int spec, unsigned int read, unsigned int write, const AZFunctionSignature *sig, unsigned int offset);
-
-/* Library internals */
-void az_init_field_class (void);
 
 #ifdef __cplusplus
 };

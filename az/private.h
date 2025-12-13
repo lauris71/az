@@ -35,17 +35,31 @@ void az_globals_init (void);
 
 unsigned int az_reserve_type();
 
-void az_init_implementation_class (void);
-void az_implementation_class_post_init (void);
-void az_class_class_init (void);
+/* Library internals */
+void az_init_primitive_classes (void);
+void az_post_init_primitive_classes (void);
+
+void az_init_base_classes (void);
+void az_post_init_base_classes (void);
+void az_impl_class_post_init (void);
 void az_class_class_post_init (void);
+
+void az_init_interface_class (void);
+void az_init_field_class (void);
+void az_init_function_classes (void);
+void az_init_reference_class (void);
+void az_init_string_class (void);
+void az_init_boxed_value_class (void);
+void az_init_boxed_interface_class (void);
+void az_init_packed_value_class (void);
+void az_init_object_class(void);
 
 /* Allocates and initializes a new class and type, does NOT call neither class constructor nor post_init */
 AZClass *az_class_new (uint32_t *type, const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
 	void (*instance_init) (const AZImplementation *, void *),
 	void (*instance_finalize) (const AZImplementation *, void *));
 /* Allocates and initializes a new class with pre-defined type, does NOT call neither class constructor nor post_init */
-/* Used internally for primitive types */
+/* Used internally for fundamental types */
 AZClass *az_class_new_with_type (unsigned int type, unsigned int parent, unsigned int class_size, unsigned int instance_size, unsigned int flags, const uint8_t *name);
 void az_class_new_with_value (AZClass *klass);
 

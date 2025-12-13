@@ -12,7 +12,7 @@
 #include <az/packed-value.h>
 #include <az/extend.h>
 
-#include <az/list.h>
+#include "list.h"
 
 /* AZInterface implementation */
 static void list_class_init (AZListClass *klass);

@@ -8,8 +8,9 @@
 
 #include <arikkei/arikkei-utils.h>
 
-#include <az/attrib-dict.h>
 #include <az/packed-value.h>
+
+#include "attrib-dict.h"
 
 static void attrib_dict_class_init (AZAttribDictClass *klass);
 static void attrib_dict_impl_init (AZAttribDictImplementation *impl);

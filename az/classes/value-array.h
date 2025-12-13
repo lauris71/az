@@ -15,7 +15,7 @@ typedef struct _AZValueArrayClass AZValueArrayClass;
 typedef struct _AZPackedValueArray AZPackedValueArray;
 typedef struct _AZPackedValueArrayClass AZPackedValueArrayClass;
 
-#include <az/list.h>
+#include <az/classes/list.h>
 #include <az/reference.h>
 
 #ifdef __cplusplus

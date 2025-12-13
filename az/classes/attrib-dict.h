@@ -12,8 +12,8 @@
 typedef struct _AZAttribDictImplementation AZAttribDictImplementation;
 typedef struct _AZAttribDictClass AZAttribDictClass;
 
-#include <az/list.h>
-#include <az/map.h>
+#include <az/classes/list.h>
+#include <az/classes/map.h>
 
 #ifdef __cplusplus
 extern "C" {

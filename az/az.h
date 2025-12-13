@@ -9,7 +9,7 @@
  * Licensed under GNU General Public License version 3 or any later version.
  */
 
-#include <az/base.h>
+#include <az/config.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,7 +22,8 @@ enum {
 	AZ_TYPE_NONE,
 	/* Universal base class */
 	AZ_TYPE_ANY,
-	/* True primitives */
+
+	/* Primitives */
 	AZ_TYPE_BOOLEAN,
 	AZ_TYPE_INT8,
 	AZ_TYPE_UINT8,
@@ -38,12 +39,14 @@ enum {
 	AZ_TYPE_COMPLEX_DOUBLE,
 	AZ_TYPE_POINTER,
 
+	/* Fundamental types */
 	/* Struct is base for all composite value types */
 	AZ_TYPE_STRUCT,
 	/* Block is the base of all composite reference types */
 	AZ_TYPE_BLOCK,
-	/* True primitives have ANY as parent */
-	AZ_NUM_PRIMITIVE_TYPES = AZ_TYPE_BLOCK,
+	/* Fundamental types have ANY as parent */
+	AZ_NUM_FUNDAMENTAL_TYPES = AZ_TYPE_BLOCK,
+
 	/* Special types */
 	AZ_TYPE_IMPLEMENTATION,
 	AZ_TYPE_CLASS,
@@ -61,6 +64,7 @@ enum {
 #ifdef AZ_HAS_PACKED_VALUE
 	AZ_TYPE_PACKED_VALUE,
 #endif
+	AZ_TYPE_OBJECT,
 	/* Count */
 	AZ_NUM_BASE_TYPES
 };
@@ -99,6 +103,9 @@ typedef struct _AZValue64 AZValue64;
 
 /* Members and properties */
 typedef struct _AZField AZField;
+
+/* Embeddable type, interface instance does not have members */
+typedef struct _AZInterfaceClass AZInterfaceClass;
 
 /* Predeclarations of base types */
 typedef struct _AZReference AZReference;

@@ -27,6 +27,9 @@ extern "C" {
  *  A callable interface
  */
 
+extern AZClass AZFunctionSignatureKlass;
+extern AZInterfaceClass AZFunctionKlass;
+
 struct _AZFunctionSignature {
 	/* Return type */
 	uint32_t ret_type;
@@ -120,9 +123,6 @@ unsigned int az_instance_invoke_function (const AZImplementation *impl, void *in
 unsigned int az_function_invoke_va (const AZFunctionImplementation *impl, AZFunctionInstance *inst, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
 unsigned int az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, AZFunctionInstance *inst, const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
 unsigned int az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
-
-/* Library internals */
-void az_init_function_classes (void);
 
 #ifdef __cplusplus
 };

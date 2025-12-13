@@ -13,7 +13,7 @@ typedef struct _AZValueArrayRef AZValueArrayRef;
 typedef struct _AZValueArrayRefClass AZValueArrayRefClass;
 
 #include <az/reference.h>
-#include <az/value-array.h>
+#include <az/classes/value-array.h>
 
 #ifdef __cplusplus
 extern "C" {

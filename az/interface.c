@@ -10,6 +10,7 @@
 
 #include <arikkei/arikkei-utils.h>
 
+#include <az/base.h>
 #include <az/interface.h>
 #include <az/private.h>
 #include <az/extend.h>
@@ -32,12 +33,21 @@ AZInterfaceClass *az_register_interface_type (unsigned int *type, const unsigned
 	return if_klass;
 }
 
-static AZInterfaceClass *interface_class = NULL;
+AZInterfaceClass AZInterfaceKlass = {
+	{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INTERFACE},
+	&AZBlockClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "interface",
+	3, sizeof(AZInterfaceClass), 0,
+	NULL,
+	NULL, NULL,
+	NULL, NULL, NULL,
+	NULL, NULL},
+	sizeof(AZImplementation), NULL
+};
 
 void
 az_init_interface_class (void)
 {
-	interface_class = (AZInterfaceClass *) az_class_new_with_type (AZ_TYPE_INTERFACE, AZ_TYPE_BLOCK, sizeof (AZInterfaceClass), 0, AZ_FLAG_ABSTRACT, (const uint8_t *) "interface");
-	interface_class->klass.impl.flags |= AZ_FLAG_INTERFACE;
-	interface_class->implementation_size = sizeof (AZImplementation);
+	az_class_new_with_value(&AZInterfaceKlass.klass);
 }

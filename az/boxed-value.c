@@ -12,6 +12,12 @@
 #include <az/private.h>
 
 static unsigned int
+serialize_boxed_value (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx) {
+	AZBoxedValue *boxed = (AZBoxedValue *) inst;
+	return az_instance_serialize(&boxed->klass->impl, az_instance_from_value(&boxed->klass->impl, &boxed->val), d, dlen, ctx);
+}
+
+static unsigned int
 boxed_value_to_string (const AZImplementation *impl, void *inst, unsigned char *buf, unsigned int len)
 {
 	AZBoxedValue *boxed = (AZBoxedValue *) inst;
@@ -22,11 +28,23 @@ boxed_value_to_string (const AZImplementation *impl, void *inst, unsigned char *
 	return pos;
 }
 
+AZBoxedValueClass AZBoxedValueKlass = {
+	{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOXED_VALUE},
+	&AZReferenceKlass.klass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "boxed value",
+	7, sizeof(AZBoxedValueClass), 0,
+	NULL,
+	NULL, NULL,
+	serialize_boxed_value, NULL, boxed_value_to_string,
+	NULL, NULL},
+	NULL, NULL
+};
+
 void
 az_init_boxed_value_class (void)
 {
-	az_boxed_value_class = (AZBoxedValueClass *) az_class_new_with_type (AZ_TYPE_BOXED_VALUE, AZ_TYPE_REFERENCE, sizeof(AZBoxedValueClass), 0, AZ_FLAG_BOXED | AZ_FLAG_FINAL, (const uint8_t *) "boxed value");
-	az_boxed_value_class->ref_class.klass.to_string = boxed_value_to_string;
+	az_class_new_with_value(&AZBoxedValueKlass.klass);
 }
 
 AZBoxedValue *

@@ -10,6 +10,7 @@
 
 #include <arikkei/arikkei-utils.h>
 
+#include <az/base.h>
 #include <az/class.h>
 #include <az/private.h>
 #include <az/reference.h>
@@ -23,6 +24,8 @@ mtx_t mutex;
 
 #define AZ_REFERENCE_LOCK() mtx_lock (&mutex)
 #define AZ_REFERENCE_UNLOCK() mtx_unlock (&mutex)
+
+static void az_reference_drop (AZReferenceClass *klass, AZReference *ref);
 
 void
 az_reference_ref (AZReference* ref)
@@ -62,7 +65,7 @@ az_reference_unref (AZReferenceClass* klass, AZReference* ref)
 #endif
 
 void
-az_reference_drop (AZReferenceClass *klass, AZReference *ref)
+static az_reference_drop (AZReferenceClass *klass, AZReference *ref)
 {
 #ifdef AZ_SAFETY_CHECKS
 	AZ_REFERENCE_LOCK ();
@@ -116,7 +119,7 @@ az_reference_dispose (AZReferenceClass *klass, AZReference *ref)
 	}
 }
 
-static AZReferenceClass *reference_class = NULL;
+//static AZReferenceClass *reference_class = NULL;
 
 static void
 reference_instance_init (AZReferenceClass *klass, void *instance)
@@ -124,11 +127,25 @@ reference_instance_init (AZReferenceClass *klass, void *instance)
 	((AZReference *) instance)->refcount = 1;
 }
 
+AZReferenceClass AZReferenceKlass = {
+	{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_REFERENCE},
+	&AZBlockClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "reference",
+	7, sizeof(AZReferenceClass), 0,
+	NULL,
+	(void (*) (const AZImplementation *, void *)) reference_instance_init, NULL,
+	NULL, NULL, NULL,
+	NULL, NULL},
+	NULL, NULL
+};
+
 void
 az_init_reference_class (void)
 {
-	reference_class = (AZReferenceClass *) az_class_new_with_type (AZ_TYPE_REFERENCE, AZ_TYPE_BLOCK, sizeof (AZReferenceClass), sizeof (AZReference), AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE, (const uint8_t *) "reference");
-	reference_class->klass.instance_init = (void (*) (const AZImplementation *, void *)) reference_instance_init;
+	az_class_new_with_value(&AZReferenceKlass.klass);
+	//reference_class = (AZReferenceClass *) az_class_new_with_type (AZ_TYPE_REFERENCE, AZ_TYPE_BLOCK, sizeof (AZReferenceClass), sizeof (AZReference), AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE, (const uint8_t *) "reference");
+	//reference_class->klass.instance_init = (void (*) (const AZImplementation *, void *)) reference_instance_init;
 #ifdef AZ_MT_REFERENCES
 	mtx_init (&mutex, mtx_plain);
 #endif

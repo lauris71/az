@@ -4,40 +4,37 @@
 /*
  * A run-time type library
  *
- * Copyright (C) Lauris Kaplinski 2016
+ * Copyright (C) Lauris Kaplinski 2016-2025
  */
 
-#include <arikkei/arikkei-utils.h>
+ #include <az/class.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-	
-/*
- * Turn on runtime safety checks in library
- * Well-behaving implementation may disable these for speed
- */
 
-#ifndef AZ_NO_SAFETY_CHECKS
-#define AZ_SAFETY_CHECKS 1
-#endif
-
-/*
- * Disable specific parts of library
- */
-
-#define _AZ_NO_STRING
-#define _AZ_NO_BOXED_INTERFACE
-#define _AZ_NO_VALUE
-#define _AZ_NO_PROPERTIES
-
-#ifndef AZ_NO_PACKED_VALUE
-#define AZ_HAS_PACKED_VALUE
-#endif
-
-#ifndef AZ_NO_PROPERTIES
-#define AZ_HAS_PROPERTIES
-#endif
+extern AZClass AZAnyClass;
+/* Primitives */
+extern AZClass AZBooleanClass;
+extern AZClass AZInt8Class;
+extern AZClass AZUint8Class;
+extern AZClass AZInt16Class;
+extern AZClass AZUint16Class;
+extern AZClass AZInt32Class;
+extern AZClass AZUint32Class;
+extern AZClass AZInt64Class;
+extern AZClass AZUint64Class;
+extern AZClass AZFloatClass;
+extern AZClass AZDoubleClass;
+extern AZClass AZComplexFloatClass;
+extern AZClass AZComplexDoubleClass;
+extern AZClass AZPointerClass;
+/* Fundamental */
+extern AZClass AZStructClass;
+extern AZClass AZBlockClass;
+/* Base */
+extern AZClass AZImplClass;
+extern AZClass AZClassClass;
 
 #ifdef __cplusplus
 };

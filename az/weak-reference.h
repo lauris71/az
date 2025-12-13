@@ -16,7 +16,7 @@
 typedef struct _AZWeakReference AZWeakReference;
 typedef struct _AZWeakReferenceClass AZWeakReferenceClass;
 
-#include <az/active-object.h>
+#include <az/classes/active-object.h>
 
 #ifdef __cplusplus
 extern "C" {

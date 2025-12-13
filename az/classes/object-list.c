@@ -9,9 +9,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <az/active-object.h>
-#include <az/object-list.h>
+#include <az/classes/active-object.h>
 #include <az/extend.h>
+
+#include "object-list.h"
 
 static void object_list_class_init (AZObjectListClass *klass);
 static void object_list_init (AZObjectListClass *klass, AZObjectList *objl);

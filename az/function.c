@@ -11,21 +11,49 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include <az/base.h>
 #include <az/object.h>
 #include <az/packed-value.h>
 #include <az/private.h>
 
 #include <az/function.h>
 
-static AZClass *function_signature_class = NULL;
-static AZClass *function_class = NULL;
+//static AZClass *function_signature_class = NULL;
+//static AZClass *function_class = NULL;
+
+AZClass AZFunctionSignatureKlass = {
+	{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FUNCTION_SIGNATURE},
+	&AZBlockClass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "signature",
+	7, sizeof(AZClass), 0,
+	NULL,
+	NULL, NULL,
+	NULL, NULL, NULL,
+	NULL, NULL
+};
+
+AZInterfaceClass AZFunctionKlass = {
+	{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FUNCTION},
+	&AZInterfaceKlass.klass,
+	0, 0, 0, 0, {0}, NULL,
+	(const uint8_t *) "function",
+	3, sizeof(AZInterfaceKlass), 0,
+	NULL,
+	NULL, NULL,
+	NULL, NULL, NULL,
+	NULL, NULL},
+	sizeof(AZFunctionImplementation), NULL
+};
 
 void
 az_init_function_classes (void)
 {
-	function_signature_class = az_class_new_with_type (AZ_TYPE_FUNCTION_SIGNATURE, AZ_TYPE_BLOCK, sizeof (AZClass), 0, AZ_FLAG_FINAL, (const uint8_t *) "signature");
-	function_class = az_class_new_with_type (AZ_TYPE_FUNCTION, AZ_TYPE_INTERFACE, sizeof (AZFunctionClass), sizeof (AZFunctionInstance), AZ_FLAG_ABSTRACT, (const uint8_t *) "function");
-	((AZInterfaceClass *) function_class)->implementation_size = sizeof (AZFunctionImplementation);
+	az_class_new_with_value(&AZFunctionSignatureKlass);
+	az_class_new_with_value(&AZFunctionKlass.klass);
+	//function_signature_class = az_class_new_with_type (AZ_TYPE_FUNCTION_SIGNATURE, AZ_TYPE_BLOCK, sizeof (AZClass), 0, AZ_FLAG_FINAL, (const uint8_t *) "signature");
+	//function_class = az_class_new_with_type (AZ_TYPE_FUNCTION, AZ_TYPE_INTERFACE, sizeof (AZFunctionClass), sizeof (AZFunctionInstance), AZ_FLAG_ABSTRACT, (const uint8_t *) "function");
+	//((AZInterfaceClass *) function_class)->implementation_size = sizeof (AZFunctionImplementation);
 }
 
 AZFunctionSignature *

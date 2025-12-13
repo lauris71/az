@@ -14,7 +14,7 @@
 typedef struct _AZActiveObject AZActiveObject;
 typedef struct _AZActiveObjectClass AZActiveObjectClass;
 
-#include <az/attrib-dict.h>
+#include <az/classes/attrib-dict.h>
 #include <az/object.h>
 #include <az/packed-value.h>
 

@@ -28,11 +28,7 @@ struct _AZStringClass {
 	ArikkeiDict chr2str;
 };
 
-#ifndef __AZ_STRING_C__
-extern AZStringClass *az_string_class;
-#else
-AZStringClass *az_string_class = NULL;
-#endif
+extern AZStringClass AZStringKlass;
 
 AZString *az_string_new (const unsigned char *str);
 AZString *az_string_new_length (const unsigned char *str, unsigned int length);
@@ -49,7 +45,7 @@ az_string_ref (AZString *astr)
 ARIKKEI_INLINE void
 az_string_unref (AZString *astr)
 {
-	az_reference_unref (&az_string_class->reference_class, &astr->reference);
+	az_reference_unref (&AZStringKlass.reference_class, &astr->reference);
 }
 
 static inline unsigned int
@@ -62,9 +58,6 @@ AZString *az_string_concat (AZString *lhs, AZString *rhs);
 
 /* Get serialized string as char array */
 const unsigned char *az_string_deserialize_chars (const unsigned char *cdata, unsigned int csize, unsigned int *cpos);
-
-/* Library internal */
-void az_init_string_class (void);
 
 #ifdef __cplusplus
 };

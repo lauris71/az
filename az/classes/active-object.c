@@ -16,7 +16,7 @@
 #include <az/string.h>
 #include <az/extend.h>
 
-#include <az/active-object.h>
+#include <az/classes/active-object.h>
 
 static void az_active_object_class_init (AZActiveObjectClass *klass);
 
