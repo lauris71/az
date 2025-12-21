@@ -56,7 +56,7 @@ az_boxed_value_new (const AZClass *klass, void *inst)
 	AZBoxedValue *boxed = (AZBoxedValue *) malloc (sizeof (AZBoxedValue) + ext_size);
 	az_instance_init (boxed, AZ_TYPE_BOXED_VALUE);
 	boxed->klass = klass;
-	az_value_set_from_impl_instance (&boxed->val, &klass->impl, inst);
+	az_value_set_from_inst (&klass->impl, &boxed->val, inst);
 	return boxed;
 }
 
@@ -69,6 +69,6 @@ az_boxed_value_new_from_val (const AZClass *klass, const AZValue *val)
 	AZBoxedValue *boxed = (AZBoxedValue *) malloc (sizeof (AZBoxedValue) + ext_size);
 	az_instance_init (boxed, AZ_TYPE_BOXED_VALUE);
 	boxed->klass = klass;
-	az_value_set_from_impl_value (&boxed->val, &klass->impl, val);
+	az_value_copy (&klass->impl, &boxed->val, val);
 	return boxed;
 }

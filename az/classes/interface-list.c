@@ -24,7 +24,7 @@ static unsigned int interface_list_get_element_type (const AZCollectionImplement
 static unsigned int interface_list_get_size (const AZCollectionImplementation* impl, void* collection_instance);
 static unsigned int interface_list_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
-static const AZImplementation* interface_list_get_element (const AZListImplementation* list_impl, void* list_inst, unsigned int idx, AZValue64 *val);
+static const AZImplementation* interface_list_get_element (const AZListImplementation* list_impl, void* list_inst, unsigned int idx, AZValue* val, unsigned int size);
 
 /* Method implementations */
 static unsigned int interface_list_call_lookUp (AZPackedValue* thisval, AZPackedValue* retval, AZPackedValue* args);
@@ -95,11 +95,11 @@ interface_list_contains (const AZCollectionImplementation *collection_impl, void
 }
 
 static const AZImplementation*
-interface_list_get_element (const AZListImplementation* list_impl, void* list_inst, unsigned int idx, AZValue64 *val)
+interface_list_get_element (const AZListImplementation* list_impl, void* list_inst, unsigned int idx, AZValue *val, unsigned int size)
 {
 	AZInterfaceList* ifl = ( AZInterfaceList*) list_inst;
 	arikkei_return_val_if_fail (idx < ifl->length, 0);
-	val->value.block = ifl->elements[idx].inst;
+	val->block = ifl->elements[idx].inst;
 	return ifl->elements[idx].impl;
 }
 

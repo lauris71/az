@@ -23,7 +23,7 @@ static unsigned int object_list_get_element_type (const AZCollectionImplementati
 static unsigned int object_list_get_size (const AZCollectionImplementation *impl, void *collection_instance);
 static unsigned int object_list_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
-static const AZImplementation *object_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue64 *val);
+static const AZImplementation *object_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
 /* Method implementations */
 static unsigned int object_list_call_Append (const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
@@ -116,13 +116,12 @@ object_list_contains (const AZCollectionImplementation *collection_impl, void *c
 }
 
 static const AZImplementation *
-object_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue64 *val)
+object_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
 {
 	const AZImplementation *impl;
 	AZObjectList *objl = (AZObjectList *) list_inst;
 	arikkei_return_val_if_fail (idx < objl->length, 0);
-	/* az_packed_value_set_object (value, objl->objects[index]); */
-	az_value_set_object (&impl, &val->value, objl->objects[idx]);
+	az_value_set_object (&impl, val, objl->objects[idx]);
 	return impl;
 }
 

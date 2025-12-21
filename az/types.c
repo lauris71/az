@@ -633,7 +633,7 @@ az_instance_set_property_by_id (const AZClass *klass, const AZImplementation *im
 		} else {
 			val = (AZValue *) ((char *) klass + klass->props_self[idx].offset);
 		}
-		az_set_value_from_instance (prop_impl, val, prop_inst);
+		az_value_set_from_inst (prop_impl, val, prop_inst);
 	} else if (klass->props_self[idx].write == AZ_FIELD_WRITE_PACKED) {
 		AZPackedValue *val;
 		if (klass->props_self[idx].spec == AZ_FIELD_INSTANCE) {
@@ -706,7 +706,7 @@ az_instance_get_property_by_id (const AZClass *klass, const AZImplementation *im
 			} else {
 				AZClass *prop_class = AZ_CLASS_FROM_TYPE(prop->type);
 				arikkei_return_val_if_fail (prop_class->impl.flags & AZ_FLAG_FINAL, 0);
-				*prop_impl = az_value_copy_autobox (&prop_val->value, &prop_class->impl, val, val_size);
+				*prop_impl = az_value_copy_autobox (&prop_class->impl, &prop_val->value, val, val_size);
 			}
 			break;
 		}
@@ -720,13 +720,13 @@ az_instance_get_property_by_id (const AZClass *klass, const AZImplementation *im
 			} else {
 				val = (AZPackedValue *) ((char *) klass + prop->offset);
 			}
-			*prop_impl = az_value_copy_autobox (&prop_val->value, val->impl, &val->v, val_size);
+			*prop_impl = az_value_copy_autobox (val->impl, &prop_val->value, &val->v, val_size);
 			break;
 		}
 		case AZ_FIELD_READ_STORED_STATIC:
 			/* Packed value inside field definition */
 			if (prop->value->impl) {
-				*prop_impl = az_value_copy_autobox (&prop_val->value, prop->value->impl, &prop->value->v, val_size);
+				*prop_impl = az_value_copy_autobox (prop->value->impl, &prop_val->value, &prop->value->v, val_size);
 			} else {
 				*prop_impl = NULL;
 			}

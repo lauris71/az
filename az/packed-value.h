@@ -46,7 +46,7 @@ ARIKKEI_INLINE void
 az_value_set_from_packed_value (const AZImplementation **dst_impl, AZValue *dst_val, const AZPackedValue *src)
 {
 	*dst_impl = src->impl;
-	if (src->impl) az_copy_value (src->impl, dst_val, &src->v);
+	if (src->impl) az_value_copy (src->impl, dst_val, &src->v);
 }
 
 /* Packed values */

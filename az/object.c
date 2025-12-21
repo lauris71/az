@@ -29,7 +29,11 @@ enum {
 AZObjectClass AZObjectKlass = {
 	{{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE | AZ_FLAG_ZERO_MEMORY | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_OBJECT},
 			&AZReferenceKlass.klass,
-			0, 0, 0, 0, {0}, NULL,
+			0, 0, 0, 0,
+			/* ifaces / ifaces_self, ifaces_all */
+			{0},
+			/* props_self */
+			NULL,
 			(const uint8_t *) "object",
 			7, sizeof(AZObjectClass), 0,
 			NULL,

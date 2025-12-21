@@ -20,7 +20,7 @@ static void list_implementation_init (AZListImplementation *impl);
 /* AZCollection implementation */
 static unsigned int list_get_iterator (const AZCollectionImplementation *collection_impl, void *collection_inst, AZPackedValue *iterator);
 static unsigned int list_iterator_next (const AZCollectionImplementation *collection_impl, void *collection_inst, AZPackedValue *iterator);
-static const AZImplementation *list_get_element (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZPackedValue *iterator, AZValue64 *val);
+static const AZImplementation *list_get_element (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZPackedValue *iterator, AZValue *val, unsigned int size);
 /* AZInstance implementation */
 static unsigned int list_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
 
@@ -86,13 +86,7 @@ list_iterator_next (const AZCollectionImplementation *collection_impl, void *col
 }
 
 static const AZImplementation *
-list_get_element (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZPackedValue *iterator, AZValue64 *val)
+list_get_element (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZPackedValue *iterator, AZValue *val, unsigned int size)
 {
-	return az_list_get_element ((AZListImplementation *) collection_impl, collection_inst, iterator->v.uint32_v, val);
-}
-
-const AZImplementation *
-az_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue64 *val)
-{
-	return list_impl->get_element (list_impl, list_inst, idx, val);
+	return az_list_get_element ((AZListImplementation *) collection_impl, collection_inst, iterator->v.uint32_v, val,  size);
 }

@@ -59,42 +59,6 @@ collection_get_property (const AZImplementation *impl, void *inst, unsigned int 
 	return 1;
 }
 
-unsigned int
-az_collection_get_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst)
-{
-	return coll_impl->get_element_type (coll_impl, coll_inst);
-}
-
-unsigned int
-az_collection_get_size (const AZCollectionImplementation *coll_impl, void *coll_inst)
-{
-	return coll_impl->get_size (coll_impl, coll_inst);
-}
-
-unsigned int
-az_collection_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst)
-{
-	return coll_impl->contains (coll_impl, coll_inst, impl, inst);
-}
-
-unsigned int
-az_collection_get_iterator (const AZCollectionImplementation *coll_impl, void *coll_inst, AZPackedValue *iterator)
-{
-	return coll_impl->get_iterator (coll_impl, coll_inst, iterator);
-}
-
-unsigned int
-az_collection_iterator_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZPackedValue *iterator)
-{
-	return coll_impl->iterator_next (coll_impl, coll_inst, iterator);
-}
-
-const AZImplementation *
-az_collection_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZPackedValue *iterator, AZValue64 *val)
-{
-	return coll_impl->get_element (coll_impl, coll_inst, iterator, val);
-}
-
 static unsigned int
 collection_call_contains (const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
 {

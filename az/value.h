@@ -51,6 +51,14 @@ struct _AZValue64 {
 	uint8_t data[48];
 };
 
+/**
+ * @brief initialize a value location
+ * 
+ * For value types it copies the default value, for block types set pointer to null.
+ * 
+ * @param impl the type implementation
+ * @param val pointer to the value to be initialized
+ */
 static inline void
 az_value_init (const AZImplementation *impl, AZValue *val)
 {
@@ -61,6 +69,14 @@ az_value_init (const AZImplementation *impl, AZValue *val)
 	}
 }
 
+/**
+ * @brief clear an value location
+ * 
+ * Remove reference hold by the value for reference types. After the operation the val is uninitialized.
+ * 
+ * @param impl the tye implementation
+ * @param val pointer to the value to be cleared
+ */
 static inline void
 az_value_clear (const AZImplementation *impl, AZValue *val)
 {
@@ -68,8 +84,16 @@ az_value_clear (const AZImplementation *impl, AZValue *val)
 		if (val->reference) az_reference_unref ((AZReferenceClass *) impl, val->reference);
 	}
 }
-#define az_clear_value az_value_clear
 
+/**
+ * @brief transfer a value to a new location
+ * 
+ * Move data from initialized src to uninitialized dst. After the operation src will be uninitialized.
+ * 
+ * @param impl the type implementation
+ * @param dst pointer to the destination (uninitialized)
+ * @param src pointer to the source (initialized)
+ */
 static inline void
 az_value_transfer (const AZImplementation *impl, AZValue *dst, const AZValue *src)
 {
@@ -77,8 +101,14 @@ az_value_transfer (const AZImplementation *impl, AZValue *dst, const AZValue *sr
 		memcpy (dst, src, az_class_value_size(AZ_CLASS_FROM_IMPL(impl)));
 	}
 }
-#define az_transfer_value az_value_transfer
 
+/**
+ * @brief copy a value to a new unitialized location
+ * 
+ * @param impl the type implementation
+ * @param dst pointer to the source location
+ * @param src pointer to the destination location
+ */
 static inline void
 az_value_copy (const AZImplementation *impl, AZValue *dst, const AZValue *src)
 {
@@ -91,8 +121,25 @@ az_value_copy (const AZImplementation *impl, AZValue *dst, const AZValue *src)
 		}
 	}
 }
-#define az_copy_value az_value_copy
 
+/**
+ * @brief set value from instance
+ * 
+ * @param impl the type implementation
+ * @param dst pointer to the value
+ * @param inst pointer to the instance
+ */
+void az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *inst);
+
+/**
+ * @brief dereference instance from value
+ * 
+ * Does not unbox automatically.
+ * 
+ * @param impl the type implementation
+ * @param value pointer to a value
+ * @return pointer to the instance
+ */
 static inline void *
 az_instance_from_value (const AZImplementation *impl, const AZValue *value)
 {
@@ -105,10 +152,6 @@ az_instance_from_value (const AZImplementation *impl, const AZValue *value)
 
 unsigned int az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue *rhs);
 unsigned int az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, const void *rhs);
-
-void az_set_value_from_instance (const AZImplementation *impl, AZValue *dst, void *inst);
-#define az_value_set_from_impl_value(dst, impl, src) az_copy_value(impl, dst, src)
-#define az_value_set_from_impl_instance(dst, impl, src) az_set_value_from_instance(impl, dst, src)
 
 /* Transfer reference instance to destination */
 
@@ -129,9 +172,6 @@ az_value_set_reference (AZValue *dst_val, AZReference *inst)
 
 unsigned int az_value_convert_auto (const AZImplementation **dst_impl, AZValue *dst_val, const AZImplementation **src_impl, const AZValue *src_val, unsigned int to_type);
 unsigned int az_value_convert_in_place (const AZImplementation **impl, AZValue *val, unsigned int to_type);
-
-AZImplementation *az_value_box (AZValue *dst_val, const AZImplementation *src_impl, const AZValue *src_val);
-AZImplementation *az_value_debox (AZValue *dst_val, const AZImplementation *src_impl, const AZValue *src_val);
 
 #ifdef __cplusplus
 };

@@ -20,11 +20,11 @@ static void attrib_dict_impl_init (AZAttribDictImplementation *impl);
 static unsigned int attrd_get_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst);
 static unsigned int attrd_get_iterator (const AZCollectionImplementation *coll_impl, void *coll_inst, AZPackedValue *iter);
 static unsigned int attrd_iterator_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZPackedValue *iter);
-const AZImplementation *attrd_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZPackedValue *iterator, AZValue64 *val);
+const AZImplementation *attrd_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZPackedValue *iterator, AZValue *val, unsigned int size);
 static unsigned int attrd_get_key_type (const AZMapImplementation *map_impl, void *map_inst);
-static const AZImplementation *attrd_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZPackedValue *iter, AZValue64 *val);
+static const AZImplementation *attrd_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZPackedValue *iter, AZValue *val, unsigned int size);
 const AZCollectionImplementation *attrd_get_keys (const AZMapImplementation *map_impl, void *map_inst, void **inst);
-const AZImplementation *attrd_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue64 *val);
+const AZImplementation *attrd_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
 /* Value list */
 static unsigned int attrd_val_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst);
 static unsigned int attrd_val_get_size (const AZCollectionImplementation *coll_impl, void *coll_inst);
@@ -42,16 +42,11 @@ az_attrib_dict_get_type (void)
 	if (!attrib_dict_type) {
 		attrib_dict_class = (AZAttribDictClass *) az_register_interface_type (&attrib_dict_type, (const unsigned char *) "AZAttributeArray", AZ_TYPE_LIST,
 			sizeof (AZAttribDictClass), sizeof (AZAttribDictImplementation), 0, AZ_FLAG_ZERO_MEMORY,
-			(void (*) (AZClass *)) attrib_dict_class_init,
+			NULL,
 			(void (*) (AZImplementation *)) attrib_dict_impl_init,
 			NULL, NULL);
 	}
 	return attrib_dict_type;
-}
-
-static void
-attrib_dict_class_init (AZAttribDictClass *klass)
-{
 }
 
 static void
@@ -101,10 +96,10 @@ attrd_iterator_next (const AZCollectionImplementation *coll_impl, void *coll_ins
 }
 
 const AZImplementation *
-attrd_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZPackedValue *iter, AZValue64 *val)
+attrd_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZPackedValue *iter, AZValue *val, unsigned int size)
 {
 	AZAttribDictImplementation *impl = (AZAttribDictImplementation *) coll_impl;
-	return az_list_get_element (&impl->val_list_impl, coll_inst, iter->v.uint32_v, val);
+	return az_list_get_element (&impl->val_list_impl, coll_inst, iter->v.uint32_v, val, size);
 }
 
 static unsigned int
@@ -114,10 +109,10 @@ attrd_get_key_type (const AZMapImplementation *map_impl, void *map_inst)
 }
 
 static const AZImplementation *
-attrd_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZPackedValue *iter, AZValue64 *val)
+attrd_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZPackedValue *iter, AZValue *val, unsigned int size)
 {
 	AZAttribDictImplementation *impl = (AZAttribDictImplementation *) map_impl;
-	return az_list_get_element (&impl->key_list_impl, map_inst, iter->v.uint32_v, val);
+	return az_list_get_element (&impl->key_list_impl, map_inst, iter->v.uint32_v, val, size);
 }
 
 const AZCollectionImplementation *
@@ -129,12 +124,12 @@ attrd_get_keys (const AZMapImplementation *map_impl, void *map_inst, void **inst
 }
 
 const AZImplementation *
-attrd_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue64 *val)
+attrd_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size)
 {
 	AZAttribDictImplementation *impl = (AZAttribDictImplementation *) map_impl;
 	unsigned int flags;
 	if (!key_impl || (AZ_IMPL_TYPE(key_impl) != AZ_TYPE_STRING)) return NULL;
-	return impl->lookup (impl, map_inst, (AZString *) key_inst, val, &flags);
+	return impl->lookup (impl, map_inst, (AZString *) key_inst, val, size, &flags);
 }
 
 /* Value list */
@@ -179,7 +174,7 @@ attrd_keys_get_size (const AZCollectionImplementation *coll_impl, void *coll_ins
 const AZImplementation *
 az_attrib_dict_lookup (const AZAttribDictImplementation *attrd_impl, void *attrd_inst, const AZString *key, AZValue64 *val, unsigned int *flags)
 {
-	return attrd_impl->lookup (attrd_impl, attrd_inst, key, val, flags);
+	return attrd_impl->lookup (attrd_impl, attrd_inst, key, &val->value, 64, flags);
 }
 
 unsigned int

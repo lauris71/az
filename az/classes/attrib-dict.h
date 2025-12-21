@@ -47,7 +47,7 @@ struct _AZAttribDictImplementation {
 	AZMapImplementation map_impl;
 	AZListImplementation val_list_impl;
 	AZListImplementation key_list_impl;
-	const AZImplementation *(*lookup) (const AZAttribDictImplementation *aa_impl, void *aa_inst, const AZString *key, AZValue64 *val, unsigned int *flags);
+	const AZImplementation *(*lookup) (const AZAttribDictImplementation *aa_impl, void *aa_inst, const AZString *key, AZValue *val, int size, unsigned int *flags);
 	unsigned int (*set) (const AZAttribDictImplementation *aa_impl, void *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
 };
 

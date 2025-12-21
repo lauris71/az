@@ -12,6 +12,7 @@
 
 #include <arikkei/arikkei-utils.h>
 
+#include <az/boxed-value.h>
 #include <az/packed-value.h>
 #include <az/string.h>
 #include <az/extend.h>
@@ -25,12 +26,12 @@ static void az_active_object_shutdown (AZObject *object);
 /* Attribute array */
 static unsigned int aobj_aa_get_size (const AZCollectionImplementation *coll_impl, void *coll_inst);
 static unsigned int aobj_aa_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst);
-static const AZImplementation *aobj_aa_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue64 *val);
-static const AZImplementation *aobj_aa_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue64 *val);
+static const AZImplementation *aobj_aa_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
+static const AZImplementation *aobj_aa_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
 static unsigned int aobj_aa_keys_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst);
-static const AZImplementation *aobj_aa_keys_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue64 *val);
+static const AZImplementation *aobj_aa_keys_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
-const AZImplementation *aobj_attrd_lookup (const AZAttribDictImplementation *aa_impl, void *aa_inst, const AZString *key, AZValue64 *val, unsigned int *flags);
+const AZImplementation *aobj_attrd_lookup (const AZAttribDictImplementation *aa_impl, void *aa_inst, const AZString *key, AZValue *val, int size, unsigned int *flags);
 unsigned int aobj_attrd_set (const AZAttribDictImplementation *aa_impl, void *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
 
 /* Method implementations */
@@ -275,16 +276,16 @@ aobj_aa_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, 
 }
 
 static const AZImplementation *
-aobj_aa_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue64 *val)
+aobj_aa_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
 {
 	AZActiveObject *aobj = (AZActiveObject *) list_inst;
 	if (!aobj->attributes || (aobj->attributes->length <= idx)) return NULL;
-	az_copy_value (aobj->attributes->attribs[idx].value.impl, &val->value, &aobj->attributes->attribs[idx].value.v.value);
-	return aobj->attributes->attribs[idx].value.impl;
+	AZPackedValue64 *pval64 = &aobj->attributes->attribs[idx].value;
+	return az_value_copy_autobox (pval64->impl, val, &pval64->v.value, size);
 }
 
 static const AZImplementation *
-aobj_aa_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue64 *val)
+aobj_aa_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size)
 {
 	unsigned int i;
 	if (AZ_IMPL_TYPE(key_impl) != AZ_TYPE_STRING) return NULL;
@@ -292,8 +293,7 @@ aobj_aa_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const A
 	if (!aobj->attributes) return 0;
 	for (i = 0; i < aobj->attributes->length; i++) {
 		if (aobj->attributes->attribs[i].key == (AZString *) key_inst) {
-			az_copy_value (aobj->attributes->attribs[i].value.impl, &val->value, &aobj->attributes->attribs[i].value.v.value);
-			return aobj->attributes->attribs[i].value.impl;
+			return az_value_copy_autobox (aobj->attributes->attribs[i].value.impl, val, &aobj->attributes->attribs[i].value.v.value, size);
 		}
 	}
 	return NULL;
@@ -313,16 +313,16 @@ aobj_aa_keys_contains (const AZCollectionImplementation *coll_impl, void *coll_i
 }
 
 static const AZImplementation *
-aobj_aa_keys_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue64 *val)
+aobj_aa_keys_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
 {
 	AZActiveObject *aobj = (AZActiveObject *) list_inst;
 	if (!aobj->attributes || (aobj->attributes->length <= idx)) return NULL;
-	az_value_set_reference (&val->value, &aobj->attributes->attribs[idx].key->reference);
-	return az_type_get_impl(AZ_TYPE_STRING);
+	az_value_set_reference (val, &aobj->attributes->attribs[idx].key->reference);
+	return (AZImplementation *) &AZStringKlass;
 }
 
 const AZImplementation *
-aobj_attrd_lookup (const AZAttribDictImplementation *aa_impl, void *aa_inst, const AZString *key, AZValue64 *val, unsigned int *flags)
+aobj_attrd_lookup (const AZAttribDictImplementation *aa_impl, void *aa_inst, const AZString *key, AZValue *val, int size, unsigned int *flags)
 {
 	unsigned int i;
 	AZActiveObject *aobj = (AZActiveObject *) aa_inst;
@@ -330,8 +330,8 @@ aobj_attrd_lookup (const AZAttribDictImplementation *aa_impl, void *aa_inst, con
 	if (!aobj->attributes) return NULL;
 	for (i = 0; i < aobj->attributes->length; i++) {
 		if (aobj->attributes->attribs[i].key == key) {
-			az_copy_value (aobj->attributes->attribs[i].value.impl, &val->value, &aobj->attributes->attribs[i].value.v.value);
-			return aobj->attributes->attribs[i].value.impl;
+			AZPackedValue64 *pval64 = &aobj->attributes->attribs[i].value;
+			return az_value_copy_autobox (pval64->impl, val, &pval64->v.value, 64);
 		}
 	}
 	return NULL;

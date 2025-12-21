@@ -25,7 +25,7 @@ extern "C" {
 
 struct _AZListImplementation {
 	AZCollectionImplementation collection_impl;
-	const AZImplementation *(*get_element) (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue64 *val);
+	const AZImplementation *(*get_element) (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 };
 
 struct _AZListClass {
@@ -34,7 +34,11 @@ struct _AZListClass {
 
 unsigned int az_list_get_type (void);
 
-const AZImplementation *az_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue64 *val);
+static inline const AZImplementation *
+az_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
+{
+	return list_impl->get_element (list_impl, list_inst, idx, val, size);
+}
 
 #ifdef __cplusplus
 };

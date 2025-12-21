@@ -47,7 +47,7 @@ az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, cons
 }
 
 void
-az_set_value_from_instance (const AZImplementation *impl, AZValue *dst, void *inst)
+az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *inst)
 {
 	AZClass *klass;
 #ifdef AZ_SAFETY_CHECKS
@@ -85,7 +85,7 @@ az_value_convert_auto (const AZImplementation **dst_impl, AZValue *dst_val, cons
 	/* Anything can be converted to the same or supertype (this includes Any) */
 	if (az_type_is_a(AZ_IMPL_TYPE(*src_impl), to_type)) {
 		*dst_impl = *src_impl;
-		az_copy_value (*src_impl, dst_val, src_val);
+		az_value_copy (*src_impl, dst_val, src_val);
 		return 1;
 	}
 	/* Anything can be converted to implemented interface */
@@ -144,20 +144,4 @@ az_value_convert_in_place (const AZImplementation **impl, AZValue *val, unsigned
 	}
 	/* Nothing else can be converted */
 	return 0;
-}
-
-AZImplementation *
-az_value_box (AZValue *dst_val, const AZImplementation *src_impl, const AZValue *src_val)
-{
-	dst_val->reference = (AZReference *) az_reference_of_new_value (AZ_IMPL_TYPE(src_impl), src_val);
-	return (AZImplementation *) az_type_get_class (AZ_TYPE_REFERENCE_OF (AZ_IMPL_TYPE(src_impl)));
-}
-
-AZImplementation *
-az_value_debox (AZValue *dst_val, const AZImplementation *src_impl, const AZValue *src_val)
-{
-	AZImplementation *dst_impl = (AZImplementation *) az_type_get_class (((AZReferenceOfClass *) src_impl)->instance_type);
-	void *src_inst = az_reference_of_get_instance ((AZReferenceOfClass *) src_impl, (AZReferenceOf *) src_val->reference);
-	az_copy_value (dst_impl, dst_val, src_inst);
-	return dst_impl;
 }

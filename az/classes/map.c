@@ -43,26 +43,3 @@ static void
 map_implementation_init (AZMapImplementation *impl)
 {
 }
-
-unsigned int
-az_map_get_key_type (const AZMapImplementation *map_impl, void *map_inst)
-{
-	return map_impl->get_key_type (map_impl, map_inst);
-}
-
-const AZImplementation *
-az_map_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZPackedValue *iter, AZValue64 *val)
-{
-	return map_impl->get_key (map_impl, map_inst, iter, val);
-}
-const AZCollectionImplementation *
-az_map_get_keys (const AZMapImplementation *map_impl, void *map_inst, void **inst)
-{
-	return map_impl->get_keys (map_impl, map_inst, inst);
-}
-
-const AZImplementation *
-az_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue64 *val)
-{
-	return map_impl->lookup (map_impl, map_inst, key_impl, key_inst, val);
-}

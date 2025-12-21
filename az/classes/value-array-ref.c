@@ -19,7 +19,7 @@ static unsigned int value_array_ref_get_element_type (const AZCollectionImplemen
 static unsigned int value_array_ref_get_size (const AZCollectionImplementation *collection_impl, void *collection_inst);
 static unsigned int value_array_ref_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
-static const AZImplementation* value_array_ref_get_element (const AZListImplementation* list_impl, void *list_inst, unsigned int idx, AZValue64 *val);
+static const AZImplementation* value_array_ref_get_element (const AZListImplementation* list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
 enum {
 	PROP_LENGTH,
@@ -91,10 +91,10 @@ value_array_ref_contains (const AZCollectionImplementation *collection_impl, voi
 }
 
 static const AZImplementation *
-value_array_ref_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue64 *val)
+value_array_ref_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
 {
 	AZValueArrayRef *varef = (AZValueArrayRef *) list_inst;
-	return az_list_get_element (&az_value_array_class->list_implementation, &varef->varray, idx, val);
+	return az_list_get_element (&az_value_array_class->list_implementation, &varef->varray, idx, val, size);
 }
 
 AZValueArrayRef *

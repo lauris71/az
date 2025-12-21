@@ -67,7 +67,7 @@ az_field_setup (AZField *prop, const unsigned char *key, unsigned int type, unsi
 		}
 		prop->value = (AZPackedValue *) malloc(size);
 		prop->value->impl = impl;
-		az_set_value_from_instance (impl, &prop->value->v, inst);
+		az_value_set_from_inst (impl, &prop->value->v, inst);
 	} else {
 		prop->value = NULL;
 	}
