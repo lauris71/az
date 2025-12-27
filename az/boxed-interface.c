@@ -94,7 +94,7 @@ az_boxed_interface_new_from_impl_value (const AZImplementation *impl, const AZVa
 	az_instance_init (boxed, AZ_TYPE_BOXED_INTERFACE);
 	boxed->val.impl = NULL;
 	az_packed_value_set_from_impl_value (&boxed->val, impl, val);
-	boxed->impl = az_get_interface (impl, az_instance_from_value (impl, val), type, &boxed->inst);
+	boxed->impl = az_get_interface (impl, az_value_get_inst(impl, val), type, &boxed->inst);
 	return boxed;
 }
 

@@ -44,6 +44,10 @@ extern "C" {
 #define AZ_FLAG_IMPL_IS_CLASS 0x01
 /* No instancing is allowed (this is not propagated to subclasses) */
 #define AZ_FLAG_ABSTRACT 0x02
+/* Miscellaneous info flags */
+#define AZ_FLAG_ARITHMETIC 0x04
+#define AZ_FLAG_INTEGRAL 0x08
+#define AZ_FLAG_SIGNED 0x10
 
 /**
  * @brief Superclass of all implementations and classes

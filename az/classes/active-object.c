@@ -164,7 +164,7 @@ unsigned int
 az_active_object_set_attribute (AZActiveObject *aobj, AZString *key, const AZImplementation *impl, const AZValue *val)
 {
 	AZActiveObjectClass *klass = (AZActiveObjectClass *) aobj->object.klass;
-	return az_attrib_dict_set (&klass->aa_impl, aobj, key, impl, (impl) ? az_instance_from_value(impl, val) : NULL, 0);
+	return az_attrib_dict_set (&klass->aa_impl, aobj, key, impl, (impl) ? az_value_get_inst(impl, val) : NULL, 0);
 }
 
 unsigned int

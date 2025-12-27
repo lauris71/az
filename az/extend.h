@@ -77,6 +77,12 @@ void az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int 
 
 #ifdef AZ_HAS_PROPERTIES
 void az_class_set_num_properties (AZClass *klass, unsigned int nproperties);
+/* Define property with AZ_FIELD_READ_VALUE */
+void az_class_define_property_value (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,
+	unsigned int is_final, unsigned int spec, unsigned int write, unsigned int offset);
+/* Define property with AZ_FIELD_READ_PACKED */
+void az_class_define_property_packed (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,
+	unsigned int is_final, unsigned int spec, unsigned int write, unsigned int offset);
 void az_class_define_property (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int type,
 	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset,
 	const AZImplementation *impl, void *inst);
@@ -85,9 +91,6 @@ void az_class_define_property_function_val (AZClass *klass, unsigned int idx, co
 	const AZFunctionSignature *sig, const AZImplementation *impl, void *inst);
 void az_class_define_property_function_packed (AZClass *klass, unsigned int idx, const unsigned char *key,
 	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset, const AZFunctionSignature *sig);
-void az_class_property_setup (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int type,
-	unsigned int is_static, unsigned int can_read, unsigned int can_write, unsigned int is_final, unsigned int is_value,
-	unsigned int value_type, void *inst);
 
 void az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *key,
 	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],

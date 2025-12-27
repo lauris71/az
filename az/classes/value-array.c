@@ -300,7 +300,8 @@ packed_value_array_class_init (AZPackedValueArrayClass *klass)
 	az_class_set_num_interfaces ((AZClass *) klass, 1);
 	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET (AZPackedValueArrayClass, list_implementation), 0);
 	az_class_set_num_properties ((AZClass *) klass, NUM_PROPERTIES);
-	az_class_property_setup ((AZClass *) klass, PROP_LENGTH, (const unsigned char *) "length", AZ_TYPE_UINT32, 0, 1, 0, 1, 0, AZ_TYPE_NONE, NULL);
+	az_class_define_property((AZClass *) klass, PROP_LENGTH, (uint8_t *) "length", AZ_TYPE_UINT32, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
+//	az_class_property_setup ((AZClass *) klass, PROP_LENGTH, (const unsigned char *) "length", AZ_TYPE_UINT32, 0, 1, 0, 1, 0, AZ_TYPE_NONE, NULL);
 	((AZClass *) klass)->get_property = packed_value_array_get_property;
 	klass->list_implementation.collection_impl.get_element_type = packed_value_array_get_element_type;
 	klass->list_implementation.collection_impl.get_size = packed_value_array_get_size;

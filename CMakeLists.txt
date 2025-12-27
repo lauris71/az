@@ -24,9 +24,11 @@ if(DOXYGEN_FOUND)
 #    install(DIRECTORY doc/ DESTINATION ${CMAKE_INSTALL_DOCDIR} )
 endif()
 
-#if(BUILD_TESTING)
-#  add_subdirectory(tests)
-#endif()
+include(CTest)
+
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
 
 # If this is part of another project, inform the parent build system
 if(NOT PROJECT_IS_TOP_LEVEL)

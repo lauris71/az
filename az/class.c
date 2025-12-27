@@ -62,7 +62,7 @@ impl_call_setStaticProperty (const AZImplementation **arg_impls, const AZValue *
 	arikkei_return_val_if_fail (prop->spec == AZ_FIELD_CLASS, 0);
 	arikkei_return_val_if_fail (!prop->is_final, 0);
 	arikkei_return_val_if_fail (prop->write != AZ_FIELD_WRITE_NONE, 0);
-	az_instance_set_property_by_id (sub_class, prop_impl, NULL, prop_idx, arg_impls[2], az_instance_from_value (arg_impls[2], arg_vals[2]), ctx);
+	az_instance_set_property_by_id (sub_class, prop_impl, NULL, prop_idx, arg_impls[2], az_value_get_inst(arg_impls[2], arg_vals[2]), ctx);
 	return 1;
 }
 
@@ -314,6 +314,32 @@ az_class_set_num_properties (AZClass *klass, unsigned int nproperties)
 	memset (klass->props_self, 0, nproperties * sizeof (AZField));
 }
 
+void az_class_define_property_value (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,
+	unsigned int is_final, unsigned int spec, unsigned int write, unsigned int offset)
+{
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_if_fail (klass != NULL);
+	arikkei_return_if_fail (idx < klass->n_props_self);
+	arikkei_return_if_fail (key != NULL);
+	arikkei_return_if_fail (type != AZ_TYPE_NONE);
+	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
+#endif
+	az_field_setup_value (klass->props_self + idx, key, type, is_final, spec, AZ_FIELD_READ_VALUE, write, offset);
+}
+
+void az_class_define_property_packed (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,
+	unsigned int is_final, unsigned int spec, unsigned int write, unsigned int offset)
+{
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_if_fail (klass != NULL);
+	arikkei_return_if_fail (idx < klass->n_props_self);
+	arikkei_return_if_fail (key != NULL);
+	arikkei_return_if_fail (type != AZ_TYPE_NONE);
+	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
+#endif
+	az_field_setup_value (klass->props_self + idx, key, type, is_final, spec, AZ_FIELD_READ_PACKED, write, offset);
+}
+
 void az_class_define_property (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int type,
 	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset,
 	const AZImplementation *impl, void *inst)
@@ -326,7 +352,13 @@ void az_class_define_property (AZClass *klass, unsigned int idx, const unsigned 
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
 	arikkei_return_if_fail (!impl || (az_type_is_assignable_to(AZ_IMPL_TYPE(impl), type)));
 #endif
-	az_field_setup (klass->props_self + idx, key, type, is_final, spec, read, write, offset, impl, inst);
+	if ((read == AZ_FIELD_READ_VALUE) || (read == AZ_FIELD_READ_PACKED)) {
+		az_field_setup_value (klass->props_self + idx, key, type, is_final, spec, read, write, offset);
+	} else if (read == AZ_FIELD_READ_METHOD) {
+		az_field_setup_method (klass->props_self + idx, key, type, is_final, spec, read, write);
+	} else {
+		az_field_setup_stored (klass->props_self + idx, key, type, is_final, spec, read, write, impl, inst);
+	}
 }
 
 void
@@ -354,36 +386,6 @@ az_class_define_property_function_packed (AZClass *klass, unsigned int idx, cons
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
 #endif
 	az_field_setup_function_packed (klass->props_self + idx, key, is_final, spec, read, write, sig, offset);
-}
-
-void
-az_class_property_setup (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int type,
-unsigned int is_static, unsigned int can_read, unsigned int can_write, unsigned int is_final, unsigned int is_value,
-unsigned int value_type, void *inst)
-{
-	unsigned int spec, read, write;
-	AZImplementation *impl;
-	arikkei_return_if_fail (klass != NULL);
-	arikkei_return_if_fail (idx < klass->n_props_self);
-	arikkei_return_if_fail (key != NULL);
-	arikkei_return_if_fail (type != AZ_TYPE_NONE);
-	arikkei_return_if_fail (!(can_write && is_final));
-	arikkei_return_if_fail (!is_value || is_static);
-	if (!((value_type == AZ_TYPE_NONE) || (az_type_is_assignable_to (value_type, type)))) {
-		return;
-	}
-	arikkei_return_if_fail ((value_type == AZ_TYPE_NONE) || (az_type_is_assignable_to (value_type, type)));
-	spec = (is_static) ? AZ_FIELD_CLASS : AZ_FIELD_INSTANCE;
-	if (!can_read) {
-		read = AZ_FIELD_READ_NONE;
-	} else if (is_value) {
-		read = AZ_FIELD_READ_STORED_STATIC;
-	} else {
-		read = AZ_FIELD_READ_METHOD;
-	}
-	write = (can_write) ? AZ_FIELD_WRITE_METHOD : AZ_FIELD_WRITE_NONE;
-	impl = (value_type != AZ_TYPE_NONE) ? (AZImplementation *) az_type_get_class (value_type) : NULL;
-	az_field_setup (klass->props_self + idx, key, type, is_final, spec, read, write, 0, impl, inst);
 }
 
 void

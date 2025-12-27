@@ -137,20 +137,21 @@ void az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *i
  * Does not unbox automatically.
  * 
  * @param impl the type implementation
- * @param value pointer to a value
+ * @param val pointer to a value
  * @return pointer to the instance
  */
 static inline void *
-az_instance_from_value (const AZImplementation *impl, const AZValue *value)
+az_value_get_inst (const AZImplementation *impl, const AZValue *val)
 {
 	if (impl && (AZ_IMPL_IS_BLOCK(impl))) {
-		return value->block;
+		return val->block;
 	} else {
-		return (void *) value;
+		return (void *) val;
 	}
 }
 
 unsigned int az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue *rhs);
+unsigned int az_value_equals_autobox (const AZImplementation *lhs_impl, const AZValue *lhs, const AZImplementation *rhs_impl, const AZValue *rhs);
 unsigned int az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, const void *rhs);
 
 /* Transfer reference instance to destination */

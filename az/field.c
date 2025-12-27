@@ -33,20 +33,18 @@ void
 az_init_field_class (void)
 {
 	az_class_new_with_value(&AZFieldKlass);
-	//field_class = az_class_new_with_type (AZ_TYPE_FIELD, AZ_TYPE_BLOCK, sizeof (AZClass), sizeof (AZField), AZ_FLAG_FINAL, (const uint8_t *) "field");
 }
 
-void
-az_field_setup (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset,
-	const AZImplementation *impl, void *inst)
+void az_field_setup_value (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
+	unsigned int spec, unsigned int read, unsigned int write, unsigned int offset)
 {
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (prop != NULL);
 	arikkei_return_if_fail (key != NULL);
 	arikkei_return_if_fail (type != AZ_TYPE_NONE);
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
-	arikkei_return_if_fail (!impl || (az_type_is_assignable_to(AZ_IMPL_TYPE(impl), type)));
-	arikkei_return_if_fail (!offset || !impl);
+	arikkei_return_if_fail ((read == AZ_FIELD_READ_VALUE) || (read == AZ_FIELD_READ_PACKED));
+	arikkei_return_if_fail ((write == read) || (write == AZ_FIELD_WRITE_NONE) || (write == AZ_FIELD_WRITE_METHOD));
 #endif
 	prop->key = az_string_new (key);
 	prop->type = type;
@@ -57,9 +55,34 @@ az_field_setup (AZField *prop, const unsigned char *key, unsigned int type, unsi
 	prop->spec = spec;
 	prop->read = read;
 	prop->write = write;
-	if (offset) {
-		prop->offset = offset;
-	} else if (impl) {
+	prop->offset = offset;
+	prop->mask = 0xffffffff;
+	prop->shift = 0;
+	prop->bits = 0;
+}
+
+void az_field_setup_stored (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
+	unsigned int spec, unsigned int read, unsigned int write, const AZImplementation *impl, void *inst)
+{
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_if_fail (prop != NULL);
+	arikkei_return_if_fail (key != NULL);
+	arikkei_return_if_fail (type != AZ_TYPE_NONE);
+	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
+	arikkei_return_if_fail (!impl || (az_type_is_assignable_to(AZ_IMPL_TYPE(impl), type)));
+	arikkei_return_if_fail (read == AZ_FIELD_READ_STORED_STATIC);
+	arikkei_return_if_fail (write == AZ_FIELD_WRITE_NONE);
+#endif
+	prop->key = az_string_new (key);
+	prop->type = type;
+	prop->is_reference = az_type_is_a (type, AZ_TYPE_REFERENCE);
+	prop->is_interface = az_type_is_a (type, AZ_TYPE_INTERFACE);
+	prop->is_function = az_type_is_a (type, AZ_TYPE_FUNCTION);
+	prop->is_final = is_final;
+	prop->spec = spec;
+	prop->read = read;
+	prop->write = write;
+	if (impl) {
 		unsigned int size = sizeof(AZPackedValue);
 		AZClass *val_class = AZ_CLASS_FROM_IMPL(impl);
 		if (az_class_value_size(val_class) > 16) {
@@ -73,16 +96,54 @@ az_field_setup (AZField *prop, const unsigned char *key, unsigned int type, unsi
 	}
 }
 
+void az_field_setup_method (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
+	unsigned int spec, unsigned int read, unsigned int write)
+{
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_if_fail (prop != NULL);
+	arikkei_return_if_fail (key != NULL);
+	arikkei_return_if_fail (type != AZ_TYPE_NONE);
+	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
+	arikkei_return_if_fail (read == AZ_FIELD_READ_METHOD);
+	arikkei_return_if_fail ((write == AZ_FIELD_WRITE_NONE) || (write == AZ_FIELD_WRITE_METHOD));
+#endif
+	prop->key = az_string_new (key);
+	prop->type = type;
+	prop->is_reference = az_type_is_a (type, AZ_TYPE_REFERENCE);
+	prop->is_interface = az_type_is_a (type, AZ_TYPE_INTERFACE);
+	prop->is_function = az_type_is_a (type, AZ_TYPE_FUNCTION);
+	prop->is_final = is_final;
+	prop->spec = spec;
+	prop->read = read;
+	prop->write = write;
+}
+
 void az_field_setup_function (AZField *field, const unsigned char *key, unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, const AZFunctionSignature *sig,
 	const AZImplementation *impl, void *inst)
 {
-	az_field_setup (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, 0, impl, inst);
+	if ((read == AZ_FIELD_READ_VALUE) || (read == AZ_FIELD_READ_PACKED)) {
+		// fixme: Cannot happen?
+		az_field_setup_value (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, 0);
+	} else if (read == AZ_FIELD_READ_METHOD) {
+		// fixme: Cannot happen
+		az_field_setup_method (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write);
+	} else {
+		az_field_setup_stored (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, impl, inst);
+	}
 	field->signature = sig;
 }
 
 void az_field_setup_function_packed (AZField *field, const unsigned char *key, unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write,
 	const AZFunctionSignature *sig, unsigned int offset)
 {
-	az_field_setup (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, offset, NULL, NULL);
+	if ((read == AZ_FIELD_READ_VALUE) || (read == AZ_FIELD_READ_PACKED)) {
+		az_field_setup_value (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, offset);
+	} else if (read == AZ_FIELD_READ_METHOD) {
+		// fixme: Cannot happen
+		az_field_setup_method (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write);
+	} else {
+		// fixme: Cannot happen
+		az_field_setup_stored (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, NULL, NULL);
+	}
 	field->signature = sig;
 }

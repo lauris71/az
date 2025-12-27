@@ -25,10 +25,10 @@ extern "C" {
 #define AZ_FIELD_READ_VALUE 1
 /* Read from packed member value */
 #define AZ_FIELD_READ_PACKED 2
-/* Read static final value stored in field */
-#define AZ_FIELD_READ_STORED_STATIC 3
 /* Read via get_property method */
-#define AZ_FIELD_READ_METHOD 4
+#define AZ_FIELD_READ_METHOD 3
+/* Read static final value stored in field */
+#define AZ_FIELD_READ_STORED_STATIC 4
 
 /* Not writeable */
 #define AZ_FIELD_WRITE_NONE 0
@@ -54,7 +54,18 @@ struct _AZField {
 	/* Signature for functions */
 	const AZFunctionSignature *signature;
 	union {
-		unsigned int offset;
+		struct {
+			/* Offset in instance/implementation/class */
+			uint32_t offset;
+			/* for unsigned integer/boolean types */
+			/* Mask os relevant bits */
+			uint32_t mask;
+			/* Number of bits to shift right */
+			uint32_t shift;
+			/* For boolean types */
+			/* Final value to xor with */
+			uint32_t bits;
+		};
 		/* Stored value, may be the actual value for final properties */
 		AZPackedValue *value;
 	};
@@ -62,9 +73,16 @@ struct _AZField {
 
 extern AZClass AZFieldKlass;
 
-void az_field_setup (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
-	unsigned int spec, unsigned int read, unsigned int write, unsigned int offset,
-	const AZImplementation *impl, void *inst);
+/* Read is VALUE or PACKED, write is NONE, the same as read or METHOD */
+void az_field_setup_value (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
+	unsigned int spec, unsigned int read, unsigned int write, unsigned int offset);
+
+/* Read is STORED_STATIC, write is NONE */
+void az_field_setup_stored (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
+	unsigned int spec, unsigned int read, unsigned int write, const AZImplementation *impl, void *inst);
+
+void az_field_setup_method (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
+	unsigned int spec, unsigned int read, unsigned int write);
 
 void az_field_setup_function (AZField *prop, const unsigned char *key, unsigned int is_final,
 	unsigned int spec, unsigned int read, unsigned int write, const AZFunctionSignature *sig,

@@ -70,9 +70,9 @@ collection_call_contains (const AZImplementation *arg_impls[], const AZValue *ar
 		inst = ((AZBoxedInterface *) arg_vals[0]->reference)->inst;
 	} else {
 		impl = (const AZCollectionImplementation *) arg_impls[0];
-		inst = az_instance_from_value (arg_impls[0], arg_vals[0]);
+		inst = az_value_get_inst(arg_impls[0], arg_vals[0]);
 	}
-	unsigned int contains = az_collection_contains (impl, inst, arg_impls[1], az_instance_from_value (arg_impls[1], arg_vals[1]));
+	unsigned int contains = az_collection_contains (impl, inst, arg_impls[1], az_value_get_inst(arg_impls[1], arg_vals[1]));
 	*ret_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BOOLEAN);
 	ret_val->value.boolean_v = contains;
 	return 1;

@@ -54,7 +54,7 @@ az_init_object_class (void)
 {
 	az_class_new_with_value(&AZObjectKlass.reference_klass.klass);
 	az_class_set_num_properties (&AZObjectKlass.reference_klass.klass, NUM_PROPERTIES);
-	az_class_define_property (&AZObjectKlass.reference_klass.klass, PROP_CLASS, (const unsigned char *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZObject, klass), NULL, NULL);
+	az_class_define_property_value (&AZObjectKlass.reference_klass.klass, PROP_CLASS, (const uint8_t *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZObject, klass));
 }
 
 static void

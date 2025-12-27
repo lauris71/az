@@ -425,7 +425,7 @@ az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZ
 	const AZValue *arg_ptrs[64];
 	arikkei_return_val_if_fail (impl != NULL, 0);
 	arikkei_return_val_if_fail (sig->n_args < 64, 0);
-	f_impl = (AZFunctionImplementation *) az_get_interface (impl, az_instance_from_value (impl, val), AZ_TYPE_FUNCTION, (void **) &f_inst);
+	f_impl = (AZFunctionImplementation *) az_get_interface (impl, az_value_get_inst(impl, val), AZ_TYPE_FUNCTION, (void **) &f_inst);
 	arikkei_return_val_if_fail (f_impl != NULL, 0);
 
 #ifdef ARCH_X86_64

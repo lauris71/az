@@ -57,7 +57,7 @@ az_value_transfer_autobox(const AZImplementation *impl, AZValue *dst, const AZVa
 {
 	if (impl) {
 		AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
-		if (impl && AZ_CLASS_IS_VALUE(klass) && (klass->instance_size > size)) {
+		if (AZ_CLASS_IS_VALUE(klass) && (klass->instance_size > size)) {
 			// Value type that does not fit into dst, box
 			dst->block = az_boxed_value_new_from_val(klass, src);
 			impl = AZ_BOXED_VALUE_IMPL;
@@ -108,6 +108,18 @@ az_value_set_from_inst_autobox(const AZImplementation *impl, AZValue *dst, void 
 		}
 	}
 	return impl;
+}
+
+static inline void *
+az_value_get_inst_autobox (const AZImplementation *impl, const AZValue *val)
+{
+	if (impl == (AZImplementation *) &AZBoxedValueKlass) {
+		return &((AZBoxedValue *) val->block)->val;
+	} else if (impl && (AZ_IMPL_IS_BLOCK(impl))) {
+		return val->block;
+	} else {
+		return (void *) val;
+	}
 }
 
 #ifdef __cplusplus

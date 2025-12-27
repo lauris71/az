@@ -14,6 +14,9 @@
 
 typedef struct _AZReferenceClass AZBoxedInterfaceClass;
 
+#define AZ_BOXED_INTERFACE_CLASS (&AZBoxedInterfaceKlass)
+#define AZ_BOXED_INTERFACE_IMPL ((AZImplementation *) &AZBoxedInterfaceKlass)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -47,6 +50,14 @@ ARIKKEI_INLINE void
 az_boxed_interface_unref(AZBoxedInterface *astr)
 {
 	az_reference_unref (&AZBoxedInterfaceKlass, &astr->reference);
+}
+
+static inline const AZImplementation *
+az_value_set_interface_autobox(const AZImplementation *impl, AZValue *dst, void *inst, unsigned int type)
+{
+	AZBoxedInterface *boxed = az_boxed_interface_new_from_impl_instance(impl, inst, type);
+	az_value_transfer_reference(dst, &boxed->reference);
+	return AZ_BOXED_INTERFACE_IMPL;
 }
 
 ARIKKEI_INLINE void

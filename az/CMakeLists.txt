@@ -59,3 +59,4 @@ target_include_directories(az PUBLIC
 )
 
 add_subdirectory(classes)
+add_subdirectory(collections)

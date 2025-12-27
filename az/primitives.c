@@ -17,6 +17,7 @@
 #include <arikkei/arikkei-strlib.h>
 #include <arikkei/arikkei-utils.h>
 
+#include <az/base.h>
 #include <az/private.h>
 #include <az/serialization.h>
 #include <az/value.h>
@@ -275,11 +276,34 @@ pointer_to_string (const AZImplementation* impl, void *instance, unsigned char *
 	return arikkei_strncpy (buf, len, (const unsigned char *) t);
 }
 
+enum {
+	ANY_PROP_TYPE,
+	ANY_PROP_CLASS,
+	ANY_PROP_ARITHMETIC,
+	ANY_PROP_INTEGRAL,
+	ANY_PROP_SIGNED,
+	ANY_NUM_PROPS
+};
+
 static unsigned int
 any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx)
 {
-	*prop_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_CLASS);
-	prop_val->block = AZ_CLASS_FROM_IMPL(impl);
+	switch (idx) {
+		case ANY_PROP_TYPE:
+			*prop_impl = &AZUint32Class.impl;
+			prop_val->uint32_v = AZ_IMPL_TYPE(impl);
+			break;
+		case ANY_PROP_CLASS:
+			*prop_impl = &AZClassClass.impl;
+			prop_val->block = AZ_CLASS_FROM_IMPL(impl);
+			break;
+		case ANY_PROP_ARITHMETIC:
+			*prop_impl = &AZBooleanClass.impl;
+			prop_val->boolean_v = ((AZ_CLASS_FROM_IMPL(impl)->impl.flags & AZ_FLAG_ARITHMETIC) != 0);
+			break;
+		default:
+			return 0;
+	}
 	return 1;
 }
 
@@ -316,7 +340,7 @@ AZClass AZBooleanClass = {
 };
 
 AZClass AZInt8Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT8},
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT8},
 	&AZAnyClass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "int8",
@@ -328,7 +352,7 @@ AZClass AZInt8Class = {
 };
 
 AZClass AZUint8Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT8},
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT8},
 	&AZAnyClass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "uint8",
@@ -340,7 +364,7 @@ AZClass AZUint8Class = {
 };
 
 AZClass AZInt16Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT16},
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT16},
 	&AZAnyClass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "int16",
@@ -352,7 +376,7 @@ AZClass AZInt16Class = {
 };
 
 AZClass AZUint16Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT16},
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT16},
 	&AZAnyClass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "uint16",
@@ -364,7 +388,7 @@ AZClass AZUint16Class = {
 };
 
 AZClass AZInt32Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT32},
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT32},
 	&AZAnyClass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "int32",
@@ -376,7 +400,7 @@ AZClass AZInt32Class = {
 };
 
 AZClass AZUint32Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT32},
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT32},
 	&AZAnyClass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "uint32",
@@ -388,7 +412,7 @@ AZClass AZUint32Class = {
 };
 
 AZClass AZInt64Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT64},
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT64},
 	&AZAnyClass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "int64",
@@ -400,7 +424,7 @@ AZClass AZInt64Class = {
 };
 
 AZClass AZUint64Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT64},
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT64},
 	&AZAnyClass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "uint64",
@@ -412,7 +436,7 @@ AZClass AZUint64Class = {
 };
 
 AZClass AZFloatClass = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FLOAT},
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FLOAT},
 	&AZAnyClass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "float",
@@ -424,7 +448,7 @@ AZClass AZFloatClass = {
 };
 
 AZClass AZDoubleClass = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_DOUBLE},
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_DOUBLE},
 	&AZAnyClass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "double",
@@ -436,7 +460,7 @@ AZClass AZDoubleClass = {
 };
 
 AZClass AZComplexFloatClass = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_FLOAT},
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_FLOAT},
 	&AZAnyClass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "complex float",
@@ -447,8 +471,8 @@ AZClass AZComplexFloatClass = {
 	NULL, NULL
 };
 
-AZClass AZCompleDoubleClass = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_DOUBLE},
+AZClass AZComplexDoubleClass = {
+	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_DOUBLE},
 	&AZAnyClass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "complex double",
@@ -484,7 +508,7 @@ static AZClass *primitive_classes[] = {
 	&AZFloatClass,
 	&AZDoubleClass,
 	&AZComplexFloatClass,
-	&AZCompleDoubleClass,
+	&AZComplexDoubleClass,
 	&AZPointerClass
 };
 
@@ -506,9 +530,15 @@ az_post_init_primitive_classes (void)
 	unsigned int i;
     /* Properties are set in post-init because property types have to be initialized first */
 	AZClass *any_class = AZ_CLASS_FROM_TYPE(AZ_TYPE_ANY);
-	az_class_set_num_properties (any_class, 2);
-	az_class_define_property (any_class, 0, (const unsigned char *) "type", AZ_TYPE_UINT32, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
-	az_class_define_property (any_class, 1, (const unsigned char *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
+	az_class_set_num_properties (any_class, ANY_NUM_PROPS);
+	az_class_define_property (any_class, ANY_PROP_TYPE, (const unsigned char *) "type", AZ_TYPE_UINT32, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
+	az_class_define_property (any_class, ANY_PROP_CLASS, (const unsigned char *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
+	az_class_define_property_value(any_class, ANY_PROP_ARITHMETIC, (const uint8_t *) "isArithmetic", AZ_TYPE_BOOLEAN, 1, AZ_FIELD_CLASS, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZClass, impl.flags));
+	any_class->props_self[ANY_PROP_ARITHMETIC].mask = AZ_FLAG_ARITHMETIC;
+	az_class_define_property_value(any_class, ANY_PROP_INTEGRAL, (const uint8_t *) "isIntegral", AZ_TYPE_BOOLEAN, 1, AZ_FIELD_CLASS, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZClass, impl.flags));
+	any_class->props_self[ANY_PROP_INTEGRAL].mask = AZ_FLAG_INTEGRAL;
+	az_class_define_property_value(any_class, ANY_PROP_SIGNED, (const uint8_t *) "isSigned", AZ_TYPE_BOOLEAN, 1, AZ_FIELD_CLASS, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZClass, impl.flags));
+	any_class->props_self[ANY_PROP_SIGNED].mask = AZ_FLAG_SIGNED;
 	for (i = AZ_TYPE_ANY; i <= AZ_TYPE_POINTER; i++) {
 		az_class_post_init (AZ_CLASS_FROM_TYPE(i));
 	}

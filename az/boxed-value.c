@@ -6,6 +6,8 @@
 * Copyright (C) Lauris Kaplinski 2025
 */
 
+#define DEBUG_BOXED_VALUE
+
 #include <arikkei/arikkei-strlib.h>
 
 #include <az/boxed-value.h>
@@ -14,29 +16,49 @@
 static unsigned int
 serialize_boxed_value (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx) {
 	AZBoxedValue *boxed = (AZBoxedValue *) inst;
-	return az_instance_serialize(&boxed->klass->impl, az_instance_from_value(&boxed->klass->impl, &boxed->val), d, dlen, ctx);
+	return az_instance_serialize(&boxed->klass->impl, &boxed->val, d, dlen, ctx);
 }
 
 static unsigned int
-boxed_value_to_string (const AZImplementation *impl, void *inst, unsigned char *buf, unsigned int len)
+boxed_value_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen)
 {
 	AZBoxedValue *boxed = (AZBoxedValue *) inst;
-	unsigned int pos;
-	pos = arikkei_memcpy_str (buf, len, (const unsigned char *) "Boxed ");
-	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, boxed->klass->name);
-	if (pos < len) buf[pos] = 0;
-	return pos;
+	return az_instance_to_string(&boxed->klass->impl, &boxed->val, d, dlen);
 }
+
+#ifdef DEBUG_BOXED_VALUE
+static void
+boxed_value_init (AZBoxedValueClass *klass, AZBoxedValue *boxed)
+{
+	fprintf (stderr, "boxed value init\n");
+}
+
+static void
+boxed_value_finalize (AZBoxedValueClass *klass, AZBoxedValue *boxed)
+{
+	fprintf (stderr, "boxed value finalize\n");
+}
+#endif
 
 AZBoxedValueClass AZBoxedValueKlass = {
 	{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOXED_VALUE},
 	&AZReferenceKlass.klass,
-	0, 0, 0, 0, {0}, NULL,
+	0, 0, 0, 0,
+	/* ifaces / ifaces_self, ifaces_all */
+	{0},
+	/* props_self */
+	NULL,
 	(const uint8_t *) "boxed value",
 	7, sizeof(AZBoxedValueClass), 0,
 	NULL,
+	/* instance_init, instance_finalize */
+#ifdef DEBUG_BOXED_VALUE
+	(void (*) (const AZImplementation *, void *)) boxed_value_init, (void (*) (const AZImplementation *, void *)) boxed_value_finalize,
+#else
 	NULL, NULL,
+#endif
 	serialize_boxed_value, NULL, boxed_value_to_string,
+	/* get_property, set_property */
 	NULL, NULL},
 	NULL, NULL
 };
