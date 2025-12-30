@@ -15,6 +15,7 @@
 #include <arikkei/arikkei-utils.h>
 
 #include <az/az.h>
+#include <az/instance.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -90,10 +91,11 @@ unsigned int az_num_types = 0;
 #endif
 
 #define AZ_TYPE_FLAGS(t) az_types[AZ_TYPE_INDEX(t)].flags
+#define AZ_TYPE_IS_BLOCK(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_BLOCK)
+#define AZ_TYPE_IS_VALUE(t) !(AZ_TYPE_FLAGS(t) & AZ_FLAG_BLOCK)
 #define AZ_TYPE_IS_REFERENCE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_REFERENCE)
 #define AZ_TYPE_IS_INTERFACE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_INTERFACE)
-#define AZ_TYPE_IS_BLOCK(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_BLOCK)
-#define AZ_TYPE_IS_VALUE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_VALUE)
+
 #define AZ_TYPE_IS_FINAL(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_FINAL)
 
 #ifdef AZ_SAFETY_CHECKS
@@ -156,18 +158,6 @@ unsigned int az_type_implements (unsigned int type, unsigned int test);
  * @return 1 if type can be assigned, 0 if not or if either type is invalid
  */
 unsigned int az_type_is_assignable_to (unsigned int type, unsigned int test);
-/**
- * @brief Checks whether a value of certain type can automatically be converted
- * 
- * True if:
- *   type is test
- *   both type and test are arithmetic and have automatic conversion rule
- * 
- * @param type the query
- * @param test the type to be tested against
- * @return 1 if type can be converted
- */
-unsigned int az_type_is_convertible_to (unsigned int type, unsigned int test);
 
 /* Basic constructor frontends */
 /**
@@ -177,22 +167,33 @@ unsigned int az_type_is_convertible_to (unsigned int type, unsigned int test);
  * @param inst pointer to instance
  * @param type instance type
  */
-void az_instance_initialize (void *inst, unsigned int type);
 #ifdef AZ_SAFETY_CHECKS
-#define az_instance_init az_instance_initialize
+#define az_instance_init_by_type(i,t) az_instance_init(AZ_IMPL_FROM_TYPE(t), i)
+#define az_interface_init(impl,inst) az_instance_init(impl, inst)
+#define az_instance_finalize_by_type(i,t) az_instance_finalize(AZ_IMPL_FROM_TYPE(t), i)
+#define az_interface_finalize(impl,inst) az_instance_finalize(impl, inst)
 #else
-ARIKKEI_INLINE void
-az_instance_init (void *inst, unsigned int type)
+static void
+az_instance_init_by_type (void *inst, unsigned int type)
 {
-	if (AZ_TYPE_FLAGS(type) & (AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT)) az_instance_initialize(inst, type);
+	if (AZ_TYPE_FLAGS(type) & (AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT)) az_instance_initialize(AZ_IMPL_FROM_TYPE(type), inst);
+}
+static void
+az_interface_init (const AZImplementation *impl, void *inst)
+{
+	if (AZ_TYPE_FLAGS(type) & (AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT)) az_instance_initialize(impl, inst);
+}
+static void
+az_instance_finalize_by_type (void *inst, unsigned int type)
+{
+	if (AZ_TYPE_FLAGS(type) & AZ_FLAG_CONSTRUCT) az_instance_finalize(AZ_IMPL_FROM_TYPE(type), inst);
+}
+static void
+az_interface_finalize (const AZImplementation *impl, void *inst)
+{
+	if (AZ_TYPE_FLAGS(type) & AZ_FLAG_CONSTRUCT) az_instance_finalize(impl, inst);
 }
 #endif
-void az_instance_finalize (void *inst, unsigned int type);
-/* Initialize a new implementation for interface */
-void az_implementation_init (AZImplementation *impl, unsigned int type);
-/* These are needed for unregistered interfaces */
-void az_interface_init (const AZImplementation *impl, void *inst);
-void az_interface_finalize (const AZImplementation *impl, void *inst);
 
 void *az_instance_new (unsigned int type);
 void *az_instance_new_array (unsigned int type, unsigned int nelements);

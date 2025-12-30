@@ -141,14 +141,14 @@ test_boxed_value()
     az_init();
     AZValue val0, val1;
     val0.cdouble_v = (AZComplexDouble) {1.0, -1.0};
-    const AZImplementation *impl = az_value_copy_autobox(&AZComplexDoubleClass.impl, &val1, &val0, 16);
-    TEST_ASSERT(impl == &AZComplexDoubleClass.impl);
+    const AZImplementation *impl = az_value_copy_autobox(&AZComplexDoubleKlass.impl, &val1, &val0, 16);
+    TEST_ASSERT(impl == &AZComplexDoubleKlass.impl);
     impl = az_value_copy_autobox(impl, &val0, &val1, 8);
     TEST_ASSERT(impl == &AZBoxedValueKlass.klass.impl);
     impl = az_value_copy_autobox(impl, &val1, &val0, 8);
     TEST_ASSERT(impl == &AZBoxedValueKlass.klass.impl);
     impl = az_value_copy_autobox(impl, &val0, &val1, 16);
-    TEST_ASSERT(impl == &AZComplexDoubleClass.impl);
+    TEST_ASSERT(impl == &AZComplexDoubleKlass.impl);
     TEST_ASSERT(val0.cdouble_v.r == 1.0);
     TEST_ASSERT(val0.cdouble_v.i == -1.0);
 }
@@ -159,12 +159,12 @@ test_array_list()
     AZArrayList *alist = az_array_list_new(AZ_TYPE_ANY, 8);
     for (unsigned int i = 0; i < 10; i++) {
         uint32_t inst = i;
-        TEST_ASSERT(az_array_list_append(alist, &AZUint32Class.impl, &inst));
+        TEST_ASSERT(az_array_list_append(alist, &AZUint32Klass.impl, &inst));
     }
     for (unsigned int i = 0; i < 10; i++) {
         AZValue val;
         const AZImplementation *impl = az_list_get_element(&AZArrayListKlass->list_implementation, alist, i, &val, 16);
-        TEST_ASSERT(impl == &AZUint32Class.impl);
+        TEST_ASSERT(impl == &AZUint32Klass.impl);
         TEST_ASSERT(val.uint32_v == i);
     }
 }

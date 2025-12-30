@@ -12,6 +12,7 @@
 #include <stdarg.h>
 
 #include <az/base.h>
+#include <az/convert.h>
 #include <az/object.h>
 #include <az/packed-value.h>
 #include <az/private.h>
@@ -23,13 +24,13 @@
 
 AZClass AZFunctionSignatureKlass = {
 	{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FUNCTION_SIGNATURE},
-	&AZBlockClass,
+	&AZBlockKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "signature",
 	7, sizeof(AZClass), 0,
 	NULL,
 	NULL, NULL,
-	NULL, NULL, NULL,
+	NULL, NULL, az_any_to_string,
 	NULL, NULL
 };
 
@@ -41,7 +42,7 @@ AZInterfaceClass AZFunctionKlass = {
 	3, sizeof(AZInterfaceKlass), 0,
 	NULL,
 	NULL, NULL,
-	NULL, NULL, NULL,
+	NULL, NULL, az_any_to_string,
 	NULL, NULL},
 	sizeof(AZFunctionImplementation), NULL
 };
@@ -62,7 +63,7 @@ az_function_signature_new (unsigned int this_type, unsigned int ret_type, unsign
 	unsigned int n_total = (this_type) ? n_args + 1 : n_args;
 	unsigned int i;
 	AZFunctionSignature* sig = (AZFunctionSignature*) malloc(sizeof(AZFunctionSignature) - 4 + n_total * 4);
-	az_instance_init (sig, AZ_TYPE_FUNCTION_SIGNATURE);
+	az_instance_init_by_type (sig, AZ_TYPE_FUNCTION_SIGNATURE);
 	sig->ret_type = ret_type;
 	sig->n_args = 0;
 	if (this_type) sig->arg_types[sig->n_args++] = this_type;
@@ -76,7 +77,7 @@ az_function_signature_new_any(unsigned int this_type, unsigned int ret_type, uns
 	unsigned int n_total = (this_type) ? n_args + 1 : n_args;
 	unsigned int i;
 	AZFunctionSignature* sig = ( AZFunctionSignature*) malloc(sizeof(AZFunctionSignature) - 4 + n_total * 4);
-	az_instance_init(sig, AZ_TYPE_FUNCTION_SIGNATURE);
+	az_instance_init_by_type(sig, AZ_TYPE_FUNCTION_SIGNATURE);
 	sig->ret_type = ret_type;
 	sig->n_args = 0;
 	if (this_type) sig->arg_types[sig->n_args++] = this_type;
@@ -97,7 +98,7 @@ az_function_signature_new_va (unsigned int ret_type, unsigned int n_args, ...)
 	}
 	va_end (ap);
 	sig = (AZFunctionSignature *) malloc (sizeof (AZFunctionSignature) - 4 + n_args * 4);
-	az_instance_init (sig, AZ_TYPE_FUNCTION_SIGNATURE);
+	az_instance_init_by_type (sig, AZ_TYPE_FUNCTION_SIGNATURE);
 	sig->ret_type = ret_type;
 	sig->n_args = n_args;
 	for (i = 0; i < n_args; i++) sig->arg_types[i] = arg_types[i];

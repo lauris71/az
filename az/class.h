@@ -39,11 +39,21 @@ extern "C" {
 /*
  * Low-order flags, only present in class and type info
  */
-/* Standalone type (not interface) */
+
 /* This has to be one of the lowest 3 bits to differentiate the pointer/flags union */
+
+/**
+ * @brief Marks that implementation is a standalone class
+ * 
+ * It exploits the feature that classes are aligned to 8 bytes, thus if any of the
+ * lowest bits are set, the AZImplementation union contains flags and type, not a
+ * pointer to the AZClass
+ */
 #define AZ_FLAG_IMPL_IS_CLASS 0x01
+
 /* No instancing is allowed (this is not propagated to subclasses) */
 #define AZ_FLAG_ABSTRACT 0x02
+
 /* Miscellaneous info flags */
 #define AZ_FLAG_ARITHMETIC 0x04
 #define AZ_FLAG_INTEGRAL 0x08
@@ -68,29 +78,35 @@ struct _AZImplementation {
 	};
 };
 
+/**
+ * @brief true if AZImplementation is standalone AZClass
+ * 
+ */
 #define AZ_IMPL_IS_CLASS(i) ((i)->flags & AZ_FLAG_IMPL_IS_CLASS)
 #define AZ_CLASS_FROM_IMPL(i) (AZ_IMPL_IS_CLASS(i) ? (AZClass *) (i) : (i)->klass)
 
 #define AZ_IMPL_TYPE(i) (AZ_IMPL_IS_CLASS(i) ? (i)->type : (i)->klass->impl.type)
 #define AZ_IMPL_FLAGS(i) (AZ_IMPL_IS_CLASS(i) ? (i)->flags : (i)->klass->impl.flags)
-#define AZ_CLASS_TYPE(c) ((c)->impl.type)
-#define AZ_CLASS_FLAGS(c) ((c)->impl.flags)
-
 /* Interfaces are blocks */
 #define AZ_IMPL_IS_BLOCK(i) (!AZ_IMPL_IS_CLASS(i) || ((i)->flags &  AZ_FLAG_BLOCK))
 #define AZ_IMPL_IS_VALUE(i) (AZ_IMPL_IS_CLASS(i) && !((i)->flags & AZ_FLAG_BLOCK))
 #define AZ_IMPL_IS_REFERENCE(i) (AZ_IMPL_IS_CLASS(i) && ((i)->flags & AZ_FLAG_REFERENCE))
-#define AZ_IMPL_IS_BOXED_VALUE(i) (AZ_IMPL_IS_CLASS(i) && ((i)->type == AZ_TYPE_BOXED_VALUE))
-#define AZ_IMPL_IS_BOXED_INTERFACE(i) (AZ_IMPL_IS_CLASS(i) && ((i)->type == AZ_TYPE_BOXED_INTERFACE))
+#define AZ_IMPL_IS_BOXED_VALUE(i) ((i) == &AZBoxedValueKlass.klass.impl))
+#define AZ_IMPL_IS_BOXED_INTERFACE(i) ((i) == &AZBoxedInterfaceKlass.klass.impl))
 
+#define AZ_CLASS_TYPE(c) ((c)->impl.type)
+#define AZ_CLASS_FLAGS(c) ((c)->impl.flags)
+#define AZ_CLASS_IS_ABSTRACT(c) ((c)->impl.flags & AZ_FLAG_ABSTRACT)
+#define AZ_CLASS_IS_BLOCK(c) !((c)->impl.flags & AZ_FLAG_BLOCK)
 #define AZ_CLASS_IS_VALUE(c) !((c)->impl.flags & AZ_FLAG_BLOCK)
+#define AZ_CLASS_IS_REFERENCE(c) !((c)->impl.flags & AZ_FLAG_REFERENCE)
+#define AZ_CLASS_IS_BOXED_VALUE(c) ((c) == &AZBoxedValueKlass))
+#define AZ_CLASS_IS_BOXED_INTERFACE(c) ((c) == &AZBoxedInterfaceKlass))
+#define AZ_CLASS_IS_INTERFACE(c) ((c)->impl.flags & AZ_FLAG_INTERFACE)
 
-// fixme: remove
-#define AZ_FLAG_VALUE 0
-
-#define AZ_CLASS_ELEMENT_SIZE(k) (((k)->instance_size + (k)->alignment) & ~(k)->alignment)
-#define AZ_CLASS_VALUE_SIZE(k) (((k)->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : (k)->instance_size)
-#define AZ_CLASS_VALUE_ARRAY_SIZE(k) (((k)->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : AZ_CLASS_ELEMENT_SIZE(k))
+#define AZ_CLASS_IS_FINAL(c) ((c)->impl.flags & AZ_FLAG_FINAL)
+#define AZ_CLASS_VALUE_SIZE(c) (((c)->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : (c)->instance_size)
+#define AZ_CLASS_ELEMENT_SIZE(c) (((c)->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : ((c)->instance_size + (c)->alignment) & ~(c)->alignment)
 
 struct _AZIFEntry {
 	uint32_t type;
@@ -175,8 +191,6 @@ struct _AZClass {
 #endif
 };
 
-#define AZ_CLASS_IS_INTERFACE(c) ((c)->impl.flags & AZ_FLAG_INTERFACE)
-
 /*
  * We trade some branching for cache locality here
  *
@@ -192,11 +206,6 @@ struct _AZClass {
  *     n_ifaces_all > 2 : self = ifaces[0], all = ifaces_all
  *   n_ifaces_self > 1 : self = ifaces_self, all = ifaces_all
  */
-
-static inline AZClass *
-az_class_parent(const AZClass *klass) {
-	return klass->parent;
-}
 
 static inline const AZIFEntry *
 az_class_ifaces_self(const AZClass *klass)
@@ -238,6 +247,11 @@ static inline unsigned int
 az_class_value_size(const AZClass *klass)
 {
 	return (klass->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : klass->instance_size;
+}
+
+static inline AZClass *
+az_class_parent(const AZClass *klass) {
+	return klass->parent;
 }
 
 #ifdef __cplusplus

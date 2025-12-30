@@ -5,11 +5,13 @@ set(AZ_HEADERS
 	boxed-value.h
 	class.h
 	complex.h
+	convert.h
 	config.h
 	extend.h
 	field.h
 	function-value.h
 	function.h
+	instance.c
 	interface.h
 	object.h
 	packed-value.h
@@ -29,10 +31,12 @@ set(AZ_SOURCES
 	boxed-interface.c
 	boxed-value.c
 	class.c
+	convert.c
 	field.c
 	function-value.c
 	function.c
 	interface.c
+	instance.h
 	object.c
 	packed-value.c
 	primitives.c

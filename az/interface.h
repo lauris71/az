@@ -39,6 +39,9 @@ AZInterfaceClass *az_register_interface_type (unsigned int *type, const unsigned
 	void (*instance_init) (const AZImplementation *, void *),
 	void (*instance_finalize) (const AZImplementation *, void *));
 
+/* Initialize a new implementation for interface */
+void az_implementation_init_by_type (AZImplementation *impl, unsigned int type);
+
 #ifdef __cplusplus
 };
 #endif

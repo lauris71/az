@@ -34,7 +34,7 @@ packed_value_to_string (const AZImplementation *impl, void *inst, unsigned char 
 
 AZClass AZPackedValueKlass = {
 	{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_PACKED_VALUE},
-	&AZBlockClass,
+	&AZBlockKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "packed value",
 	15, sizeof(AZPackedValue), 0,

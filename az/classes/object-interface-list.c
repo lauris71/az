@@ -111,7 +111,7 @@ az_object_interface_list_setup (AZObjectInterfaceList *objifl, unsigned int obje
 	arikkei_return_if_fail (objifl != NULL);
 	arikkei_return_if_fail (az_type_is_a (object_type, AZ_TYPE_OBJECT));
 	arikkei_return_if_fail (az_type_is_a (interface_type, AZ_TYPE_INTERFACE));
-	az_instance_init (objifl, AZ_TYPE_OBJECT_INTERFACE_LIST);
+	az_instance_init_by_type (objifl, AZ_TYPE_OBJECT_INTERFACE_LIST);
 	objifl->object_type = object_type;
 	objifl->interface_type = interface_type;
 }
@@ -120,7 +120,7 @@ void
 az_object_interface_list_release (AZObjectInterfaceList *objifl)
 {
 	arikkei_return_if_fail (objifl != NULL);
-	az_instance_finalize (objifl, AZ_TYPE_OBJECT_INTERFACE_LIST);
+	az_instance_finalize_by_type (objifl, AZ_TYPE_OBJECT_INTERFACE_LIST);
 }
 
 AZObjectInterfaceList *

@@ -129,13 +129,13 @@ reference_instance_init (AZReferenceClass *klass, void *instance)
 
 AZReferenceClass AZReferenceKlass = {
 	{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_REFERENCE},
-	&AZBlockClass,
+	&AZBlockKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "reference",
 	7, sizeof(AZReferenceClass), 0,
 	NULL,
 	(void (*) (const AZImplementation *, void *)) reference_instance_init, NULL,
-	NULL, NULL, NULL,
+	NULL, NULL, az_any_to_string,
 	NULL, NULL},
 	NULL, NULL
 };

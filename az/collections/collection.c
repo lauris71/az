@@ -9,9 +9,10 @@
 #include <stdlib.h>
 
 #include <az/boxed-interface.h>
-#include <az/classes/collection.h>
 #include <az/private.h>
 #include <az/extend.h>
+
+#include "collection.h"
 
 /* AZInterface implementation */
 static void collection_class_init (AZCollectionClass* klass);

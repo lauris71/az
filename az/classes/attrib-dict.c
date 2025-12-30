@@ -52,8 +52,8 @@ az_attrib_dict_get_type (void)
 static void
 attrib_dict_impl_init (AZAttribDictImplementation *impl)
 {
-	az_implementation_init (&impl->val_list_impl.collection_impl.implementation, AZ_TYPE_LIST);
-	az_implementation_init (&impl->key_list_impl.collection_impl.implementation, AZ_TYPE_LIST);
+	az_implementation_init_by_type (&impl->val_list_impl.collection_impl.implementation, AZ_TYPE_LIST);
+	az_implementation_init_by_type (&impl->key_list_impl.collection_impl.implementation, AZ_TYPE_LIST);
 	/* Base */
 	impl->map_impl.collection_impl.get_element_type = attrd_get_element_type;
 	impl->map_impl.collection_impl.get_iterator = attrd_get_iterator;

@@ -166,7 +166,7 @@ az_string_new_length (const unsigned char *str, unsigned int length)
 		az_string_ref (astr);
 	} else {
 		astr = (AZString *) malloc (sizeof (AZString) + length);
-		az_instance_init (astr, AZ_TYPE_STRING);
+		az_instance_init_by_type (astr, AZ_TYPE_STRING);
 		astr->length = length;
 		memcpy ((unsigned char *) astr->str, str, length);
 		((unsigned char *) astr->str)[length] = 0;
@@ -201,7 +201,7 @@ az_string_concat (AZString *lhs, AZString *rhs)
 	if (!lhs) return rhs;
 	if (!rhs) return lhs;
 	built = (AZString *) malloc (sizeof (AZString) + lhs->length + rhs->length);
-	az_instance_init (built, AZ_TYPE_STRING);
+	az_instance_init_by_type (built, AZ_TYPE_STRING);
 	built->length = lhs->length + rhs->length;
 	if (lhs->length) memcpy ((unsigned char *) built->str, lhs->str, lhs->length);
 	if (rhs->length) memcpy ((unsigned char *) built->str + lhs->length, rhs->str, rhs->length);

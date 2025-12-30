@@ -60,13 +60,13 @@ value_array_ref_class_init (AZValueArrayRefClass* klass)
 static void
 value_array_ref_init (AZValueArrayRefClass *klass, AZValueArrayRef *varef)
 {
-	az_instance_init (&varef->varray, AZ_TYPE_VALUE_ARRAY);
+	az_instance_init_by_type (&varef->varray, AZ_TYPE_VALUE_ARRAY);
 }
 
 static void
 value_array_ref_finalize (AZValueArrayRefClass *klass, AZValueArrayRef *varef)
 {
-	az_instance_finalize (&varef->varray, AZ_TYPE_VALUE_ARRAY);
+	az_instance_finalize_by_type (&varef->varray, AZ_TYPE_VALUE_ARRAY);
 }
 
 static unsigned int

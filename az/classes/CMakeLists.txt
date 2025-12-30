@@ -2,9 +2,7 @@ SET(SOURCES
 active-object.c active-object.h
     array-of.c array-of.h
     attrib-dict.c attrib-dict.h
-    collection.c collection.h
     interface-list.c interface-list.h
-    list.c list.h
     map.c map.h
     object-interface-list.c object-interface-list.h
     object-list.c object-list.h

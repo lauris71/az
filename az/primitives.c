@@ -29,23 +29,23 @@
 
 /* 1 Any */
 
-static unsigned int
-any_to_string (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen)
+unsigned int
+az_any_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int d_len)
 {
 	if (AZ_IMPL_TYPE(impl) == AZ_TYPE_ANY) {
 		/* Pure Any */
-		return arikkei_strncpy (d, dlen, (const unsigned char *) "Any");
+		return arikkei_strncpy (d, d_len, (const unsigned char *) "Any");
 	} else {
 		/* Subclass that does not implement to_string */
 		char c[32];
 		unsigned int pos;
 		AZClass* klass = AZ_CLASS_FROM_IMPL(impl);
-		pos = arikkei_memcpy_str (d, dlen, (const unsigned char *) "Instance of ");
-		pos += arikkei_memcpy_str (d + pos, (dlen > pos) ? dlen - pos : 0, klass->name);
-		pos += arikkei_memcpy_str (d + pos, (dlen > pos) ? dlen - pos : 0, (const unsigned char *) " (");
-		sprintf (c, "%p", instance);
-		pos += arikkei_memcpy_str (d + pos, (dlen > pos) ? dlen - pos : 0, (const unsigned char *) c);
-		pos += arikkei_strncpy (d + pos, (dlen > pos) ? dlen - pos : 0, (const unsigned char *) ")");
+		pos = arikkei_memcpy_str (d, d_len, (const unsigned char *) "Instance of ");
+		pos += arikkei_memcpy_str (d + pos, (d_len > pos) ? d_len - pos : 0, klass->name);
+		pos += arikkei_memcpy_str (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) " (");
+		sprintf (c, "%p", inst);
+		pos += arikkei_memcpy_str (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) c);
+		pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) ")");
 		return pos;
 	}
 }
@@ -290,15 +290,15 @@ any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, co
 {
 	switch (idx) {
 		case ANY_PROP_TYPE:
-			*prop_impl = &AZUint32Class.impl;
+			*prop_impl = &AZUint32Klass.impl;
 			prop_val->uint32_v = AZ_IMPL_TYPE(impl);
 			break;
 		case ANY_PROP_CLASS:
-			*prop_impl = &AZClassClass.impl;
+			*prop_impl = &AZClassKlass.impl;
 			prop_val->block = AZ_CLASS_FROM_IMPL(impl);
 			break;
 		case ANY_PROP_ARITHMETIC:
-			*prop_impl = &AZBooleanClass.impl;
+			*prop_impl = &AZBooleanKlass.impl;
 			prop_val->boolean_v = ((AZ_CLASS_FROM_IMPL(impl)->impl.flags & AZ_FLAG_ARITHMETIC) != 0);
 			break;
 		default:
@@ -309,7 +309,7 @@ any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, co
 
 static unsigned char zero_val[16] = { 0 };
 
-AZClass AZAnyClass = {
+AZClass AZAnyKlass = {
 	{AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_ANY},
 	NULL,
 	/* Num interfaces, num props, ifaces, props */
@@ -321,15 +321,15 @@ AZClass AZAnyClass = {
 	/* Instance init/finalize */
 	NULL, NULL,
 	/* Serialize/deserialize/to_string */
-	NULL, NULL, any_to_string,
+	NULL, NULL, az_any_to_string,
 	any_get_property, NULL
 };
 
 //unsigned int AnyType[] = { AZ_TYPE_ANY };
 
-AZClass AZBooleanClass = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOOLEAN},
-	&AZAnyClass,
+AZClass AZBooleanKlass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOOLEAN},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "boolean",
 	3, sizeof(AZClass), 4,
@@ -339,9 +339,9 @@ AZClass AZBooleanClass = {
 	NULL, NULL
 };
 
-AZClass AZInt8Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT8},
-	&AZAnyClass,
+AZClass AZInt8Klass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT8},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "int8",
 	0, sizeof(AZClass), 1,
@@ -351,9 +351,9 @@ AZClass AZInt8Class = {
 	NULL, NULL
 };
 
-AZClass AZUint8Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT8},
-	&AZAnyClass,
+AZClass AZUint8Klass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT8},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "uint8",
 	0, sizeof(AZClass), 1,
@@ -363,9 +363,9 @@ AZClass AZUint8Class = {
 	NULL, NULL
 };
 
-AZClass AZInt16Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT16},
-	&AZAnyClass,
+AZClass AZInt16Klass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT16},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "int16",
 	1, sizeof(AZClass), 2,
@@ -375,9 +375,9 @@ AZClass AZInt16Class = {
 	NULL, NULL
 };
 
-AZClass AZUint16Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT16},
-	&AZAnyClass,
+AZClass AZUint16Klass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT16},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "uint16",
 	1, sizeof(AZClass), 2,
@@ -387,9 +387,9 @@ AZClass AZUint16Class = {
 	NULL, NULL
 };
 
-AZClass AZInt32Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT32},
-	&AZAnyClass,
+AZClass AZInt32Klass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT32},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "int32",
 	3, sizeof(AZClass), 4,
@@ -399,9 +399,9 @@ AZClass AZInt32Class = {
 	NULL, NULL
 };
 
-AZClass AZUint32Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT32},
-	&AZAnyClass,
+AZClass AZUint32Klass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT32},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "uint32",
 	3, sizeof(AZClass), 4,
@@ -411,9 +411,9 @@ AZClass AZUint32Class = {
 	NULL, NULL
 };
 
-AZClass AZInt64Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT64},
-	&AZAnyClass,
+AZClass AZInt64Klass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT64},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "int64",
 	7, sizeof(AZClass), 8,
@@ -423,9 +423,9 @@ AZClass AZInt64Class = {
 	NULL, NULL
 };
 
-AZClass AZUint64Class = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT64},
-	&AZAnyClass,
+AZClass AZUint64Klass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT64},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "uint64",
 	7, sizeof(AZClass), 8,
@@ -435,9 +435,9 @@ AZClass AZUint64Class = {
 	NULL, NULL
 };
 
-AZClass AZFloatClass = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FLOAT},
-	&AZAnyClass,
+AZClass AZFloatKlass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FLOAT},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "float",
 	3, sizeof(AZClass), 4,
@@ -447,9 +447,9 @@ AZClass AZFloatClass = {
 	NULL, NULL
 };
 
-AZClass AZDoubleClass = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_DOUBLE},
-	&AZAnyClass,
+AZClass AZDoubleKlass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_DOUBLE},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "double",
 	7, sizeof(AZClass), 8,
@@ -459,9 +459,9 @@ AZClass AZDoubleClass = {
 	NULL, NULL
 };
 
-AZClass AZComplexFloatClass = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_FLOAT},
-	&AZAnyClass,
+AZClass AZComplexFloatKlass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_FLOAT},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "complex float",
 	7, sizeof(AZClass), 8,
@@ -471,9 +471,9 @@ AZClass AZComplexFloatClass = {
 	NULL, NULL
 };
 
-AZClass AZComplexDoubleClass = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_DOUBLE},
-	&AZAnyClass,
+AZClass AZComplexDoubleKlass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_DOUBLE},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "complex double",
 	7, sizeof(AZClass), 16,
@@ -483,9 +483,9 @@ AZClass AZComplexDoubleClass = {
 	NULL, NULL
 };
 
-AZClass AZPointerClass = {
-	{AZ_FLAG_VALUE | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_POINTER},
-	&AZAnyClass,
+AZClass AZPointerKlass = {
+	{AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_POINTER},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "pointer",
 	7, sizeof(AZClass), 8,
@@ -496,20 +496,20 @@ AZClass AZPointerClass = {
 };
 
 static AZClass *primitive_classes[] = {
-	&AZBooleanClass,
-	&AZInt8Class,
-	&AZUint8Class,
-	&AZInt16Class,
-	&AZUint16Class,
-	&AZInt32Class,
-	&AZUint32Class,
-	&AZInt64Class,
-	&AZUint64Class,
-	&AZFloatClass,
-	&AZDoubleClass,
-	&AZComplexFloatClass,
-	&AZComplexDoubleClass,
-	&AZPointerClass
+	&AZBooleanKlass,
+	&AZInt8Klass,
+	&AZUint8Klass,
+	&AZInt16Klass,
+	&AZUint16Klass,
+	&AZInt32Klass,
+	&AZUint32Klass,
+	&AZInt64Klass,
+	&AZUint64Klass,
+	&AZFloatKlass,
+	&AZDoubleKlass,
+	&AZComplexFloatKlass,
+	&AZComplexDoubleKlass,
+	&AZPointerKlass
 };
 
 #define AZ_NUM_PRIMITIVE_CLASSES (sizeof(primitive_classes) / sizeof(primitive_classes[0]))
@@ -518,7 +518,7 @@ void
 az_init_primitive_classes (void)
 {
 	unsigned int i;
-	az_class_new_with_value(&AZAnyClass);
+	az_class_new_with_value(&AZAnyKlass);
 	for (unsigned int i = 0; i < AZ_NUM_PRIMITIVE_CLASSES; i++) {
 		az_class_new_with_value(primitive_classes[i]);
 	}
@@ -1353,10 +1353,8 @@ az_convert_arithmetic_type (unsigned int to_type, AZValue *to_val, unsigned int 
 	arikkei_return_val_if_fail (AZ_TYPE_IS_PRIMITIVE (to_type), 0);
 	arikkei_return_val_if_fail (AZ_TYPE_IS_PRIMITIVE (from_type), 0);
 	if (to_type == from_type) {
-		if (to_val != from_val) {
-			AZClass *klass = az_type_get_class (from_type);
-			memcpy (to_val, from_val, klass->instance_size);
-		}
+		AZClass *klass = az_type_get_class (from_type);
+		memcpy (to_val, from_val, klass->instance_size);
 		return 0;
 	}
 	/* Booleans and pointers do not have automatic conversions */

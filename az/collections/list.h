@@ -12,7 +12,7 @@
 typedef struct _AZListImplementation AZListImplementation;
 typedef struct _AZListClass AZListClass;
 
-#include <az/classes/collection.h>
+#include <az/collections/collection.h>
 
 #ifdef __cplusplus
 extern "C" {

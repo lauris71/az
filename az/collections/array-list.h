@@ -18,7 +18,7 @@
 typedef struct _AZArrayList AZArrayList;
 typedef struct _AZArrayListClass AZArrayListClass;
 
-#include <az/classes/list.h>
+#include <az/collections/list.h>
 #include <az/reference.h>
 
 #ifdef __cplusplus

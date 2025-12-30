@@ -74,13 +74,13 @@ reference_of_class_init (AZReferenceOfClass *klass, AZClass *inst_class)
 static void
 reference_of_instance_init (AZReferenceOfClass *klass, AZReferenceOf *ref_of)
 {
-	az_instance_init (az_reference_of_get_instance (klass, ref_of), klass->instance_type);
+	az_instance_init_by_type (az_reference_of_get_instance (klass, ref_of), klass->instance_type);
 }
 
 static void
 reference_of_instance_finalize (AZReferenceOfClass *klass, AZReferenceOf *ref_of)
 {
-	az_instance_finalize (az_reference_of_get_instance (klass, ref_of), klass->instance_type);
+	az_instance_finalize_by_type (az_reference_of_get_instance (klass, ref_of), klass->instance_type);
 }
 
 static unsigned int

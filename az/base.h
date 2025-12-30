@@ -13,28 +13,30 @@
 extern "C" {
 #endif
 
-extern AZClass AZAnyClass;
+extern AZClass AZAnyKlass;
 /* Primitives */
-extern AZClass AZBooleanClass;
-extern AZClass AZInt8Class;
-extern AZClass AZUint8Class;
-extern AZClass AZInt16Class;
-extern AZClass AZUint16Class;
-extern AZClass AZInt32Class;
-extern AZClass AZUint32Class;
-extern AZClass AZInt64Class;
-extern AZClass AZUint64Class;
-extern AZClass AZFloatClass;
-extern AZClass AZDoubleClass;
-extern AZClass AZComplexFloatClass;
-extern AZClass AZComplexDoubleClass;
-extern AZClass AZPointerClass;
+extern AZClass AZBooleanKlass;
+extern AZClass AZInt8Klass;
+extern AZClass AZUint8Klass;
+extern AZClass AZInt16Klass;
+extern AZClass AZUint16Klass;
+extern AZClass AZInt32Klass;
+extern AZClass AZUint32Klass;
+extern AZClass AZInt64Klass;
+extern AZClass AZUint64Klass;
+extern AZClass AZFloatKlass;
+extern AZClass AZDoubleKlass;
+extern AZClass AZComplexFloatKlass;
+extern AZClass AZComplexDoubleKlass;
+extern AZClass AZPointerKlass;
 /* Fundamental */
-extern AZClass AZStructClass;
-extern AZClass AZBlockClass;
+extern AZClass AZStructKlass;
+extern AZClass AZBlockKlass;
 /* Base */
-extern AZClass AZImplClass;
-extern AZClass AZClassClass;
+extern AZClass AZImplKlass;
+extern AZClass AZClassKlass;
+
+unsigned int az_any_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int d_len);
 
 #ifdef __cplusplus
 };

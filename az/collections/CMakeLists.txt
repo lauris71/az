@@ -1,4 +1,6 @@
 SET(SOURCES
+    collection.c collection.h
+    list.c list.h
     array-list.c array-list.h
 )
 

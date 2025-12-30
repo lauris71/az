@@ -63,7 +63,7 @@ static inline void
 az_value_init (const AZImplementation *impl, AZValue *val)
 {
 	if (AZ_IMPL_IS_VALUE(impl)) {
-		az_instance_init(val, AZ_IMPL_TYPE(impl));
+		az_instance_init_by_type(val, AZ_IMPL_TYPE(impl));
 	} else if (AZ_IMPL_IS_BLOCK(impl)) {
 		val->block = NULL;
 	}

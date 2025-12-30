@@ -19,13 +19,13 @@
 
 AZClass AZFieldKlass = {
 	{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FIELD},
-	&AZBlockClass,
+	&AZBlockKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "field",
 	7, sizeof(AZClass), 0,
 	NULL,
 	NULL, NULL,
-	NULL, NULL, NULL,
+	NULL, NULL, az_any_to_string,
 	NULL, NULL
 };
 
@@ -56,9 +56,6 @@ void az_field_setup_value (AZField *prop, const unsigned char *key, unsigned int
 	prop->read = read;
 	prop->write = write;
 	prop->offset = offset;
-	prop->mask = 0xffffffff;
-	prop->shift = 0;
-	prop->bits = 0;
 }
 
 void az_field_setup_stored (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,

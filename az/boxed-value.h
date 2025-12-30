@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 
+#include <az/boxed-interface.h>
 #include <az/reference.h>
 #include <az/packed-value.h>
 
@@ -52,8 +53,21 @@ az_boxed_value_unref (AZBoxedValue *boxed)
 	az_reference_unref(&AZBoxedValueKlass, &boxed->ref);
 }
 
+/**
+ * @brief tranfer a value from one handle to another, boxing/unboxing if needed
+ * 
+ * If the source does not fit into size bytes AZBoxedValue is created in dst. If src
+ * is AZBoxedValue but the value fits into dst the actual value is copied.
+ * After the transfer src will be in uninitialized state.
+ * 
+ * @param impl the type implemntation
+ * @param dst the destination value
+ * @param src the source value
+ * @param size the size of destination value
+ * @return the dst implementation (may be changed by boxing/unboxing)
+ */
 static inline const AZImplementation *
-az_value_transfer_autobox(const AZImplementation *impl, AZValue *dst, const AZValue *src, unsigned int size)
+az_value_transfer_autobox(const AZImplementation *impl, AZValue *dst, AZValue *src, unsigned int size)
 {
 	if (impl) {
 		AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
@@ -61,12 +75,13 @@ az_value_transfer_autobox(const AZImplementation *impl, AZValue *dst, const AZVa
 			// Value type that does not fit into dst, box
 			dst->block = az_boxed_value_new_from_val(klass, src);
 			impl = AZ_BOXED_VALUE_IMPL;
+			az_value_clear(impl, src);
 		} else if ((klass == (AZClass *) &AZBoxedValueKlass) && (((AZBoxedValue *) src->block)->klass->instance_size <= size)) {
 			// Boxed value that fits into dst, unbox
 			AZBoxedValue *boxed = (AZBoxedValue *) src->block;
 			impl = &boxed->klass->impl;
 			az_value_copy(impl, dst, &boxed->val);
-			az_boxed_value_unref(boxed);
+			az_value_clear(impl, src);
 		} else {
 			az_value_transfer(impl, dst, src);
 		}
@@ -74,6 +89,18 @@ az_value_transfer_autobox(const AZImplementation *impl, AZValue *dst, const AZVa
 	return impl;
 }
 
+/**
+ * @brief copy a value from one handle to another, boxing/unboxing if needed
+ * 
+ * If the source does not fit into size bytes AZBoxedValue is created in dst. If src
+ * is AZBoxedValue but the value fits into dst the actual value is copied.
+ * 
+ * @param impl the type implemntation
+ * @param dst the destination value
+ * @param src the source value
+ * @param size the size of destination value
+ * @return the dst implementation (may be changed by boxing/unboxing)
+ */
 static inline const AZImplementation *
 az_value_copy_autobox(const AZImplementation *impl, AZValue *dst, const AZValue *src, unsigned int size)
 {
@@ -95,6 +122,18 @@ az_value_copy_autobox(const AZImplementation *impl, AZValue *dst, const AZValue 
 	return impl;
 }
 
+/**
+ * @brief set value from instance, boxing if needed
+ * 
+ * If the value does not fit into size bytes AZBoxedValue is created in dst.
+ * It does not unbox automatically.
+ * 
+ * @param impl the type implemntation
+ * @param dst the destination value
+ * @param inst the source instance
+ * @param size the size of destination value
+ * @return the dst implementation (may be changed by boxing)
+ */
 static inline const AZImplementation *
 az_value_set_from_inst_autobox(const AZImplementation *impl, AZValue *dst, void *inst, unsigned int size)
 {
@@ -110,16 +149,28 @@ az_value_set_from_inst_autobox(const AZImplementation *impl, AZValue *dst, void 
 	return impl;
 }
 
-static inline void *
-az_value_get_inst_autobox (const AZImplementation *impl, const AZValue *val)
+/**
+ * @brief get the instance from value, unboxing if needed
+ * 
+ * If the value is AZBoxedValue, return the actual implementation and instance inside it.
+ * 
+ * @param impl the type implementation
+ * @param val the source value
+ * @param inst the destination instance
+ * @return the actual implementation (may be changed by unboxing)
+ */
+static inline const AZImplementation *
+az_value_get_inst_autobox (const AZImplementation *impl, const AZValue *val, void **inst)
 {
 	if (impl == (AZImplementation *) &AZBoxedValueKlass) {
-		return &((AZBoxedValue *) val->block)->val;
+		*inst = &((AZBoxedValue *) val->block)->val;
+		impl = &((AZBoxedValue *) val->block)->klass->impl;
 	} else if (impl && (AZ_IMPL_IS_BLOCK(impl))) {
-		return val->block;
+		*inst = val->block;
 	} else {
-		return (void *) val;
+		*inst = (void *) val;
 	}
+	return impl;
 }
 
 #ifdef __cplusplus

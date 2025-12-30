@@ -72,7 +72,7 @@ az_boxed_interface_new (const AZImplementation *impl, void *inst, const AZImplem
 	} else {
 		boxed = (AZBoxedInterface *) malloc (sizeof (AZBoxedInterface));
 	}
-	az_instance_init (boxed, AZ_TYPE_BOXED_INTERFACE);
+	az_instance_init_by_type (boxed, AZ_TYPE_BOXED_INTERFACE);
 	boxed->val.impl = NULL;
 	az_packed_value_set_from_impl_instance (&boxed->val, impl, inst);
 	boxed->impl = if_impl;
@@ -91,7 +91,7 @@ az_boxed_interface_new_from_impl_value (const AZImplementation *impl, const AZVa
 	} else {
 		boxed = (AZBoxedInterface *) malloc (sizeof (AZBoxedInterface));
 	}
-	az_instance_init (boxed, AZ_TYPE_BOXED_INTERFACE);
+	az_instance_init_by_type (boxed, AZ_TYPE_BOXED_INTERFACE);
 	boxed->val.impl = NULL;
 	az_packed_value_set_from_impl_value (&boxed->val, impl, val);
 	boxed->impl = az_get_interface (impl, az_value_get_inst(impl, val), type, &boxed->inst);
@@ -109,7 +109,7 @@ az_boxed_interface_new_from_impl_instance (const AZImplementation *impl, void *i
 	} else {
 		boxed = ( AZBoxedInterface *) malloc (sizeof (AZBoxedInterface));
 	}
-	az_instance_init (boxed, AZ_TYPE_BOXED_INTERFACE);
+	az_instance_init_by_type (boxed, AZ_TYPE_BOXED_INTERFACE);
 	boxed->val.impl = NULL;
 	az_packed_value_set_from_impl_instance (&boxed->val, impl, inst);
 	boxed->impl = az_get_interface (impl, inst, type, &boxed->inst);

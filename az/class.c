@@ -42,9 +42,9 @@ enum {
 void
 az_impl_class_post_init (void)
 {
-	az_class_set_num_properties (&AZImplClass, NUM_PROPERTIES);
-	az_class_define_method_va (&AZImplClass, FUNC_SETSTATICPROPERTY, (const unsigned char *) "setStaticProperty", impl_call_setStaticProperty, AZ_TYPE_NONE, 2, AZ_TYPE_STRING, AZ_TYPE_ANY);
-	az_class_define_method_va (&AZImplClass, FUNC_GETSTATICPROPERTY, (const unsigned char *) "getStaticProperty", impl_call_getstaticProperty, AZ_TYPE_ANY, 1, AZ_TYPE_STRING);
+	az_class_set_num_properties (&AZImplKlass, NUM_PROPERTIES);
+	az_class_define_method_va (&AZImplKlass, FUNC_SETSTATICPROPERTY, (const unsigned char *) "setStaticProperty", impl_call_setStaticProperty, AZ_TYPE_NONE, 2, AZ_TYPE_STRING, AZ_TYPE_ANY);
+	az_class_define_method_va (&AZImplKlass, FUNC_GETSTATICPROPERTY, (const unsigned char *) "getStaticProperty", impl_call_getstaticProperty, AZ_TYPE_ANY, 1, AZ_TYPE_STRING);
 }
 
 static unsigned int
@@ -87,8 +87,8 @@ impl_call_getstaticProperty (const AZImplementation **arg_impls, const AZValue *
 void
 az_class_class_post_init (void)
 {
-	az_class_set_num_properties (&AZClassClass, 1);
-	az_class_define_property (&AZClassClass, 0, (const unsigned char *) "parent", AZ_TYPE_CLASS, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZClass, parent), NULL, NULL);
+	az_class_set_num_properties (&AZClassKlass, 1);
+	az_class_define_property (&AZClassKlass, 0, (const unsigned char *) "parent", AZ_TYPE_CLASS, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZClass, parent), NULL, NULL);
 }
 
 AZClass *
@@ -186,16 +186,16 @@ az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type,
 	arikkei_return_if_fail (impl_offset <= UINT16_MAX);
 	arikkei_return_if_fail (inst_offset <= UINT16_MAX);
 #endif
-	if (klass->n_ifaces_self <= 2) {
+	AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[idx] : &klass->ifaces_self[idx];
 #ifdef AZ_SAFETY_CHECKS
-	    arikkei_return_if_fail (!klass->ifaces[idx].type);
+	arikkei_return_if_fail (!ifentry->type);
 #endif
-		klass->ifaces[idx] = (AZIFEntry) {type, impl_offset, inst_offset};
-	} else {
-#ifdef AZ_SAFETY_CHECKS
-	    arikkei_return_if_fail (!klass->ifaces_self[idx].type);
-#endif
-		klass->ifaces_self[idx] = (AZIFEntry) {type, impl_offset, inst_offset};
+	*ifentry = (AZIFEntry) {type, impl_offset, inst_offset};
+	/* if class is interface, sub-implementations are defined in it's standalone implementations instead */
+	if (!AZ_CLASS_IS_INTERFACE(klass)) {
+		/* Init implementation */
+		AZClass *iface_class = AZ_CLASS_FROM_TYPE(ifentry->type);
+		az_implementation_init_by_type ((AZImplementation *) ((char *) klass + ifentry->impl_offset), ifentry->type);
 	}
 }
 
@@ -224,14 +224,6 @@ az_class_post_init (AZClass *klass)
 		az_types[AZ_TYPE_INDEX(AZ_CLASS_TYPE(klass))].flags |= AZ_FLAG_CONSTRUCT;
 	}
 	if (klass->n_ifaces_self) {
-		if (!AZ_CLASS_IS_INTERFACE(klass)) {
-			/* Init implementations */
-			for (i = 0; i < klass->n_ifaces_self; i++) {
-				AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[i] : &klass->ifaces_self[i];
-				AZClass *iface_class = AZ_CLASS_FROM_TYPE(ifentry->type);
-				az_implementation_init ((AZImplementation *) ((char *) klass + ifentry->impl_offset), ifentry->type);
-			}
-		}
 		/* Count all interfaces */
 		/* Initially n_ifaces_all has the value from parent class */
 		for (i = 0; i < klass->n_ifaces_self; i++) {

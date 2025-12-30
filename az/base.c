@@ -29,33 +29,33 @@ class_to_string (const AZImplementation* impl, void *inst, unsigned char *buf, u
 	return pos + arikkei_strncpy (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) " class");
 }
 
-AZClass AZStructClass = {
-	{AZ_FLAG_VALUE | AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_STRUCT},
-	&AZAnyClass,
+AZClass AZStructKlass = {
+	{AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_STRUCT},
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "struct",
 	3, sizeof(AZClass), 0,
 	NULL,
 	NULL, NULL,
-	NULL, NULL, NULL,
+	NULL, NULL, az_any_to_string,
 	NULL, NULL
 };
 
-AZClass AZBlockClass = {
+AZClass AZBlockKlass = {
 	{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BLOCK},
-	&AZAnyClass,
+	&AZAnyKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "block",
 	7, sizeof(AZClass), 0,
 	NULL,
 	NULL, NULL,
-	NULL, NULL, NULL,
+	NULL, NULL, az_any_to_string,
 	NULL, NULL
 };
 
-AZClass AZImplClass = {
+AZClass AZImplKlass = {
 	{AZ_FLAG_BLOCK | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_IMPLEMENTATION},
-	&AZBlockClass,
+	&AZBlockKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "implementation",
 	7, sizeof(AZClass), 0,
@@ -65,9 +65,9 @@ AZClass AZImplClass = {
 	NULL, NULL
 };
 
-AZClass AZClassClass = {
+AZClass AZClassKlass = {
 	{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_CLASS},
-	&AZImplClass,
+	&AZImplKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "class",
 	7, sizeof(AZClass), 0,
@@ -80,18 +80,18 @@ AZClass AZClassClass = {
 void
 az_init_base_classes (void)
 {
-	az_class_new_with_value(&AZStructClass);
-	az_class_new_with_value(&AZBlockClass);
-	az_class_new_with_value(&AZImplClass);
-	az_class_new_with_value(&AZClassClass);
+	az_class_new_with_value(&AZStructKlass);
+	az_class_new_with_value(&AZBlockKlass);
+	az_class_new_with_value(&AZImplKlass);
+	az_class_new_with_value(&AZClassKlass);
 }
 
 void
 az_post_init_base_classes (void)
 {
-    az_class_post_init(&AZStructClass);
-    az_class_post_init(&AZBlockClass);
+    az_class_post_init(&AZStructKlass);
+    az_class_post_init(&AZBlockKlass);
     az_impl_class_post_init();
-    az_class_post_init(&AZImplClass);
-    az_class_post_init(&AZClassClass);
+    az_class_post_init(&AZImplKlass);
+    az_class_post_init(&AZClassKlass);
 }

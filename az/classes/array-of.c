@@ -62,7 +62,7 @@ array_of_instance_finalize (AZArrayOfClass *klass, AZArrayOf *array_of)
 	unsigned int i;
 	for (i = 0; i < array_of->size; i++) {
 		void *instance = az_array_of_get_element_instance (array_of, klass->element_type, i);
-		az_instance_finalize (instance, klass->element_type);
+		az_instance_finalize_by_type (instance, klass->element_type);
 	}
 }
 

@@ -108,7 +108,7 @@ az_interface_list_setup (AZInterfaceList* ifl, unsigned int iface_type)
 {
 	arikkei_return_if_fail (ifl != NULL);
 	arikkei_return_if_fail (az_type_is_a (iface_type, AZ_TYPE_INTERFACE));
-	az_instance_init (ifl, AZ_TYPE_INTERFACE_LIST);
+	az_instance_init_by_type (ifl, AZ_TYPE_INTERFACE_LIST);
 	ifl->iface_type = iface_type;
 }
 
@@ -116,7 +116,7 @@ void
 az_interface_list_release (AZInterfaceList* ifl)
 {
 	arikkei_return_if_fail (ifl != NULL);
-	az_instance_finalize (ifl, AZ_TYPE_INTERFACE_LIST);
+	az_instance_finalize_by_type (ifl, AZ_TYPE_INTERFACE_LIST);
 }
 
 AZInterfaceList*

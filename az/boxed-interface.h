@@ -29,10 +29,6 @@ struct _AZBoxedInterface {
 	AZPackedValue val;
 };
 
-struct _AZBoxedInterfaceClass {
-	AZReferenceClass reference_class;
-};
-
 extern AZBoxedInterfaceClass AZBoxedInterfaceKlass;
 
 AZBoxedInterface *az_boxed_interface_new (const AZImplementation *impl, void *inst, const AZImplementation *if_impl, void *if_inst);

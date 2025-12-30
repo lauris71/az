@@ -12,7 +12,7 @@
 typedef struct _AZAttribDictImplementation AZAttribDictImplementation;
 typedef struct _AZAttribDictClass AZAttribDictClass;
 
-#include <az/classes/list.h>
+#include <az/collections/list.h>
 #include <az/classes/map.h>
 
 #ifdef __cplusplus

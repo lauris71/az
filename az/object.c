@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 
+#include <az/base.h>
 #include <az/object.h>
 #include <az/packed-value.h>
 #include <az/private.h>
@@ -40,7 +41,7 @@ AZObjectClass AZObjectKlass = {
 			/* instance_init, instance_finalize */
 			(void (*) (const AZImplementation *, void *)) object_init, NULL,
 			/* serialize, deserialize, to_string */
-			NULL, NULL, NULL,
+			NULL, NULL, az_any_to_string,
 			/* get_property, set_property */
 			NULL, NULL},
 		/* drop, dispose */

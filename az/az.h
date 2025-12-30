@@ -88,17 +88,20 @@ enum {
  * Both classes and implementation can contain sub-implementations of other types
  */
 
-/* Semantics of a type */
-typedef struct _AZClass AZClass;
-
 /**
  * @brief Polymorphic parts of a type
  */
 typedef struct _AZImplementation AZImplementation;
 
+/**
+ * @brief Semantics of a type
+ * 
+ */
+typedef struct _AZClass AZClass;
+
 /* Instance is accessed via void pointer */
 
-/* Transferable handle */
+/* Transferable instance */
 typedef struct _AZValue AZValue;
 typedef struct _AZValue64 AZValue64;
 
@@ -130,7 +133,7 @@ typedef struct _AZContext AZContext;
  * @brief Initialize type system
  * 
  * If AZ_SAFETY_CHECKS is set during the compilation of the library, it is called automatically
- * whenever any type is accessed
+ * whenever any method involving types is called.
  * 
  * It is safe to call it more than once
  */

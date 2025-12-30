@@ -139,7 +139,7 @@ az_object_list_setup (AZObjectList *objl, unsigned int type, unsigned int weak)
 {
 	arikkei_return_if_fail (objl != NULL);
 	arikkei_return_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE) || (weak && az_type_is_a (type, AZ_TYPE_ACTIVE_OBJECT)) || az_type_is_a (type, AZ_TYPE_OBJECT));
-	az_instance_init (objl, AZ_TYPE_OBJECT_LIST);
+	az_instance_init_by_type (objl, AZ_TYPE_OBJECT_LIST);
 	objl->type = type;
 	objl->interface = az_type_is_a (type, AZ_TYPE_INTERFACE);
 	objl->weak = weak;
@@ -149,7 +149,7 @@ void
 az_object_list_release (AZObjectList *objl)
 {
 	arikkei_return_if_fail (objl != NULL);
-	az_instance_finalize (objl, AZ_TYPE_OBJECT_LIST);
+	az_instance_finalize_by_type (objl, AZ_TYPE_OBJECT_LIST);
 }
 
 AZObjectList *

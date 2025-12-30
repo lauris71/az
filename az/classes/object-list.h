@@ -17,7 +17,7 @@ typedef struct _AZObjectListClass AZObjectListClass;
 
 #define AZ_TYPE_OBJECT_LIST (az_object_list_get_type ())
 
-#include <az/classes/list.h>
+#include <az/collections/list.h>
 #include <az/object.h>
 
 #ifdef __cplusplus
