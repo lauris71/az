@@ -60,7 +60,7 @@ implementation_init_recursive (AZInterfaceClass *ifclass, AZImplementation *impl
 		implementation_init_recursive ((AZInterfaceClass *) ifclass->klass.parent, impl);
 	}
 	/* Init subimplementations */
-	const AZIFEntry *ifentry = az_class_iface_self(&ifclass->klass, 0);
+	const AZIFEntry *ifentry = az_class_ifaces_self(&ifclass->klass);
 	for (uint16_t i = 0; i < ifclass->klass.n_ifaces_self; i++) {
 		AZInterfaceClass *sub_class = (AZInterfaceClass *) AZ_CLASS_FROM_TYPE(ifentry->type);
 		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);

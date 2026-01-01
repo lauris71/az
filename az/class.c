@@ -56,9 +56,9 @@ impl_call_setStaticProperty (const AZImplementation **arg_impls, const AZValue *
 	const AZClass *sub_class;
 	const AZImplementation *prop_impl;
 	void *prop_inst;
-	AZField *prop;
-	prop_idx = az_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &sub_class, &prop_impl, &prop_inst, &prop);
+	prop_idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &sub_class, &prop_impl, &prop_inst);
 	arikkei_return_val_if_fail (prop_idx >= 0, 0);
+	AZField *prop = &sub_class->props_self[prop_idx];
 	arikkei_return_val_if_fail (prop->spec == AZ_FIELD_CLASS, 0);
 	arikkei_return_val_if_fail (!prop->is_final, 0);
 	arikkei_return_val_if_fail (prop->write != AZ_FIELD_WRITE_NONE, 0);
@@ -75,9 +75,9 @@ impl_call_getstaticProperty (const AZImplementation **arg_impls, const AZValue *
 	const AZClass *sub_class;
 	const AZImplementation *prop_impl;
 	void *prop_inst;
-	AZField *prop;
-	prop_idx = az_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &sub_class, &prop_impl, &prop_inst, &prop);
+	prop_idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &sub_class, &prop_impl, &prop_inst);
 	arikkei_return_val_if_fail (prop_idx >= 0, 0);
+	AZField *prop = &sub_class->props_self[prop_idx];
 	arikkei_return_val_if_fail (prop->spec == AZ_FIELD_CLASS, 0);
 	arikkei_return_val_if_fail (prop->read != AZ_FIELD_READ_NONE, 0);
 	az_instance_get_property_by_id (sub_class, prop_impl, NULL, prop_idx, ret_impl, ret_val, 64, NULL);
@@ -437,6 +437,74 @@ void az_class_define_static_method_va (AZClass *klass, unsigned int idx, const u
 	}
 	va_end (ap);
 	az_class_define_static_method (klass, idx, key, ret_type, n_args, arg_types, invoke);
+}
+
+int
+az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst)
+{
+	arikkei_return_val_if_fail (impl != NULL, -1);
+	arikkei_return_val_if_fail (key != NULL, -1);
+	/* NB! Until "new" is handled differently we have to go subclass-first */
+	for (uint16_t i = 0; i < (int) klass->n_props_self; i++) {
+		if (az_string_equals(key, klass->props_self[i].key)) {
+			*def_class = klass;
+			if (def_impl) *def_impl = impl;
+			if (def_inst) *def_inst = inst;
+			return i;
+		}
+	}
+	/* interfaces */
+	for (uint16_t i = 0; i < (int) klass->n_ifaces_self; i++) {
+		const AZIFEntry *ifentry = az_class_iface_self(klass, i);
+		AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
+		AZImplementation *sub_impl = (impl) ? (AZImplementation *) ((char *) impl + ifentry->impl_offset) : NULL;
+		void *sub_inst = (inst) ? (void *) ((char *) inst + ifentry->inst_offset) : NULL;
+		/* Check properties of this interface */
+		int result = az_class_lookup_property (sub_class, sub_impl, sub_inst, key, def_class, def_impl, def_inst);
+		if (result >= 0) return result;
+	}
+	/* Superclass */
+	if (klass->parent) {
+		int result = az_class_lookup_property (klass->parent, impl, inst, key, def_class, def_impl, def_inst);
+		if (result >= 0) return result;
+	}
+	return -1;
+}
+
+int
+az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst)
+{
+	int result, i;
+	arikkei_return_val_if_fail (impl != NULL, -1);
+	arikkei_return_val_if_fail (key != NULL, -1);
+	/* NB! Until "new" is handled differently we have to go subclass-first */
+	for (i = 0; i < (int) klass->n_props_self; i++) {
+		if (!strcmp ((const char *) key, (const char *) klass->props_self[i].key->str) && klass->props_self->is_function) {
+			if (klass->props_self[i].signature && !az_function_signature_is_assignable_to (klass->props_self[i].signature, sig, 0)) {
+				continue;
+			}
+			*def_class = klass;
+			if (def_impl) *def_impl = impl;
+			if (def_inst) *def_inst = inst;
+			return i;
+		}
+	}
+	/* interfaces */
+	for (i = 0; i < ( int) klass->n_ifaces_self; i++) {
+		const AZIFEntry *ifentry = az_class_iface_self(klass, i);
+		AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
+		AZImplementation *sub_impl = (impl) ? (AZImplementation *) ((char *) impl + ifentry->impl_offset) : NULL;
+		void *sub_inst = (inst) ? (void *) ((char *) inst + ifentry->inst_offset) : NULL;
+		/* Check properties of this interface */
+		result = az_class_lookup_function (sub_class, sub_impl, sub_inst, key, sig, def_class, def_impl, def_inst);
+		if (result >= 0) return result;
+	}
+	/* Superclass */
+	if (klass->parent) {
+		result = az_class_lookup_function (klass->parent, impl, inst, key, sig, def_class, def_impl, def_inst);
+		if (result >= 0) return result;
+	}
+	return -1;
 }
 
 #endif

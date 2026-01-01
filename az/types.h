@@ -195,11 +195,6 @@ az_interface_finalize (const AZImplementation *impl, void *inst)
 }
 #endif
 
-void *az_instance_new (unsigned int type);
-void *az_instance_new_array (unsigned int type, unsigned int nelements);
-void az_instance_delete (unsigned int type, void *inst);
-void az_instance_delete_array (unsigned int type, void *elements, unsigned int nelements);
-
 /* Get rootmost interface */
 const AZImplementation *az_get_interface (const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
 static inline const AZImplementation *
@@ -208,35 +203,9 @@ az_get_interface_from_type (unsigned int type, void *inst, unsigned int if_type,
 	return az_get_interface (AZ_IMPL_FROM_TYPE(type), inst, if_type, if_inst);
 }
 
-unsigned int az_instance_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx);
 unsigned int az_deserialize_value (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
-/* If len > 0 writes the terminating 0 */
-unsigned int az_instance_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
 
 #ifdef AZ_HAS_PROPERTIES
-/*
- * Get index of topmost property with given name and handling class, implementation and instance, return -1 if not found
- * The order is class->interface[0]->superinterfaces->interface[1]...->superclasses
- */
-
-/**
- * @brief get the definition and the actual containing implementation and instance of given property
- * 
- * Searches class and interface definitions recursively for a property.
- * The order is class->interface[0]->superinterfaces->interface[1]...->superclasses
- * 
- * @param klass the current class (either the same as implementation or a superclass)
- * @param impl the current implementation
- * @param inst the current instance
- * @param key the property key
- * @param def_class the actual class where the property is defined
- * @param def_impl the actual implementation corresponding to def_class
- * @param def_inst the actual instance corresponding to def_class (can be null)
- * @param prop the property definition (can be null)
- * @return the property index in def_class
- */
-int az_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst, AZField **prop);
-int az_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst, AZField **prop);
 
 unsigned int az_instance_set_property (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
 unsigned int az_instance_get_property (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation **dst_impl, AZValue64 *dst_val);

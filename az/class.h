@@ -254,6 +254,25 @@ az_class_parent(const AZClass *klass) {
 	return klass->parent;
 }
 
+/**
+ * @brief get the definition and the actual containing implementation and instance of given property
+ * 
+ * Searches class and interface definitions recursively for a property.
+ * The order is class->interface[0]->superinterfaces->interface[1]...->superclasses
+ * If the index is >= 0, the property definition is def_class->props_self[index] 
+ * 
+ * @param klass current class (either the same as implementation or a superclass)
+ * @param impl type implementation (can be null for static properties)
+ * @param inst type instance (can be null for static or implementation properties)
+ * @param key the property key
+ * @param def_class result for the actual class where the property is defined
+ * @param def_impl result for the actual implementation corresponding to def_class (can be null)
+ * @param def_inst result for the actual instance corresponding to def_class (can be null)
+ * @return the property index in def_class
+ */
+int az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst);
+int az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst);
+
 #ifdef __cplusplus
 };
 #endif

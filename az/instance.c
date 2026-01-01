@@ -186,3 +186,27 @@ az_instance_delete_array (unsigned int type, void *elements, unsigned int neleme
 		free (elements);
 	}
 }
+
+unsigned int
+az_instance_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
+{
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_val_if_fail (impl != NULL, 0);
+	arikkei_return_val_if_fail (inst != NULL, 0);
+#endif
+	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
+	return (klass->serialize) ? klass->serialize (impl, inst, d, dlen, ctx) : 0;
+}
+
+/* fixme: Make signature correct */
+
+unsigned int
+az_instance_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int dlen)
+{
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_val_if_fail (impl != NULL, 0);
+	arikkei_return_val_if_fail (inst != NULL, 0);
+#endif
+	AZClass* klass = AZ_CLASS_FROM_IMPL(impl);
+	return klass->to_string (&klass->impl, inst, d, dlen);
+}
