@@ -122,7 +122,7 @@ string_dispose (AZReferenceClass *klass, AZReference *ref)
 }
 
 AZStringClass AZStringKlass = {
-	{{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_STRING},
+	{{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_STRING},
 	&AZReferenceKlass.klass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "string",
@@ -139,11 +139,6 @@ void
 az_init_string_class (void)
 {
 	az_class_new_with_value(&AZStringKlass.reference_class.klass);
-	//az_string_class = (AZStringClass *) az_class_new_with_type (AZ_TYPE_STRING, AZ_TYPE_REFERENCE, sizeof (AZStringClass), 0, AZ_FLAG_FINAL, (const uint8_t *) "string");
-	//az_string_class->reference_class.klass.serialize = serialize_string;
-	//az_string_class->reference_class.klass.deserialize = deserialize_string;
-	//az_string_class->reference_class.klass.to_string = string_to_string;
-	//az_string_class->reference_class.dispose = string_dispose;
 	arikkei_dict_setup_full (&AZStringKlass.chr2str, 701, string_hash, string_equal);
 }
 

@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include <az/base.h>
+#include <az/instance.h>
 #include <az/object.h>
 #include <az/packed-value.h>
 #include <az/private.h>
@@ -28,7 +29,7 @@ enum {
 };
 
 AZObjectClass AZObjectKlass = {
-	{{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE | AZ_FLAG_ZERO_MEMORY | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_OBJECT},
+	{{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_ZERO_MEMORY | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_OBJECT},
 			&AZReferenceKlass.klass,
 			0, 0, 0, 0,
 			/* ifaces / ifaces_self, ifaces_all */
@@ -133,7 +134,7 @@ az_object_get_interface (AZObject *obj, unsigned int type, void **inst)
 {
 	arikkei_return_val_if_fail (obj != NULL, NULL);
 	arikkei_return_val_if_fail (AZ_IS_OBJECT (obj), NULL);
-	return az_get_interface (&obj->klass->reference_klass.klass.impl, obj, type, inst);
+	return az_instance_get_interface (&obj->klass->reference_klass.klass.impl, obj, type, inst);
 }
 
 #ifdef AZ_HAS_PACKED_VALUE

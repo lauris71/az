@@ -472,14 +472,14 @@ az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, vo
 }
 
 int
-az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst)
+az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst)
 {
 	int result, i;
 	arikkei_return_val_if_fail (impl != NULL, -1);
 	arikkei_return_val_if_fail (key != NULL, -1);
 	/* NB! Until "new" is handled differently we have to go subclass-first */
 	for (i = 0; i < (int) klass->n_props_self; i++) {
-		if (!strcmp ((const char *) key, (const char *) klass->props_self[i].key->str) && klass->props_self->is_function) {
+		if (az_string_equals(key, klass->props_self[i].key) && klass->props_self->is_function) {
 			if (klass->props_self[i].signature && !az_function_signature_is_assignable_to (klass->props_self[i].signature, sig, 0)) {
 				continue;
 			}

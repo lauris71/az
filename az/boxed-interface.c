@@ -14,6 +14,7 @@
 #include <arikkei/arikkei-utils.h>
 
 #include <az/boxed-interface.h>
+#include <az/instance.h>
 #include <az/class.h>
 #include <az/object.h>
 #include <az/private.h>
@@ -41,7 +42,7 @@ boxed_interface_to_string (const AZImplementation *impl, void *inst, unsigned ch
 }
 
 AZBoxedInterfaceClass AZBoxedInterfaceKlass = {
-	{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOXED_INTERFACE},
+	{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOXED_INTERFACE},
 	&AZReferenceKlass.klass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "boxed interface",
@@ -94,7 +95,7 @@ az_boxed_interface_new_from_impl_value (const AZImplementation *impl, const AZVa
 	az_instance_init_by_type (boxed, AZ_TYPE_BOXED_INTERFACE);
 	boxed->val.impl = NULL;
 	az_packed_value_set_from_impl_value (&boxed->val, impl, val);
-	boxed->impl = az_get_interface (impl, az_value_get_inst(impl, val), type, &boxed->inst);
+	boxed->impl = az_instance_get_interface (impl, az_value_get_inst(impl, val), type, &boxed->inst);
 	return boxed;
 }
 
@@ -112,7 +113,7 @@ az_boxed_interface_new_from_impl_instance (const AZImplementation *impl, void *i
 	az_instance_init_by_type (boxed, AZ_TYPE_BOXED_INTERFACE);
 	boxed->val.impl = NULL;
 	az_packed_value_set_from_impl_instance (&boxed->val, impl, inst);
-	boxed->impl = az_get_interface (impl, inst, type, &boxed->inst);
+	boxed->impl = az_instance_get_interface (impl, inst, type, &boxed->inst);
 	return boxed;
 }
 

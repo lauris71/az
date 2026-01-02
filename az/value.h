@@ -15,6 +15,7 @@
 #include <az/class.h>
 #include <az/complex.h>
 #include <az/interface.h>
+#include <az/instance.h>
 #include <az/reference.h>
 
 #ifdef __cplusplus
@@ -149,6 +150,18 @@ az_value_get_inst (const AZImplementation *impl, const AZValue *val)
 		return (void *) val;
 	}
 }
+
+/**
+ * @brief creates a value from serialized data
+ * 
+ * @param impl the type implementation
+ * @param val pointer to uninitialized target value
+ * @param s source buffer
+ * @param slen  source buffer length
+ * @param ctx the execution context
+ * @return the number of bytes consumed (0 on error)
+ */
+unsigned int az_value_deserialize (const AZImplementation *impl, AZValue *val, const unsigned char *s, unsigned int slen, AZContext *ctx);
 
 unsigned int az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue *rhs);
 unsigned int az_value_equals_autobox (const AZImplementation *lhs_impl, const AZValue *lhs, const AZImplementation *rhs_impl, const AZValue *rhs);

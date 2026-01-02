@@ -34,7 +34,7 @@ struct _AZReferenceClass {
 	 * Called before the last reference to instance will be dropped (unref with refcount 1) to
 	 * allow object managers to claim ownership of unowned objects.
 	 * If it returns 1, instance will be disposed and deleted immediately. Otherwise reference
-	 * count is decreased and instance disposed and deleted only there are no remaining references to it.
+	 * count is decreased and instance disposed and deleted only if there are no remaining references to it.
 	 * It is called with mutex unlocked.
 	 *
 	 * @return 1 if object should be disposed, 0 if someone else aquired new reference

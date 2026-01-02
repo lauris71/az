@@ -78,6 +78,51 @@ enum {
 #define AZ_TYPE_IS_BASE(t) (((t) >= AZ_TYPE_ANY) && ((t) <= AZ_TYPE_OBJECT))
 
 /*
+ * Class/implementation/type flags
+ */
+
+/**
+ * @brief Marks that implementation is a standalone class
+ * 
+ * It exploits the feature that classes are aligned to 8 bytes, thus if any of the
+ * lowest bits are set, the AZImplementation union contains flags and type, not a
+ * pointer to the AZClass
+ */
+#define AZ_FLAG_IMPL_IS_CLASS 0x01
+
+/*
+ * High-order flags, can be put in typecode
+ */
+/* Interface type, implementation is not class */
+#define AZ_FLAG_INTERFACE 0x01000000
+/* Instance is referenced by pointer */
+#define AZ_FLAG_BLOCK 0x02000000
+/* Reference type, copying needs reference counting */
+#define AZ_FLAG_REFERENCE 0x04000000
+/* Instance is a container of another type */
+#define AZ_FLAG_BOXED 0x08000000
+/* A reference type that contains a pointer to it's class */
+#define AZ_FLAG_OBJECT 0x10000000
+/* No subclasses */
+#define AZ_FLAG_FINAL 0x20000000
+/* Subclasses should not remove flag set by parent */
+#define AZ_FLAG_CONSTRUCT 0x40000000
+/* fixme: Make this dependent on construction */
+#define AZ_FLAG_ZERO_MEMORY 0x80000000
+
+/*
+ * Low-order flags, only present in class and type info
+ */
+
+/* No instancing is allowed (this is not propagated to subclasses) */
+#define AZ_FLAG_ABSTRACT 0x02
+
+/* Miscellaneous info flags */
+#define AZ_FLAG_ARITHMETIC 0x04
+#define AZ_FLAG_INTEGRAL 0x08
+#define AZ_FLAG_SIGNED 0x10
+
+/*
  * Every entity instance is a collection of bits in memory
  * The layout, meaning and basic handling of these bits is described by class
  * Classes are accessible either by class pointer or integer type

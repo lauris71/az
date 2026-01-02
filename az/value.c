@@ -40,6 +40,21 @@ az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *inst)
 }
 
 unsigned int
+az_value_deserialize (const AZImplementation *impl, AZValue *val, const unsigned char *s, unsigned int slen, AZContext *ctx)
+{
+	AZClass *klass;
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_val_if_fail (impl != NULL, 0);
+	arikkei_return_val_if_fail (val != NULL, 0);
+#endif
+	klass = AZ_CLASS_FROM_IMPL(impl);
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_val_if_fail (klass != NULL, 0);
+#endif
+	return (klass->deserialize) ? klass->deserialize (impl, val, s, slen, ctx) : 0;
+}
+
+unsigned int
 az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue *rhs)
 {
 	AZClass *klass;

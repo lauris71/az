@@ -11,6 +11,7 @@
 #include <arikkei/arikkei-strlib.h>
 
 #include <az/boxed-value.h>
+#include <az/instance.h>
 #include <az/private.h>
 
 static unsigned int
@@ -41,7 +42,7 @@ boxed_value_finalize (AZBoxedValueClass *klass, AZBoxedValue *boxed)
 #endif
 
 AZBoxedValueClass AZBoxedValueKlass = {
-	{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOXED_VALUE},
+	{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOXED_VALUE},
 	&AZReferenceKlass.klass,
 	0, 0, 0, 0,
 	/* ifaces / ifaces_self, ifaces_all */

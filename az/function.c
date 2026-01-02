@@ -13,6 +13,7 @@
 
 #include <az/base.h>
 #include <az/convert.h>
+#include <az/instance.h>
 #include <az/object.h>
 #include <az/packed-value.h>
 #include <az/private.h>
@@ -233,7 +234,7 @@ az_function_invoke_by_type_instance (unsigned int type, void *instance, AZPacked
 	arikkei_return_val_if_fail (az_type_implements (type, AZ_TYPE_FUNCTION), 0);
 	arikkei_return_val_if_fail (instance != NULL, 0);
 	klass = az_type_get_class (type);
-	impl = (AZFunctionImplementation *) az_get_interface (&klass->impl, instance, AZ_TYPE_FUNCTION, (void **) &inst);
+	impl = (AZFunctionImplementation *) az_instance_get_interface (&klass->impl, instance, AZ_TYPE_FUNCTION, (void **) &inst);
 	return az_function_invoke_packed (impl, inst, thisval, retval, args, checktypes);
 }
 
@@ -246,7 +247,7 @@ az_instance_invoke_function (const AZImplementation *impl, void *inst, AZPackedV
 	arikkei_return_val_if_fail (az_type_implements(AZ_IMPL_TYPE(impl), AZ_TYPE_FUNCTION), 0);
 	arikkei_return_val_if_fail (inst != NULL, 0);
 #endif
-	func_impl = (AZFunctionImplementation *) az_get_interface (impl, inst, AZ_TYPE_FUNCTION, (void **) &func_inst);
+	func_impl = (AZFunctionImplementation *) az_instance_get_interface (impl, inst, AZ_TYPE_FUNCTION, (void **) &func_inst);
 	return az_function_invoke_packed (func_impl, func_inst, this_val, ret_val, args, check_types);
 }
 
@@ -426,7 +427,7 @@ az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZ
 	const AZValue *arg_ptrs[64];
 	arikkei_return_val_if_fail (impl != NULL, 0);
 	arikkei_return_val_if_fail (sig->n_args < 64, 0);
-	f_impl = (AZFunctionImplementation *) az_get_interface (impl, az_value_get_inst(impl, val), AZ_TYPE_FUNCTION, (void **) &f_inst);
+	f_impl = (AZFunctionImplementation *) az_instance_get_interface (impl, az_value_get_inst(impl, val), AZ_TYPE_FUNCTION, (void **) &f_inst);
 	arikkei_return_val_if_fail (f_impl != NULL, 0);
 
 #ifdef ARCH_X86_64

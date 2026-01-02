@@ -10,6 +10,8 @@
  */
 
 #include <az/az.h>
+#include <az/class.h>
+#include <az/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,6 +45,24 @@ void az_instance_init (const AZImplementation *impl, void *inst);
  */
 void az_instance_finalize (const AZImplementation *impl, void *inst);
 
+/**
+ * @brief Initialize a new instance
+ * 
+ * Convenience frontent to az_instance_init
+ * @param inst pointer to instance
+ * @param type instance type
+ */
+static inline void
+az_instance_init_by_type (void *inst, unsigned int type)
+{
+	if (AZ_TYPE_FLAGS(type) & (AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT)) az_instance_init(AZ_IMPL_FROM_TYPE(type), inst);
+}
+static inline void
+az_instance_finalize_by_type (void *inst, unsigned int type)
+{
+	if (AZ_TYPE_FLAGS(type) & AZ_FLAG_CONSTRUCT) az_instance_finalize(AZ_IMPL_FROM_TYPE(type), inst);
+}
+
 void *az_instance_new (unsigned int type);
 void *az_instance_new_array (unsigned int type, unsigned int nelements);
 void az_instance_delete (unsigned int type, void *inst);
@@ -62,6 +82,14 @@ unsigned int az_instance_serialize (const AZImplementation *impl, void *inst, un
  * @return the content length (can be > dlen, not counting terminating 0)
  */
 unsigned int az_instance_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
+
+/* Get rootmost interface */
+const AZImplementation *az_instance_get_interface (const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
+static inline const AZImplementation *
+az_instance_get_interface_from_type (unsigned int type, void *inst, unsigned int if_type, void **if_inst)
+{
+	return az_instance_get_interface (AZ_IMPL_FROM_TYPE(type), inst, if_type, if_inst);
+}
 
 #ifdef __cplusplus
 }

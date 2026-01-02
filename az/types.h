@@ -15,7 +15,6 @@
 #include <arikkei/arikkei-utils.h>
 
 #include <az/az.h>
-#include <az/instance.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -159,54 +158,7 @@ unsigned int az_type_implements (unsigned int type, unsigned int test);
  */
 unsigned int az_type_is_assignable_to (unsigned int type, unsigned int test);
 
-/* Basic constructor frontends */
-/**
- * @brief Initialize a new instance
- * 
- * Initializes a new instance by calling recursively all superclass and interface constructors
- * @param inst pointer to instance
- * @param type instance type
- */
-#ifdef AZ_SAFETY_CHECKS
-#define az_instance_init_by_type(i,t) az_instance_init(AZ_IMPL_FROM_TYPE(t), i)
-#define az_interface_init(impl,inst) az_instance_init(impl, inst)
-#define az_instance_finalize_by_type(i,t) az_instance_finalize(AZ_IMPL_FROM_TYPE(t), i)
-#define az_interface_finalize(impl,inst) az_instance_finalize(impl, inst)
-#else
-static void
-az_instance_init_by_type (void *inst, unsigned int type)
-{
-	if (AZ_TYPE_FLAGS(type) & (AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT)) az_instance_initialize(AZ_IMPL_FROM_TYPE(type), inst);
-}
-static void
-az_interface_init (const AZImplementation *impl, void *inst)
-{
-	if (AZ_TYPE_FLAGS(type) & (AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT)) az_instance_initialize(impl, inst);
-}
-static void
-az_instance_finalize_by_type (void *inst, unsigned int type)
-{
-	if (AZ_TYPE_FLAGS(type) & AZ_FLAG_CONSTRUCT) az_instance_finalize(AZ_IMPL_FROM_TYPE(type), inst);
-}
-static void
-az_interface_finalize (const AZImplementation *impl, void *inst)
-{
-	if (AZ_TYPE_FLAGS(type) & AZ_FLAG_CONSTRUCT) az_instance_finalize(impl, inst);
-}
-#endif
-
-/* Get rootmost interface */
-const AZImplementation *az_get_interface (const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
-static inline const AZImplementation *
-az_get_interface_from_type (unsigned int type, void *inst, unsigned int if_type, void **if_inst)
-{
-	return az_get_interface (AZ_IMPL_FROM_TYPE(type), inst, if_type, if_inst);
-}
-
-unsigned int az_deserialize_value (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
-
 #ifdef AZ_HAS_PROPERTIES
-
 unsigned int az_instance_set_property (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
 unsigned int az_instance_get_property (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation **dst_impl, AZValue64 *dst_val);
 unsigned int az_instance_get_function (const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val);

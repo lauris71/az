@@ -36,13 +36,13 @@ AZString *az_string_new_length (const unsigned char *str, unsigned int length);
 AZString *az_string_lookup (const unsigned char *chars);
 AZString *az_string_lookup_length (const unsigned char *chars, unsigned int length);
 
-ARIKKEI_INLINE void
+static inline void
 az_string_ref (AZString *astr)
 {
 	az_reference_ref (&astr->reference);
 }
 
-ARIKKEI_INLINE void
+static inline void
 az_string_unref (AZString *astr)
 {
 	az_reference_unref (&AZStringKlass.reference_class, &astr->reference);

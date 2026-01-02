@@ -12,6 +12,7 @@
 
 #include <az/base.h>
 #include <az/class.h>
+#include <az/instance.h>
 #include <az/private.h>
 #include <az/reference.h>
 
@@ -65,7 +66,7 @@ az_reference_unref (AZReferenceClass* klass, AZReference* ref)
 #endif
 
 void
-static az_reference_drop (AZReferenceClass *klass, AZReference *ref)
+az_reference_drop (AZReferenceClass *klass, AZReference *ref)
 {
 #ifdef AZ_SAFETY_CHECKS
 	AZ_REFERENCE_LOCK ();
@@ -83,8 +84,6 @@ static az_reference_drop (AZReferenceClass *klass, AZReference *ref)
 	} else {
 		/* Someone took ownership but may have dropped it in another thread */
 		AZ_REFERENCE_LOCK ();
-		//ref->refcount -= 1;
-		//if (!ref->refcount) {
 		if (ref->refcount == 1) {
 			AZ_REFERENCE_UNLOCK ();
 			if (klass->dispose) klass->dispose (klass, ref);
@@ -119,8 +118,6 @@ az_reference_dispose (AZReferenceClass *klass, AZReference *ref)
 	}
 }
 
-//static AZReferenceClass *reference_class = NULL;
-
 static void
 reference_instance_init (AZReferenceClass *klass, void *instance)
 {
@@ -128,7 +125,7 @@ reference_instance_init (AZReferenceClass *klass, void *instance)
 }
 
 AZReferenceClass AZReferenceKlass = {
-	{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_REFERENCE},
+	{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_REFERENCE},
 	&AZBlockKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "reference",
@@ -144,8 +141,6 @@ void
 az_init_reference_class (void)
 {
 	az_class_new_with_value(&AZReferenceKlass.klass);
-	//reference_class = (AZReferenceClass *) az_class_new_with_type (AZ_TYPE_REFERENCE, AZ_TYPE_BLOCK, sizeof (AZReferenceClass), sizeof (AZReference), AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE, (const uint8_t *) "reference");
-	//reference_class->klass.instance_init = (void (*) (const AZImplementation *, void *)) reference_instance_init;
 #ifdef AZ_MT_REFERENCES
 	mtx_init (&mutex, mtx_plain);
 #endif

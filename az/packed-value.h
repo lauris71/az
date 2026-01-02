@@ -12,6 +12,7 @@ typedef struct _AZPackedValue64 AZPackedValue64;
 
 #include <stdio.h>
 
+#include <az/types.h>
 #include <az/value.h>
 
 #ifdef __cplusplus
