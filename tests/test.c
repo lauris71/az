@@ -6,6 +6,7 @@
 #include <az/az.h>
 #include <az/base.h>
 #include <az/boxed-value.h>
+#include <az/extend.h>
 #include <az/types.h>
 #include <az/value.h>
 #include <az/collections/array-list.h>
@@ -154,8 +155,44 @@ test_boxed_value()
 }
 
 static void
+verify_list(AZArrayList *alist, const unsigned int idx[], const unsigned int types[])
+{
+    void *coll_inst;
+    const AZCollectionImplementation *coll_impl = (AZCollectionImplementation *) az_instance_get_interface((AZImplementation *) AZArrayListKlass, alist, AZ_TYPE_COLLECTION, &coll_inst);
+    TEST_ASSERT(coll_impl == &AZArrayListKlass->list_impl.collection_impl);
+    TEST_ASSERT(coll_inst == alist);
+    unsigned int size = az_collection_get_size(coll_impl, coll_inst);
+    TEST_ASSERT(size == alist->length);
+    for (unsigned int i = 0; i < size; i++) {
+        uint8_t buf[256];
+        memset(buf, (char) idx[i], 256);
+        AZClass *klass = AZ_CLASS_FROM_TYPE(types[idx[i]]);
+        AZValue val;
+        const AZImplementation *impl = az_list_get_element(&AZArrayListKlass->list_impl, alist, i, &val, 16);
+        if (klass->instance_size <= 16) {
+            TEST_ASSERT(impl == &klass->impl);
+            if (!klass->instance_size) continue;
+            TEST_ASSERT(az_value_equals(&klass->impl, &val, (const AZValue *) buf));
+        } else {
+            TEST_ASSERT(impl == &AZBoxedValueKlass.klass.impl);
+            AZBoxedValue *boxed = (AZBoxedValue *) val.block;
+            TEST_ASSERT(boxed->klass == klass);
+            TEST_ASSERT(az_value_equals(&boxed->klass->impl, &boxed->val, (const AZValue *) buf));
+        }
+    }
+}
+
+static void
 test_array_list()
 {
+    unsigned int types[10];
+    for (unsigned int i = 0; i < 10; i++) {
+        unsigned int instance_size = 4 * i;
+        uint8_t name[32];
+        snprintf((char *) name, 32, "struct_%d", instance_size);
+        AZClass *klass = az_register_type(&types[i], name, AZ_TYPE_STRUCT, sizeof(AZClass), instance_size, AZ_FLAG_FINAL, NULL, NULL, NULL);
+        TEST_ASSERT(klass->instance_size == instance_size);
+    }
     AZArrayList *alist = az_array_list_new(AZ_TYPE_ANY, 8);
     for (unsigned int i = 0; i < 10; i++) {
         uint32_t inst = i;
@@ -163,9 +200,43 @@ test_array_list()
     }
     for (unsigned int i = 0; i < 10; i++) {
         AZValue val;
-        const AZImplementation *impl = az_list_get_element(&AZArrayListKlass->list_implementation, alist, i, &val, 16);
+        const AZImplementation *impl = az_list_get_element(&AZArrayListKlass->list_impl, alist, i, &val, 16);
         TEST_ASSERT(impl == &AZUint32Klass.impl);
         TEST_ASSERT(val.uint32_v == i);
+    }
+    uint8_t buf[256] = {0};
+    for (unsigned int s = 8; s <= 64; s = s << 1) {
+        /* Create new list with value_size s */
+        alist = az_array_list_new(AZ_TYPE_ANY, s);
+        /* Fill it with objects 0..9 */
+        for (unsigned int i = 0; i < 10; i++) {
+            memset(buf, (char) i, 256);
+            TEST_ASSERT(az_array_list_append(alist, AZ_IMPL_FROM_TYPE(types[i]), &buf));
+        }
+        fprintf(stdout, "List [val_size=%d length=%d]:", alist->val_size, alist->length);
+        for (unsigned int i = 0; i < alist->length; i++) {
+            AZArrayListEntry *entry = az_array_list_get_entry(alist, i);
+            fprintf (stdout, " %d", AZ_IMPL_TYPE(entry->impl));
+        }
+        fprintf(stdout, "\n");
+        /* Verify */
+        unsigned int *idx = (unsigned int[]) {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        verify_list(alist, idx, types);
+        /* Insert 9..0 into position 5 */
+        for (unsigned int i = 0; i < 10; i++) {
+            memset(buf, (char) i, 256);
+            TEST_ASSERT(az_array_list_insert(alist, 5, AZ_IMPL_FROM_TYPE(types[i]), &buf));
+        }
+        fprintf(stdout, "List [val_size=%d length=%d]:", alist->val_size, alist->length);
+        for (unsigned int i = 0; i < alist->length; i++) {
+            AZArrayListEntry *entry = az_array_list_get_entry(alist, i);
+            fprintf (stdout, " %d", AZ_IMPL_TYPE(entry->impl));
+        }
+        fprintf(stdout, "\n");
+        /* Verify */
+        idx = (unsigned int[]) {0, 1, 2, 3, 4, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 5, 6, 7, 8, 9};
+        verify_list(alist, idx, types);
+        az_array_list_delete(alist);
     }
 }
 

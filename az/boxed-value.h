@@ -173,6 +173,9 @@ az_value_get_inst_autobox (const AZImplementation *impl, const AZValue *val, voi
 	return impl;
 }
 
+unsigned int az_value_equals_autobox (const AZImplementation *lhs_impl, const AZValue *lhs, const AZImplementation *rhs_impl, const AZValue *rhs);
+unsigned int az_value_equals_instance_autobox (const AZImplementation *lhs_impl, const AZValue *lhs, const AZImplementation *rhs_impl, const void *rhs);
+
 #ifdef __cplusplus
 };
 #endif

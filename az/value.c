@@ -68,29 +68,6 @@ az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue
 }
 
 unsigned int
-az_value_equals_autobox(const AZImplementation *lhs_impl, const AZValue *lhs, const AZImplementation *rhs_impl, const AZValue *rhs)
-{
-	if (lhs_impl == &AZBoxedValueKlass.klass.impl) {
-		AZBoxedValue *boxed = (AZBoxedValue *) lhs->block;
-		lhs_impl = &boxed->klass->impl;
-		lhs = &boxed->val;
-	}
-	if (rhs_impl == &AZBoxedValueKlass.klass.impl) {
-		AZBoxedValue *boxed = (AZBoxedValue *) rhs->block;
-		rhs_impl = &boxed->klass->impl;
-		rhs = &boxed->val;
-	}
-	if (lhs_impl != rhs_impl) return 0;
-	if (AZ_IMPL_IS_BLOCK(rhs_impl)) {
-		return lhs->block == rhs->block;
-	} else {
-		AZClass *klass = AZ_CLASS_FROM_IMPL(rhs_impl);
-		if (klass->instance_size) return !memcmp (lhs, rhs, klass->instance_size);
-	}
-	return 0;
-}
-
-unsigned int
 az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, const void *rhs)
 {
 	AZClass *klass;

@@ -163,8 +163,18 @@ az_value_get_inst (const AZImplementation *impl, const AZValue *val)
  */
 unsigned int az_value_deserialize (const AZImplementation *impl, AZValue *val, const unsigned char *s, unsigned int slen, AZContext *ctx);
 
+/**
+ * @brief compares two values for equality
+ * 
+ * Value equality is defined as bitwise equality of value data - i.e. equality of structs
+ * or block pointers
+ * 
+ * @param impl the type implementation
+ * @param lhs left hand value
+ * @param rhs right hand value
+ * @return 1 if equal, 0 if not
+ */
 unsigned int az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue *rhs);
-unsigned int az_value_equals_autobox (const AZImplementation *lhs_impl, const AZValue *lhs, const AZImplementation *rhs_impl, const AZValue *rhs);
 unsigned int az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, const void *rhs);
 
 /* Transfer reference instance to destination */

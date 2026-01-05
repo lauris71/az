@@ -34,15 +34,15 @@ struct _AZArrayListEntry {
 
 struct _AZArrayList {
     unsigned int type;
-	unsigned int size;
 	unsigned int length;
 	unsigned int val_size;
-	AZArrayListEntry *values;
+	unsigned int data_size;
+	void *data;
 };
 
 struct _AZArrayListClass {
 	AZClass klass;
-	AZListImplementation list_implementation;
+	AZListImplementation list_impl;
     unsigned int default_size;
 };
 
@@ -52,7 +52,21 @@ unsigned int az_array_list_get_type (void);
 
 AZArrayList *az_array_list_new(unsigned int el_type, unsigned int val_size);
 
+static inline void
+az_array_list_delete(AZArrayList *alist)
+{
+	az_instance_delete(AZ_TYPE_ARRAY_LIST, alist);
+}
+
+void az_array_list_clear(AZArrayList *alist);
 unsigned int az_array_list_append(AZArrayList *alist, const AZImplementation *impl, void *inst);
+unsigned int az_array_list_insert(AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst);
+
+static inline AZArrayListEntry *
+az_array_list_get_entry(AZArrayList *alist, unsigned int idx)
+{
+	return (AZArrayListEntry *) ((char *) alist->data + idx * (sizeof(AZArrayListEntry) + alist->val_size - 8));
+}
 
 #ifdef __cplusplus
 };
