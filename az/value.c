@@ -81,6 +81,27 @@ az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, cons
 	return 0;
 }
 
+void *
+az_value_new_array(const AZImplementation *impl, unsigned int length)
+{
+	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
+	void *data = malloc(length * az_class_value_size(klass));
+	for (unsigned int i = 0; i < length; i++) {
+		az_value_init(impl, (AZValue *) ((char *) data + i * az_class_value_size(klass)));
+	}
+	return data;
+}
+
+void az_value_delete_array(const AZImplementation *impl, void *data, unsigned int length)
+{
+	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
+	for (unsigned int i = 0; i < length; i++) {
+		az_value_clear(impl, (AZValue *) ((char *) data + i * az_class_value_size(klass)));
+	}
+	free(data);
+}
+
+
 unsigned int
 az_value_convert_auto (const AZImplementation **dst_impl, AZValue *dst_val, const AZImplementation **src_impl, const AZValue *src_val, unsigned int to_type)
 {

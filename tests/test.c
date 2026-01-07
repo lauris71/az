@@ -10,12 +10,14 @@
 #include <az/types.h>
 #include <az/value.h>
 #include <az/collections/array-list.h>
+#include <az/collections/array.h>
 
 #include "unity/unity.h"
 
 static void test_types();
 static void test_boxed_value();
 static void test_array_list();
+static void test_array();
 
 void setUp(void) {
     // set stuff up here
@@ -36,6 +38,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_boxed_value);
         } else if (!strcmp(argv[i], "array-list")) {
             RUN_TEST(test_array_list);
+        } else if (!strcmp(argv[i], "array")) {
+            RUN_TEST(test_array);
         }
     }
     return UNITY_END();
@@ -183,6 +187,17 @@ verify_list(AZArrayList *alist, const unsigned int idx[], const unsigned int typ
 }
 
 static void
+print_list(AZArrayList *alist, FILE *ofs)
+{
+    fprintf(stdout, "List [val_size=%d length=%d]:", alist->val_size, alist->length);
+    for (unsigned int i = 0; i < alist->length; i++) {
+        AZArrayListEntry *entry = az_array_list_get_entry(alist, i);
+        fprintf (stdout, " %d", (entry->impl) ? AZ_IMPL_TYPE(entry->impl) : 0);
+    }
+    fprintf(stdout, "\n");
+}
+
+static void
 test_array_list()
 {
     unsigned int types[10];
@@ -205,6 +220,7 @@ test_array_list()
         TEST_ASSERT(val.uint32_v == i);
     }
     uint8_t buf[256] = {0};
+    /* Trsy lists with element size 8...64 */
     for (unsigned int s = 8; s <= 64; s = s << 1) {
         /* Create new list with value_size s */
         alist = az_array_list_new(AZ_TYPE_ANY, s);
@@ -213,12 +229,7 @@ test_array_list()
             memset(buf, (char) i, 256);
             TEST_ASSERT(az_array_list_append(alist, AZ_IMPL_FROM_TYPE(types[i]), &buf));
         }
-        fprintf(stdout, "List [val_size=%d length=%d]:", alist->val_size, alist->length);
-        for (unsigned int i = 0; i < alist->length; i++) {
-            AZArrayListEntry *entry = az_array_list_get_entry(alist, i);
-            fprintf (stdout, " %d", AZ_IMPL_TYPE(entry->impl));
-        }
-        fprintf(stdout, "\n");
+        print_list(alist, stdout);
         /* Verify */
         unsigned int *idx = (unsigned int[]) {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         verify_list(alist, idx, types);
@@ -227,16 +238,42 @@ test_array_list()
             memset(buf, (char) i, 256);
             TEST_ASSERT(az_array_list_insert(alist, 5, AZ_IMPL_FROM_TYPE(types[i]), &buf));
         }
-        fprintf(stdout, "List [val_size=%d length=%d]:", alist->val_size, alist->length);
-        for (unsigned int i = 0; i < alist->length; i++) {
-            AZArrayListEntry *entry = az_array_list_get_entry(alist, i);
-            fprintf (stdout, " %d", AZ_IMPL_TYPE(entry->impl));
-        }
-        fprintf(stdout, "\n");
+        print_list(alist, stdout);
         /* Verify */
         idx = (unsigned int[]) {0, 1, 2, 3, 4, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 5, 6, 7, 8, 9};
+        verify_list(alist, idx, types);
+        /* Delete positions 1,3,5...*/
+        for (unsigned int i = 0; i < 10; i++) {
+            az_array_list_remove(alist, i + 1);
+        }
+        print_list(alist, stdout);
+        idx = (unsigned int[]) {0, 2, 4, 8, 6, 4, 2, 0, 6, 8};
+        verify_list(alist, idx, types);
+        /* Replace */
+        for (unsigned int i = 0; i < 10; i++) {
+            memset(buf, (char) (9 - i), 256);
+            az_array_list_set_element(alist, i, AZ_IMPL_FROM_TYPE(types[9 - i]), &buf);
+        }
+        print_list(alist, stdout);
+        idx = (unsigned int[]) {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
         verify_list(alist, idx, types);
         az_array_list_delete(alist);
     }
 }
 
+static void
+test_array()
+{
+    uint32_t b32[1000];
+    az_init();
+    for (unsigned int i = 0; i < 1000; i++) b32[i] = i;
+    AZArrayObject *aof = az_array_object_new_static(AZ_TYPE_UINT32, 1000, b32);
+    void *inst;
+    const AZListImplementation *impl = az_array_object_get_list(aof, &inst);
+    for (unsigned int i = 0; i < 1000; i++) {
+        AZValue val;
+        const AZImplementation *el_impl = az_list_get_element(impl, inst, i, &val, 16);
+        TEST_ASSERT(el_impl == &AZUint32Klass.impl);
+        TEST_ASSERT(val.int32_v == b32[i]);
+    }
+}

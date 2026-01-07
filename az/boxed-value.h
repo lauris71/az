@@ -60,7 +60,7 @@ az_boxed_value_unref (AZBoxedValue *boxed)
  * is AZBoxedValue but the value fits into dst the actual value is copied.
  * After the transfer src will be in uninitialized state.
  * 
- * @param impl the type implemntation
+ * @param impl the src implemntation
  * @param dst the destination value
  * @param src the source value
  * @param size the size of destination value
@@ -95,7 +95,7 @@ az_value_transfer_autobox(const AZImplementation *impl, AZValue *dst, AZValue *s
  * If the source does not fit into size bytes AZBoxedValue is created in dst. If src
  * is AZBoxedValue but the value fits into dst the actual value is copied.
  * 
- * @param impl the type implemntation
+ * @param impl the src implemntation
  * @param dst the destination value
  * @param src the source value
  * @param size the size of destination value

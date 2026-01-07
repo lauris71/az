@@ -1,6 +1,5 @@
 SET(SOURCES
-active-object.c active-object.h
-    array-of.c array-of.h
+    active-object.c active-object.h
     attrib-dict.c attrib-dict.h
     interface-list.c interface-list.h
     map.c map.h

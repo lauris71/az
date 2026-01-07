@@ -58,14 +58,28 @@ az_array_list_delete(AZArrayList *alist)
 	az_instance_delete(AZ_TYPE_ARRAY_LIST, alist);
 }
 
+static inline const AZImplementation *
+az_array_list_get_element (AZArrayList *alist, unsigned int idx, AZValue *val, unsigned int size)
+{
+	return az_list_get_element(&AZArrayListKlass->list_impl, alist, idx, val, size);
+}
+
 void az_array_list_clear(AZArrayList *alist);
+unsigned int az_array_list_set_element (AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst);
 unsigned int az_array_list_append(AZArrayList *alist, const AZImplementation *impl, void *inst);
 unsigned int az_array_list_insert(AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst);
+unsigned int az_array_list_remove(AZArrayList *alist, unsigned int idx);
 
 static inline AZArrayListEntry *
 az_array_list_get_entry(AZArrayList *alist, unsigned int idx)
 {
 	return (AZArrayListEntry *) ((char *) alist->data + idx * (sizeof(AZArrayListEntry) + alist->val_size - 8));
+}
+
+static inline unsigned int
+az_array_list_entry_size(AZArrayList *alist)
+{
+	return sizeof(AZArrayListEntry) + alist->val_size - 8;
 }
 
 #ifdef __cplusplus

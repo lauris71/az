@@ -133,12 +133,23 @@ az_array_list_clear(AZArrayList *alist)
 }
 
 unsigned int
+az_array_list_set_element (AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst)
+{
+	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->type), 0);
+	arikkei_return_val_if_fail(idx < alist->length, 0);
+	AZArrayListEntry *entry = az_array_list_get_entry(alist, idx);
+	az_value_clear(entry->impl, (AZValue *) entry->val);
+	entry->impl = az_value_set_from_inst_autobox(impl, (AZValue *) entry->val, inst, alist->val_size);
+	return 1;
+}
+
+unsigned int
 az_array_list_append(AZArrayList *alist, const AZImplementation *impl, void *inst)
 {
 	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->type), 0);
 	if (alist->length >= alist->data_size) {
 		alist->data_size = (alist->data_size) ? alist->data_size << 1 : 8;
-		alist->data = (AZArrayListEntry *) realloc(alist->data, alist->data_size * (sizeof(AZArrayListEntry) + alist->val_size - 8));
+		alist->data = (AZArrayListEntry *) realloc(alist->data, alist->data_size * az_array_list_entry_size(alist));
 	}
 	AZArrayListEntry *entry = az_array_list_get_entry(alist, alist->length);
 	entry->impl = az_value_set_from_inst_autobox(impl, (AZValue *) entry->val, inst, alist->val_size);
@@ -150,14 +161,25 @@ unsigned int
 az_array_list_insert(AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst)
 {
 	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->type), 0);
+	arikkei_return_val_if_fail(idx <= alist->length, 0);
 	if (alist->length >= alist->data_size) {
 		alist->data_size = (alist->data_size) ? alist->data_size << 1 : 8;
-		alist->data = (AZArrayListEntry *) realloc(alist->data, alist->data_size * (sizeof(AZArrayListEntry) + alist->val_size - 8));
+		alist->data = (AZArrayListEntry *) realloc(alist->data, alist->data_size * az_array_list_entry_size(alist));
 	}
 	AZArrayListEntry *entry = az_array_list_get_entry(alist, idx);
-	memmove((char *) entry + (sizeof(AZArrayListEntry) + alist->val_size - 8), (char *) entry, (alist->length - idx) * (sizeof(AZArrayListEntry) + alist->val_size - 8));
+	memmove((char *) entry + az_array_list_entry_size(alist), (char *) entry, (alist->length - idx) * az_array_list_entry_size(alist));
 	entry->impl = az_value_set_from_inst_autobox(impl, (AZValue *) entry->val, inst, alist->val_size);
 	alist->length += 1;
 	return 1;
 }
 
+unsigned int
+az_array_list_remove(AZArrayList *alist, unsigned int idx)
+{
+	arikkei_return_val_if_fail(idx < alist->length, 0);
+	AZArrayListEntry *entry = az_array_list_get_entry(alist, idx);
+	az_value_clear(entry->impl, (AZValue *) entry->val);
+	memmove((char *) entry, (char *) entry + az_array_list_entry_size(alist), (alist->length - idx - 1) * az_array_list_entry_size(alist));
+	alist->length -= 1;
+	return 1;
+}
