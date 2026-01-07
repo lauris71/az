@@ -8,8 +8,8 @@ add_executable(az_test
 )
 
 target_compile_definitions(az_test PRIVATE UNITY_INCLUDE_DOUBLE)
-target_include_directories(az PRIVATE ${CMAKE_SOURCE_DIR} ..)
-target_link_directories(az PRIVATE ${CMAKE_SOURCE_DIR}/az)
+target_include_directories(az_test PRIVATE ${CMAKE_SOURCE_DIR} ..)
+target_link_directories(az_test PRIVATE ${CMAKE_SOURCE_DIR}/az ${CMAKE_SOURCE_DIR}/arikkei)
 
 target_link_libraries(az_test PRIVATE az arikkei)
 
