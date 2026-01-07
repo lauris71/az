@@ -1,6 +1,7 @@
 set(CMAKE_BUILD_TYPE Debug)
 
 find_library(MATH_LIBRARY m)
+find_library(LIBARIKKEI arikkei PATHS ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei/Release)
 
 add_executable(az_test
     unity/unity.c
@@ -9,9 +10,9 @@ add_executable(az_test
 
 target_compile_definitions(az_test PRIVATE UNITY_INCLUDE_DOUBLE)
 target_include_directories(az_test PRIVATE ${CMAKE_SOURCE_DIR} ..)
-target_link_directories(az_test PRIVATE ${CMAKE_SOURCE_DIR}/az ${CMAKE_SOURCE_DIR}/arikkei)
+target_link_directories(az_test PRIVATE ${CMAKE_SOURCE_DIR}/az)
 
-target_link_libraries(az_test PRIVATE az arikkei)
+target_link_libraries(az_test PRIVATE az ${LIBARIKKEI})
 
 if(MATH_LIBRARY)
     target_link_libraries(az_test PRIVATE ${MATH_LIBRARY})
