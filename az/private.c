@@ -35,6 +35,7 @@ az_reserve_type()
 	return az_num_types++;
 }
 
+#ifdef ARIKKEI_MEMCHECK
 void
 arikkei_check_integrity (void)
 {
@@ -42,4 +43,5 @@ arikkei_check_integrity (void)
     assert (_CrtCheckMemory());
 #endif
 }
+#endif
 

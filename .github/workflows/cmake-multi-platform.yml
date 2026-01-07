@@ -98,7 +98,7 @@ jobs:
       run: sudo apt update -qq && sudo apt install --no-install-recommends -y doxygen
     - name: Build docs
       run: |
-        cmake -B build -S .
+        cmake -B build -S . -DBUILD_TESTING=false
         cmake --build build --target az-docs
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v4
