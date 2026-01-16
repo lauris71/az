@@ -128,13 +128,13 @@ test_types()
         TEST_ASSERT(AZ_TYPE_IS_INTEGRAL(i) == ((klass->impl.flags & AZ_FLAG_INTEGRAL) != 0));
         const AZImplementation *impl;
         AZValue64 val;
-        TEST_ASSERT(az_instance_get_property(&klass->impl, NULL, (const uint8_t *) "isArithmetic", &impl, &val));
+        TEST_ASSERT(az_instance_get_property_by_key(&klass->impl, NULL, (const uint8_t *) "isArithmetic", &impl, &val));
         TEST_ASSERT(val.value.boolean_v == AZ_TYPE_IS_ARITHMETIC(i));
         fprintf(stderr, " arithmetic %d", val.value.boolean_v);
-        TEST_ASSERT(az_instance_get_property(&klass->impl, NULL, (const uint8_t *) "isIntegral", &impl, &val));
+        TEST_ASSERT(az_instance_get_property_by_key(&klass->impl, NULL, (const uint8_t *) "isIntegral", &impl, &val));
         TEST_ASSERT(val.value.boolean_v == AZ_TYPE_IS_INTEGRAL(i));
         fprintf(stderr, " integral %d", val.value.boolean_v);
-        TEST_ASSERT(az_instance_get_property(&klass->impl, NULL, (const uint8_t *) "isSigned", &impl, &val));
+        TEST_ASSERT(az_instance_get_property_by_key(&klass->impl, NULL, (const uint8_t *) "isSigned", &impl, &val));
         TEST_ASSERT(val.value.boolean_v == AZ_TYPE_IS_SIGNED(i));
         fprintf(stderr, " signed %d\n", val.value.boolean_v);
     }

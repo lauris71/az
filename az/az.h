@@ -17,10 +17,16 @@ extern "C" {
 
 /* Predefined typecodes */
 
-enum {
-	/* Invalid or missing type, typecode 0 */
+enum AZType {
+	/**
+	 * @brief Invalid or missing type, typecode 0
+	 * 
+	 */
 	AZ_TYPE_NONE,
-	/* Universal base class */
+	/**
+	 * @brief The abstract base class of all types
+	 * 
+	 */
 	AZ_TYPE_ANY,
 
 	/* Primitives */
@@ -40,16 +46,38 @@ enum {
 	AZ_TYPE_POINTER,
 
 	/* Fundamental types */
-	/* Struct is base for all composite value types */
+	/**
+	 * @brief The abstract base class of all composite value types
+	 * 
+	 */
 	AZ_TYPE_STRUCT,
-	/* Block is the base of all composite reference types */
+	/**
+	 * @brief The abstract base class of all block types
+	 * 
+	 */
 	AZ_TYPE_BLOCK,
 	/* Fundamental types have ANY as parent */
 	AZ_NUM_FUNDAMENTAL_TYPES = AZ_TYPE_BLOCK,
 
 	/* Special types */
+	/**
+	 * @brief The abstract base class of the semantics of a type
+	 * 
+	 * An instance of _AZImplementation. Specialized for interface types, _AZClass for standalone types
+	 * 
+	 */
 	AZ_TYPE_IMPLEMENTATION,
+	/**
+	 * @brief The semantics of a type
+	 * 
+	 * An instance of _AZClass, a subclass of _AZImplementation
+	 * 
+	 */
 	AZ_TYPE_CLASS,
+	/**
+	 * @brief An abstract base class of instances of interface types
+	 * 
+	 */
 	AZ_TYPE_INTERFACE,
 #ifdef AZ_HAS_PROPERTIES
 	AZ_TYPE_FIELD,
@@ -77,50 +105,88 @@ enum {
 #define AZ_TYPE_IS_PRIMITIVE(t) (((t) >= AZ_TYPE_BOOLEAN) && ((t) <= AZ_TYPE_POINTER))
 #define AZ_TYPE_IS_BASE(t) (((t) >= AZ_TYPE_ANY) && ((t) <= AZ_TYPE_OBJECT))
 
-/*
- * Class/implementation/type flags
- */
-
 /**
- * @brief Marks that implementation is a standalone class
+ * @brief Class/implementation/type flags
  * 
- * It exploits the feature that classes are aligned to 8 bytes, thus if any of the
- * lowest bits are set, the AZImplementation union contains flags and type, not a
- * pointer to the AZClass
+ * These are various low- and high-level flags that describe the type behaviour. Some of these
+ * (like `AZ_FLAG_IMPL_IS_CLASS` and `AZ_FLAG_FINAL`) define the type behavior. Some others
+ * (like `AZ_FLAG_REFERENCE` and `AZ_FLAG_OBJECT`) duplicate the type hierarchy information for convenience.
  */
-#define AZ_FLAG_IMPL_IS_CLASS 0x01
+enum AZTypeFlags {
+	/**
+	 * @brief Marks that an implementation is a standalone class
+	 * 
+	 * It exploits the feature that classes are aligned to 8 bytes, thus if any of the
+	 * lowest bits are set, the AZImplementation union contains flags and type, not a
+	 * pointer to the AZClass
+	 */
+	AZ_FLAG_IMPL_IS_CLASS = 0x01,
 
-/*
- * High-order flags, can be put in typecode
- */
-/* Interface type, implementation is not class */
-#define AZ_FLAG_INTERFACE 0x01000000
-/* Instance is referenced by pointer */
-#define AZ_FLAG_BLOCK 0x02000000
-/* Reference type, copying needs reference counting */
-#define AZ_FLAG_REFERENCE 0x04000000
-/* Instance is a container of another type */
-#define AZ_FLAG_BOXED 0x08000000
-/* A reference type that contains a pointer to it's class */
-#define AZ_FLAG_OBJECT 0x10000000
-/* No subclasses */
-#define AZ_FLAG_FINAL 0x20000000
-/* Subclasses should not remove flag set by parent */
-#define AZ_FLAG_CONSTRUCT 0x40000000
-/* fixme: Make this dependent on construction */
-#define AZ_FLAG_ZERO_MEMORY 0x80000000
+	/*
+	* High-order flags, can be put in typecode
+	*/
+	/**
+	 * @brief Type is an interface, implementation is not class
+	 * 
+	 */
+	AZ_FLAG_INTERFACE = 0x01000000,
+	/**
+	 * @brief Type is a block, value is a pointer to the instance (not the instance itself)
+	 * 
+	 */
+	AZ_FLAG_BLOCK = 0x02000000,
+	/**
+	 * @brief Type is a reference, value creation/destruction involves reference counting
+	 * 
+	 */
+	AZ_FLAG_REFERENCE = 0x04000000,
+	/**
+	 * @brief Instance if a container of another value (_AZBoxedValue) or interface (_AZBoxedInterface) type
+	 * 
+	 */
+	AZ_FLAG_BOXED = 0x08000000,
+	/**
+	 * @brief A special reference type that contains a pointer to it's class
+	 * 
+	 */
+	AZ_FLAG_OBJECT = 0x10000000,
+	/**
+	 * @brief Type is final, no further subclassing is allowed
+	 * 
+	 */
+	AZ_FLAG_FINAL = 0x20000000,
+	/**
+	 * @brief The type instances have constructor or destructor
+	 * 
+	 * Subclasses should not clear this flag if set set by parent.
+	 */
+	AZ_FLAG_CONSTRUCT = 0x40000000,
+	/* fixme: Make this dependent on construction */
+	/**
+	 * @brief Instance construction should be preceded by filling memory by zeroes
+	 * 
+	 * Subclasses should not clear this flag if set set by parent. If set the type can still implement
+	 * constructor - which can then rely on the instance being zero-filled.
+	 */
+	AZ_FLAG_ZERO_MEMORY = 0x80000000,
 
-/*
- * Low-order flags, only present in class and type info
- */
+	/*
+	* Low-order flags, only present in class and type info
+	*/
 
-/* No instancing is allowed (this is not propagated to subclasses) */
-#define AZ_FLAG_ABSTRACT 0x02
+	/**
+	 * @brief Type is abstract, no instancing is allowed
+	 * 
+	 * This flag is NOT propagated to subclasses.
+	 * 
+	 */
+	AZ_FLAG_ABSTRACT = 0x02,
 
-/* Miscellaneous info flags */
-#define AZ_FLAG_ARITHMETIC 0x04
-#define AZ_FLAG_INTEGRAL 0x08
-#define AZ_FLAG_SIGNED 0x10
+	/* Miscellaneous info flags */
+	AZ_FLAG_ARITHMETIC = 0x100,
+	AZ_FLAG_INTEGRAL = 0x200,
+	AZ_FLAG_SIGNED = 0x400
+};
 
 /*
  * Every entity instance is a collection of bits in memory

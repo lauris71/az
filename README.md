@@ -1,5 +1,5 @@
-# az
-C runtime type system and class library
+# Overview
+Az is a runtime type system and class library for C
 
 ## Features
 
@@ -20,11 +20,11 @@ It also implements a set of convenient types
 - collection interfaces
 - function interface
 
-By default it is compiled as drop-in static library.
+By default it is compiled as a drop-in static library.
 
 ## Building
 
-It needs arikkei for some low-level string methods. Just clone [arikkei](https://github.com/lauris71/arikkei) to accessible place (either to the root of the main project or az).
+It needs arikkei for some low-level string methods. Just clone [arikkei](https://github.com/lauris71/arikkei) to an accessible place (either to the root of your main project or to the root of az project directory).
 Then, in the az project directory execute:
 
     cmake -S . -B build
@@ -59,11 +59,11 @@ These bits may be unique (for block types) or copied around (value types) during
 ### Value
 Value is the "handle" of instance data visible to library.
 
-For value types this is the instance itself (i.e. if instance A contains instance B of a value type, then A actually contains all the bits of B).
+For value types this is the instance itself (i.e. if instance A contains an instance of a value type B, then A actually contains all the bits of B).
 
-For block types the value is pointer to instance (i.e. if instance A contains instance C of a block type, then A only contains pointer, the bits of B reside somewhere else).
+For block types the value is pointer to instance (i.e. if instance A contains an instance of a block type B, then A only contains pointer, the bits of B reside somewhere else).
 
-We use the term "block" because "reference" is a specific subtype (implements reference counting) of block.
+We use the term "block" because "reference" is a specific subtype (implements reference counting) of the block.
 
 ### Implementation and class
 For plain (non-interface) types these are the same.
@@ -76,10 +76,10 @@ All classes are itself implementations (thus they can contain virtual methods an
 
 Interfaces are implemented (in different ways) inside other instances. All implementations of the same interface have the same base type information (class), and thus part of their polymorphic data has to be specified by the implementations. Normally this is done by embedding the implementation of an interface type inside the implementation (or class) of the containing type.
 
-Which virtual methods of interface belong to the class and which to the implementation depends on the semantics of the interface and methods.
+Which virtual methods of an interface belong to the class and which to the implementation depends on the semantics of the interface and methods.
 
 ## Basic type hierachy
->Any
+> Any
 >  + Value types (there is no common value superclass)
 >  + Block
 >    + Implementation
@@ -97,41 +97,39 @@ Which virtual methods of interface belong to the class and which to the implemen
 - Object
 
 ### Boxed value
-Boxed value contains the type (i.e. pointer to an implementation) and instance (i.e. the actual bits) of a value type inside reference.
+Boxed value contains the type (i.e. a pointer to the implementation) and the instance (i.e. the actual bits) of a value type inside of a reference (i.e. a block type) wrapper.
 
-These are needed to retrieve a value of unknown size (e.g. reading a property with "Any" type)
+It is needed to retrieve a value of unknown size (e.g. reading a property with "Any" type), or to store a value type of arbitrary size inside inside containers with fixed element size.
 
 ### Boxed interface
-Boxed interface contains value (i.e. pointer to the implementation and the value) of the containing instance and an interface (i.e. pointer to the implementation and pointer to the instance) implemented in the former.
+Boxed interface contains value (i.e. pointer to the implementation and the value) of an instance and an interface (i.e. pointer to the implementation and pointer to the instance) implemented in the former.
 
-Interfaces are "owned" by the containing instance. Thus methods cannot extend the lifecycle of an interface beyond the duration of the instance. But in many situations one may want to extend it – e.g. to create a collection of interfaces.
+Interfaces are "owned" by the containing instance. Thus methods cannot extend the lifecycle of an interface beyond the duration of the containing instance. But in many situations one may want to extend it – e.g. to create a collection of interfaces.
 
 Unless the external application logic dictates that the interfaces remain valid during the existence of such collection, boxed interface can be used instead. Boxed interface contains the value of owner and thus also the interface of interest. The interface is directly accessible (does not need to be queried if the instance type layout is not familiar to the caller).
 
 ### Object
-Object is a special reference type that "knows" it’s class (i.e. has a pointer to the class inside instance). Thus, unlike other non-final types, objects can be accessed simply by instance without the need of specifying implementation.
+Object is a special reference type that "knows" it’s class (i.e. has a pointer to the class inside instance). Thus, unlike other non-final types, objects can be accessed simply by instance without the need to specify the implementation.
 
 ## Specifying instances
-All classes are assigned integer type values. These integer values are usually used instead of class pointers to specify a type.
+All classes are assigned integer type values. These integer values can be used instead of class pointers to specify a type.
 
-All implementations contain type value as the first member, thus class can always be obtained from an implementation.
+All implementations either are classes, or contain class pointer as the first element. Thus class can always be obtained from an implementation.
 
 Data is generally accessed by specifying its implementation and instance or implementation and value.
 
     my_type_do_something(const AZImplementation *impl, void *inst);
     my_type_do_something_else(const AZImplementation *impl, AZValue *val);
 
-To perform some action with type the first (instance) is usually more convenient. The latter is commonly used for polymorphic collections (instances of block types cannot be put into collections).
+To perform some action with a type, the first method (instance) is usually more convenient. The latter is commonly used for polymorphic collections (instances of block types cannot be put into collections).
 
-To retreve polymorphic data, both implementaton and value has to be retrieved (it has to be value because instances of block types cannot normally be created in stack).
+To retreve polymorphic data, both implementaton and value has to be retrieved (the destination has to be value because instances of block types normally can neither be copied nor created in stack).
 
     AZImplementation *impl = az_parse_type(const uint8_t *buf, AZValue *val);
 
-If type is final, implementation can be omitted in methods.
+For final types and objects the implementation pointer is usually omitted in methods because for those it either if fixed or can be derived from the instance
 
-If a method does not use polymorphic parts of data, implementation can be omitted.
-
-Object types contain class as the first memeber, thus methods of objects do not have to specify implementation.
+Methods that do not use polymorphic parts of data also often omit the implementation pointer.
 
 ## Some notes
 

@@ -30,6 +30,10 @@ extern "C" {
 struct _AZImplementation {
 	union {
 		struct {
+			/**
+			 * @brief A meaningful combination of `AZTypeFlags`
+			 * 
+			 */
 			uint32_t flags;
 			uint32_t type;
 		};
@@ -82,19 +86,53 @@ struct _AZInstanceAllocator {
 
 struct _AZClass {
 	AZImplementation impl;
-
+	/**
+	 * @brief Pointer to the parent class
+	 * 
+	 */
 	AZClass *parent;
 
+	/**
+	 * @brief The number of interfaces declared in this class
+	 * 
+	 */
 	uint16_t n_ifaces_self;
+	/**
+	 * @brief The number of interfaces implemented in this class
+	 * 
+	 * The sum of interfaces declared in given class, in all it's parent classes,
+	 * in all it's interfaces and in the parent classes of interfaces.
+	 * 
+	 */
 	uint16_t n_ifaces_all;
+	/**
+	 * @brief The number of properties declared in this class
+	 * 
+	 */
 	uint16_t n_props_self;
+	/**
+	 * @brief Alignment filler
+	 * 
+	 */
 	uint16_t _filler;
 	union {
+		/**
+		 * @brief Interface declarations if (n_ifaces_self + n_ifaces_all) <= 2
+		 * 
+		 */
 		AZIFEntry ifaces[2];
 		struct {
-			/* Interfaces implemented here */
+			/**
+			 * @brief Interface declarations of this class
+			 * 
+			 */
 			AZIFEntry *ifaces_self;
-			/* Interface chain (ascending, interface then sub-interfaces */
+			/**
+			 * @brief Interface declarations of this class, all it's parents and sub-interfaces
+			 * 
+			 * Listed in ascending order (fist all declared interfaces with their sub-interfaces, then the interfaces of parent class...)
+			 * 
+			 */
 			AZIFEntry *ifaces_all;
 		};
 	};
@@ -103,15 +141,33 @@ struct _AZClass {
 	AZField *props_self;
 #endif
 
+	/**
+	 * @brief The name of this class for convenience (not used by the library)
+	 * 
+	 */
 	const uint8_t *name;
-	/* Alignment mask: 0 (1), 1 (2), 3 (4), 7 (8) or 15 (16) */
+	/**
+	 * @brief the alignment mask: 0 (1), 1 (2), 3 (4), 7 (8) or 15 (16)
+	 * 
+	 */
 	uint16_t alignment;
-	/* Size of class structure */
+	/**
+	 * @brief The size of the class structure
+	 * 
+	 */
 	uint16_t class_size;
-	/* Size of instance */
+	/**
+	 * @brief The size of the instance of this type 
+	 * 
+	 */
 	uint32_t instance_size;
 
-	/* Memory management */
+	/**
+	 * @brief Memory allocator
+	 * 
+	 * This being NULL means that the default allocators (malloc/free) are used
+	 * 
+	 */
 	AZInstanceAllocator *allocator;
 
 	/* Constructors and destructors */
@@ -224,13 +280,13 @@ az_class_parent(const AZClass *klass) {
  * @param impl type implementation (can be null for static properties)
  * @param inst type instance (can be null for static or implementation properties)
  * @param key the property key
- * @param def_class result for the actual class where the property is defined
- * @param def_impl result for the actual implementation corresponding to def_class (can be null)
- * @param def_inst result for the actual instance corresponding to def_class (can be null)
+ * @param def_class result for the class where the property is defined
+ * @param sub_impl result for the actual implementation (either impl or sub-implementation, can be null)
+ * @param sub_inst result for the actual instance (either inst or sub-interface, can be null)
  * @return the property index in def_class
  */
-int az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst);
-int az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **def_impl, void **def_inst);
+int az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
+int az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
 
 #ifdef __cplusplus
 };

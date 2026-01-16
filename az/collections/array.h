@@ -7,8 +7,8 @@
 * Copyright (C) Lauris Kaplinski 2016-2025
 */
 
-typedef struct _AZArrayImplementation AZArrayImplementation;
-typedef struct _AZInterfaceClass AZArrayClass;
+typedef struct _AZArray AZArray;
+typedef struct _AZArrayClass AZArrayClass;
 
 typedef struct _AZArrayObject AZArrayObject;
 typedef struct _AZArrayObjectClass AZArrayObjectClass;
@@ -24,39 +24,39 @@ extern "C" {
 #endif
 
 /**
- * @brief A ligthweight interface for interacting with C arrays
+ * @brief A ligthweight value type for interacting with C arrays
  * 
- * For each C array one can construct separate AZArrayImplementation defining it's type and size.
- * Notice that AZArray does not implement AZCollection to keep the implementation size and initialization
- * needs minimal. If you need a collection (list) access, use an object frontend (or write your own).
- * An array can only contain final types and objects because we do not have any method to keep track of derived types.
+ * An array can only contain final types or objects because we do not have any method to keep track of derived types.
  * 
  */
-struct _AZArrayImplementation {
-	const AZClass *elem_class;
-	unsigned int length;
+struct _AZArray {
+	uint32_t elem_type;
+	uint32_t length;
+	void *values;
+};
+
+struct _AZArrayClass {
+	AZClass klass;
+	AZListImplementation list_impl;
 };
 
 unsigned int az_array_get_type ();
 
-void az_array_impl_init(AZArrayImplementation *impl, unsigned int elem_type, unsigned int size);
-
 static inline AZValue *
-az_array_value_at (const AZArrayImplementation *impl, void *inst, unsigned int idx)
+az_array_value_at (const AZArray *array, unsigned int idx)
 {
-	return (AZValue *) ((char *) inst + idx * AZ_CLASS_ELEMENT_SIZE(impl->elem_class));
+	return (AZValue *) ((char *) array->values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(array->elem_type)));
 }
 
 /**
  * @brief a frontend object to array
  * 
- * It implements array in instance and list in class.
+ * It encapsulates an array and ensures the lifecycle
  * 
  */
 struct _AZArrayObject {
 	AZObject object;
-	AZArrayImplementation impl;
-	void *values;
+	AZArray array;
 };
 
 struct _AZArrayObjectClass {
@@ -76,7 +76,7 @@ const AZListImplementation *az_array_object_get_list(AZArrayObject *obj, void **
 static inline AZValue *
 az_array_object_value_at (AZArrayObject *aobj, unsigned int idx)
 {
-	return (AZValue *) ((char *) aobj->values + idx * AZ_CLASS_ELEMENT_SIZE(aobj->impl.elem_class));
+	return (AZValue *) ((char *) aobj->array.values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(aobj->array.elem_type)));
 }
 
 #ifdef __cplusplus

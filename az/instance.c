@@ -11,9 +11,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <az/base.h>
 #include <az/boxed-interface.h>
+#include <az/boxed-value.h>
 #include <az/class.h>
+#include <az/field.h>
+#include <az/function.h>
 #include <az/instance.h>
+#include <az/object.h>
+#include <az/string.h>
 #include <az/types.h>
 
  /*
@@ -238,3 +244,185 @@ az_instance_get_interface (const AZImplementation *impl, void *inst, unsigned in
 	if (if_inst) *if_inst = NULL;
 	return NULL;
 }
+
+// fixme: This is wrong as inst can be NULL
+unsigned int
+az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation **dst_impl, AZValue64 *dst_val)
+{
+	const AZClass *sub_class;
+	const AZImplementation *sub_impl;
+	void *sub_inst;
+	arikkei_return_val_if_fail (impl != NULL, 0);
+	arikkei_return_val_if_fail (key != NULL, 0);
+	AZString *str = az_string_new(key);
+	int idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, inst, str, &sub_class, &sub_impl, &sub_inst);
+	az_string_unref(str);
+	if (idx < 0) return 0;
+	return az_instance_get_property_by_id (sub_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, sub_inst, idx, dst_impl, dst_val, 64, NULL);
+}
+
+unsigned int
+az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val)
+{
+	const AZClass *def_class;
+	const AZImplementation *def_impl;
+	void *def_inst;
+	arikkei_return_val_if_fail (impl != NULL, 0);
+	arikkei_return_val_if_fail (key != NULL, 0);
+	AZString *str = az_string_new(key);
+	int idx = az_class_lookup_function (AZ_CLASS_FROM_IMPL(impl), impl, inst, str, sig, &def_class, &def_impl, &def_inst);
+	if (idx < 0) return 0;
+	return az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(def_impl), def_impl, def_inst, idx, dst_impl, (AZValue64 *) dst_val, 16, NULL);
+}
+
+unsigned int
+az_instance_set_property_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx)
+{
+	int idx;
+	const AZClass *sub_class;
+	const AZImplementation *sub_impl;
+	void *sub_inst;
+	arikkei_return_val_if_fail (impl != NULL, 0);
+	arikkei_return_val_if_fail (key != NULL, 0);
+	AZString *str = az_string_new(key);
+	idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, inst, str, &sub_class, &sub_impl, &sub_inst);
+	az_string_unref(str);
+	if (idx < 0) return 0;
+	return az_instance_set_property_by_id (sub_class, sub_impl, sub_inst, idx, prop_impl, prop_inst, ctx);
+}
+
+#ifdef AZ_HAS_PROPERTIES
+
+unsigned int
+az_instance_set_property_by_id (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx)
+{
+	arikkei_return_val_if_fail (impl != NULL, 0);
+	arikkei_return_val_if_fail (!klass->props_self[idx].is_final, 0);
+	arikkei_return_val_if_fail (klass->props_self[idx].write != AZ_FIELD_WRITE_NONE, 0);
+	const AZField *prop = &klass->props_self[idx];
+	if (!strcmp((const char *) prop->key->str, "cameraController")) {
+		fprintf (stderr, ".");
+	}
+	if (klass->props_self[idx].is_interface) {
+		if (prop_impl && !az_type_implements(AZ_IMPL_TYPE(prop_impl), klass->props_self[idx].type)) {
+			fprintf (stderr, ".");
+		}
+		arikkei_return_val_if_fail (!prop_impl || az_type_implements(AZ_IMPL_TYPE(prop_impl), klass->props_self[idx].type), 0);
+		if (klass->props_self[idx].is_function && prop_impl) {
+			AZFunctionInstance *func_inst;
+			const AZFunctionImplementation *func_impl = (const AZFunctionImplementation *) az_instance_get_interface (prop_impl, prop_inst, AZ_TYPE_FUNCTION, (void **) &func_inst);
+			const AZFunctionSignature *sig = az_function_get_signature (func_impl, func_inst);
+			if (klass->props_self[idx].signature && !az_function_signature_is_assignable_to (sig, klass->props_self[idx].signature, 1)) {
+				fprintf (stderr, ".");
+			}
+			arikkei_return_val_if_fail (!klass->props_self[idx].signature || az_function_signature_is_assignable_to (sig, klass->props_self[idx].signature, 1), 0);
+		}
+	} else {
+		arikkei_return_val_if_fail (!prop_impl || az_type_is_a(AZ_IMPL_TYPE(prop_impl), klass->props_self[idx].type), 0);
+	}
+	if (klass->props_self[idx].write == AZ_FIELD_WRITE_VALUE) {
+		AZValue *val;
+		if (klass->props_self[idx].spec == AZ_FIELD_INSTANCE) {
+			val = (AZValue *) ((char *) inst + klass->props_self[idx].offset);
+		} else if (klass->props_self[idx].spec == AZ_FIELD_IMPLEMENTATION) {
+			val = (AZValue *) ((char *) impl + klass->props_self[idx].offset);
+		} else {
+			val = (AZValue *) ((char *) klass + klass->props_self[idx].offset);
+		}
+		az_value_set_from_inst (prop_impl, val, prop_inst);
+	} else if (klass->props_self[idx].write == AZ_FIELD_WRITE_PACKED) {
+		AZPackedValue *val;
+		if (klass->props_self[idx].spec == AZ_FIELD_INSTANCE) {
+			val = (AZPackedValue *) ((char *) inst + klass->props_self[idx].offset);
+		} else if (klass->props_self[idx].spec == AZ_FIELD_IMPLEMENTATION) {
+			val = (AZPackedValue *) ((char *) impl + klass->props_self[idx].offset);
+		} else {
+			val = (AZPackedValue *) ((char *) klass + klass->props_self[idx].offset);
+		}
+		az_packed_value_set_from_impl_instance (val, prop_impl, prop_inst);
+	} else if (klass->props_self[idx].write == AZ_FIELD_WRITE_METHOD) {
+		return klass->set_property (impl, inst, idx, prop_impl, prop_inst, NULL);
+	}
+	return 1;
+}
+
+unsigned int
+az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **val_impl, AZValue64 *val, unsigned int val_size, AZContext *ctx)
+{
+	arikkei_return_val_if_fail (def_klass != NULL, 0);
+	arikkei_return_val_if_fail (klass != NULL, 0);
+	arikkei_return_val_if_fail (val_impl != NULL, 0);
+	arikkei_return_val_if_fail (val != NULL, 0);
+	arikkei_return_val_if_fail (def_klass->props_self[idx].read != AZ_FIELD_READ_NONE, 0);
+
+	const AZField *prop = &def_klass->props_self[idx];
+
+	switch(prop->read) {
+		case AZ_FIELD_READ_VALUE: {
+			/* Bare value inside instance/implementation/class */
+			AZValue *src;
+			if (prop->spec == AZ_FIELD_INSTANCE) {
+				arikkei_return_val_if_fail(inst != NULL, 0);
+				src = (AZValue *) ((char *) inst + prop->offset);
+			} else if (prop->spec == AZ_FIELD_IMPLEMENTATION) {
+				arikkei_return_val_if_fail(impl != NULL, 0);
+				src = (AZValue *) ((char *) impl + prop->offset);
+			} else {
+				src = (AZValue *) ((char *) klass + prop->offset);
+			}
+			if (prop->mask) {
+				if (prop->type == AZ_TYPE_BOOLEAN) {
+					uint32_t v = ((src->uint32_v & prop->mask) >> prop->shift) ^ prop->bits;
+					*val_impl = &AZBooleanKlass.impl;
+					val->value.boolean_v = (v != 0);
+					return 1;
+				} else {
+					// fixme: handle integral types
+					return 0;
+				}
+			}
+			if (AZ_TYPE_IS_OBJECT(prop->type)) {
+				az_value_set_object (val_impl, &val->value, (AZObject *) src->reference);
+			} else {
+				AZClass *prop_class = AZ_CLASS_FROM_TYPE(prop->type);
+				if (!AZ_CLASS_IS_FINAL(prop_class)) {
+					fprintf(stderr, ".");
+				}
+				arikkei_return_val_if_fail (AZ_CLASS_IS_FINAL(prop_class), 0);
+				*val_impl = az_value_copy_autobox (&prop_class->impl, &val->value, src, val_size);
+			}
+			break;
+		}
+		case AZ_FIELD_READ_PACKED: {
+			/* Packed value inside instance */
+			AZPackedValue *src;
+			if (prop->spec == AZ_FIELD_INSTANCE) {
+				arikkei_return_val_if_fail(inst != NULL, 0);
+				src = (AZPackedValue *) ((char *) inst + prop->offset);
+			} else if (prop->spec == AZ_FIELD_IMPLEMENTATION) {
+				arikkei_return_val_if_fail(impl != NULL, 0);
+				src = (AZPackedValue *) ((char *) impl + prop->offset);
+			} else {
+				AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
+				src = (AZPackedValue *) ((char *) klass + prop->offset);
+			}
+			*val_impl = az_value_copy_autobox (src->impl, &val->value, &src->v, val_size);
+			break;
+		}
+		case AZ_FIELD_READ_STORED_STATIC:
+			/* Packed value inside field definition */
+			if (prop->value->impl) {
+				*val_impl = az_value_copy_autobox (prop->value->impl, &val->value, &prop->value->v, val_size);
+			} else {
+				*val_impl = NULL;
+			}
+			break;
+		case AZ_FIELD_READ_METHOD:
+			return def_klass->get_property (impl, inst, idx, val_impl, &val->value, ctx);
+		default:
+			/* Not readable */
+			return 0;
+	}
+	return 1;
+}
+#endif

@@ -10,79 +10,109 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <az/collections/array.h>
+#include <az/base.h>
 #include <az/boxed-value.h>
+#include <az/collections/array.h>
 
 #include <az/extend.h>
 
-static unsigned int array_of_type = 0;
-static AZArrayClass *array_of_class;
+static unsigned int array_type = 0;
+static AZArrayClass *array_class;
 
 static void array_class_init(AZArrayClass *klass);
-static void array_implementation_init(AZArrayImplementation *impl);
 static unsigned int array_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx);
 static unsigned int array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
+
+static unsigned int array_get_element_type(const AZCollectionImplementation *coll_impl, void *coll_inst);
+static unsigned int array_get_size(const AZCollectionImplementation *coll_impl, void *coll_inst);
+static unsigned int array_contains(const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst);
+static const AZImplementation *array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
 unsigned int
 az_array_get_type ()
 {
-	if (!array_of_type) {
-		array_of_class = (AZArrayClass *) az_register_interface_type (&array_of_type, (const unsigned char *) "AZArray", AZ_TYPE_INTERFACE,
-			sizeof (AZArrayClass), sizeof (AZArrayImplementation), 0, 0,
+	if (!array_type) {
+		array_class = (AZArrayClass *) az_register_type (&array_type, (const unsigned char *) "AZArray", AZ_TYPE_STRUCT,
+			sizeof (AZArrayClass), sizeof (AZArray), 0,
 			(void (*) (AZClass *)) array_class_init,
-			(void (*) (AZImplementation *)) array_implementation_init,
-			NULL, NULL);
+			NULL,
+			NULL);
 	}
-	return array_of_type;
+	return array_type;
 }
 
 static void
 array_class_init (AZArrayClass *klass)
 {
+	az_class_set_num_interfaces(&klass->klass, 1);
+	az_class_declare_interface(&klass->klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZArrayClass, list_impl), 0);
 	klass->klass.serialize = array_serialize;
 	klass->klass.deserialize = array_deserialize;
-}
-
-static void
-array_implementation_init (AZArrayImplementation *impl)
-{
-	impl->elem_class = NULL;
-	impl->length = 0;
+	klass->list_impl.collection_impl.get_element_type = array_get_element_type;
+	klass->list_impl.collection_impl.get_size = array_get_size;
+	klass->list_impl.collection_impl.contains = array_contains;
+	klass->list_impl.get_element = array_get_element;
 }
 
 static unsigned int
 array_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
 {
-	AZArrayImplementation *aimpl = (AZArrayImplementation *) impl;
-	unsigned int len = 0;
-	for (unsigned int i = 0; i < aimpl->length; i++) {
-		len += az_instance_serialize(&aimpl->elem_class->impl, az_array_value_at(aimpl, inst, i), d + len, (len <= dlen) ? dlen - len : 0, ctx);
+	AZArray *array = (AZArray *) inst;
+	unsigned int len = az_instance_serialize(&AZUint32Klass.impl, &array->elem_type, d, dlen, ctx);
+	len += az_instance_serialize(&AZUint32Klass.impl, &array->length, d, dlen, ctx);
+	for (unsigned int i = 0; i < array->length; i++) {
+		len += az_instance_serialize(AZ_IMPL_FROM_TYPE(array->elem_type), az_array_value_at(array, i), d + len, (len <= dlen) ? dlen - len : 0, ctx);
 	}
 	return len;
 }
 
+/* fixme: Exception on EOF */
 static unsigned int
 array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx)
 {
-	AZArrayImplementation *aimpl = (AZArrayImplementation *) impl;
-	void *inst = az_value_new_array(&aimpl->elem_class->impl, aimpl->length);
+	AZArray *array = (AZArray *) value;
 	unsigned int len = 0;
-	for (unsigned int i = 0; i < aimpl->length; i++) {
-		len += az_value_deserialize(&aimpl->elem_class->impl, az_array_value_at(aimpl, inst, i), s + len, slen - len, ctx);
+	len += az_value_deserialize(&AZUint32Klass.impl, (AZValue *) &array->elem_type, s + len, (len <= slen) ? slen - len : 0, ctx);
+	len += az_value_deserialize(&AZUint32Klass.impl, (AZValue *) &array->length, s + len, (len <= slen) ? slen - len : 0, ctx);
+	array->values = az_value_new_array(AZ_IMPL_FROM_TYPE(array->elem_type), array->length);
+	for (unsigned int i = 0; i < array->length; i++) {
+		len += az_value_deserialize(AZ_IMPL_FROM_TYPE(array->elem_type), az_array_value_at(array, i), s + len, (len <= slen) ? slen - len : 0, ctx);
 	}
-	value->block = inst;
 	return len;
 }
 
-void
-az_array_impl_init(AZArrayImplementation *impl, unsigned int elem_type, unsigned int length)
+unsigned int
+array_get_element_type(const AZCollectionImplementation *coll_impl, void *coll_inst)
 {
-	az_implementation_init_by_type((AZImplementation *) impl, AZ_TYPE_ARRAY);
-	arikkei_return_if_fail(!AZ_TYPE_IS_INTERFACE(elem_type));
-	arikkei_return_if_fail(AZ_TYPE_IS_OBJECT(elem_type) || AZ_TYPE_IS_FINAL(elem_type));
-	impl->elem_class = AZ_CLASS_FROM_TYPE(elem_type);
-	impl->length = length;
+	AZArray *array = (AZArray *) coll_inst;
+	return array->elem_type;
 }
+
+unsigned int
+array_get_size(const AZCollectionImplementation *coll_impl, void *coll_inst)
+{
+	AZArray *array = (AZArray *) coll_inst;
+	return array->length;
+}
+
+unsigned int
+array_contains(const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst)
+{
+	AZArray *array = (AZArray *) coll_inst;
+	for (unsigned int i = 0; i < array->length; i++) {
+		const AZValue *val = (const AZValue *) ((char *) array->values + i * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(array->elem_type)));
+		if (az_value_equals_instance_autobox(AZ_IMPL_FROM_TYPE(array->elem_type), val, impl, inst)) return 1;
+	}
+	return 0;
+}
+
+static const AZImplementation *
+array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
+{
+	AZArray *array = (AZArray *) list_inst;
+	return az_value_copy_autobox(AZ_IMPL_FROM_TYPE(array->elem_type), val, (const AZValue *) ((char *) array->values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(array->elem_type))), size);
+}
+
 
 static void array_object_class_init(AZArrayObjectClass *klass);
 static void array_object_instance_init(AZArrayObjectClass *klass, AZArrayObject *aobj);
@@ -113,7 +143,7 @@ static void
 array_object_class_init(AZArrayObjectClass *klass)
 {
 	az_class_set_num_interfaces((AZClass *) klass, 1);
-	az_class_declare_interface((AZClass *) klass, 0, AZ_TYPE_ARRAY, ARIKKEI_OFFSET(AZArrayObjectClass, list_impl), 0);
+	az_class_declare_interface((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZArrayObjectClass, list_impl), 0);
 	klass->list_impl.collection_impl.get_element_type = array_object_element_type;
 	klass->list_impl.collection_impl.get_size = array_object_size;
 	klass->list_impl.collection_impl.contains = array_object_contains;
@@ -123,14 +153,13 @@ array_object_class_init(AZArrayObjectClass *klass)
 static void
 array_object_instance_init(AZArrayObjectClass *klass, AZArrayObject *obj)
 {
-	az_implementation_init_by_type((AZImplementation *) &obj->impl, AZ_TYPE_ARRAY);
 }
 
 static void
 array_object_instance_finalize(AZArrayObjectClass *klass, AZArrayObject *aobj)
 {
 	if (!az_object_flags((AZObject *) aobj, AZ_ARRAY_OBJ_FLAG_OWNED)) {
-		az_value_delete_array(&aobj->impl.elem_class->impl, aobj->values, aobj->impl.length);
+		az_value_delete_array(AZ_IMPL_FROM_TYPE(aobj->array.elem_type), aobj->array.values, aobj->array.length);
 	}
 }
 
@@ -138,23 +167,23 @@ unsigned int
 array_object_element_type(const AZCollectionImplementation *coll_impl, void *coll_inst)
 {
 	AZArrayObject *aof = (AZArrayObject *) coll_inst;
-	return aof->impl.elem_class->impl.type;
+	return aof->array.elem_type;
 }
 
 unsigned int
 array_object_size(const AZCollectionImplementation *coll_impl, void *coll_inst)
 {
 	AZArrayObject *aof = (AZArrayObject *) coll_inst;
-	return aof->impl.length;
+	return aof->array.length;
 }
 
 unsigned int
 array_object_contains(const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst)
 {
-	AZArrayObject *aof = (AZArrayObject *) coll_inst;
-	for (unsigned int i = 0; i < aof->impl.length; i++) {
-		const AZValue *val = (const AZValue *) ((char *) inst + i * AZ_CLASS_ELEMENT_SIZE(aof->impl.elem_class));
-		if (az_value_equals_instance_autobox(&aof->impl.elem_class->impl, val, impl, inst)) return 1;
+	AZArrayObject *aobj = (AZArrayObject *) coll_inst;
+	for (unsigned int i = 0; i < aobj->array.length; i++) {
+		const AZValue *val = (const AZValue *) ((char *) aobj->array.values + i * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(aobj->array.elem_type)));
+		if (az_value_equals_instance_autobox(AZ_IMPL_FROM_TYPE(aobj->array.elem_type), val, impl, inst)) return 1;
 	}
 	return 0;
 }
@@ -162,8 +191,8 @@ array_object_contains(const AZCollectionImplementation *coll_impl, void *coll_in
 static const AZImplementation *
 array_object_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
 {
-	AZArrayObject *aof = (AZArrayObject *) list_inst;
-	return az_value_copy_autobox(&aof->impl.elem_class->impl, val, (const AZValue *) ((char *) aof->values + idx * AZ_CLASS_ELEMENT_SIZE(aof->impl.elem_class)), size);
+	AZArrayObject *aobj = (AZArrayObject *) list_inst;
+	return az_value_copy_autobox(AZ_IMPL_FROM_TYPE(aobj->array.elem_type), val, (const AZValue *) ((char *) aobj->array.values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(aobj->array.elem_type))), size);
 }
 
 AZArrayObject *
@@ -173,9 +202,9 @@ az_array_object_new(unsigned int elem_type, unsigned int length)
 	arikkei_return_val_if_fail(AZ_TYPE_IS_OBJECT(elem_type) || AZ_TYPE_IS_FINAL(elem_type), NULL);
 	AZArrayObject *obj = (AZArrayObject *) az_object_new(AZ_TYPE_ARRAY_OBJECT);
 	az_object_set_flags((AZObject *) obj, AZ_ARRAY_OBJ_FLAG_OWNED);
-	obj->impl.elem_class = AZ_CLASS_FROM_TYPE(elem_type);
-	obj->impl.length = length;
-	obj->values = az_value_new_array(&obj->impl.elem_class->impl, length);
+	obj->array.elem_type = elem_type;
+	obj->array.length = length;
+	obj->array.values = az_value_new_array(AZ_IMPL_FROM_TYPE(elem_type), length);
 	return obj;
 }
 
@@ -184,9 +213,9 @@ az_array_object_new_static(unsigned int elem_type, unsigned int length, void *va
 {
 	arikkei_return_val_if_fail(AZ_TYPE_IS_OBJECT(elem_type) || AZ_TYPE_IS_FINAL(elem_type), NULL);
 	AZArrayObject *obj = (AZArrayObject *) az_object_new(AZ_TYPE_ARRAY_OBJECT);
-	obj->values = values;
-	obj->impl.elem_class = AZ_CLASS_FROM_TYPE(elem_type);
-	obj->impl.length = length;
+	obj->array.elem_type = elem_type;
+	obj->array.length = length;
+	obj->array.values = values;
 	return obj;
 }
 
