@@ -22,6 +22,8 @@ It also implements a set of convenient types
 
 By default it is compiled as a drop-in static library.
 
+[The Doxygen-generated documentation](https://lauris71.github.io/az/)
+
 ## Building
 
 It needs arikkei for some low-level string methods. Just clone [arikkei](https://github.com/lauris71/arikkei) to an accessible place (either to the root of your main project or to the root of az project directory).

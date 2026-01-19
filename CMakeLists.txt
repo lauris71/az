@@ -30,6 +30,10 @@ if(BUILD_TESTING)
   add_subdirectory(tests)
 endif()
 
+if(BUILD_EXAMPLES)
+  add_subdirectory(examples)
+endif()
+
 # If this is part of another project, inform the parent build system
 if(NOT PROJECT_IS_TOP_LEVEL)
   set(HAS_AZ true PARENT_SCOPE)

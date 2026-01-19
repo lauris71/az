@@ -55,10 +55,14 @@ az_value_set_from_packed_value (const AZImplementation **dst_impl, AZValue *dst_
 ARIKKEI_INLINE void
 az_packed_value_clear (AZPackedValue *val)
 {
-	if (val->impl && AZ_IMPL_IS_REFERENCE(val->impl) && val->v.reference) az_reference_unref ((AZReferenceClass *) val->impl, val->v.reference);
+	if (val->impl && AZ_IMPL_IS_REFERENCE(val->impl) && val->v.reference) {
+		az_reference_unref ((AZReferenceClass *) val->impl, val->v.reference);
+	}
 	val->impl = NULL;
 }
 
+void az_packed_value_set_from_type_inst(AZPackedValue *dst, unsigned int type, void *inst);
+void az_packed_value_64_set_from_type_inst(AZPackedValue64 *dst, unsigned int type, void *inst);
 
 ARIKKEI_INLINE void
 az_packed_value_set_boolean (AZPackedValue *val, unsigned int boolean_v)
@@ -179,7 +183,7 @@ unsigned int az_packed_value_convert (AZPackedValue *dst, unsigned int type, con
 void *az_packed_value_get_instance (AZPackedValue *value);
 void az_packed_value_set_from_type_value (AZPackedValue *dst, unsigned int type, const void *src);
 void az_packed_value_set_from_impl_value (AZPackedValue *dst, const AZImplementation *impl, const void *src);
-void az_packed_value_set_from_type_instance (AZPackedValue *dst, unsigned int type, void *inst);
+
 void az_packed_value_set_from_impl_instance (AZPackedValue *dst, const AZImplementation *impl, void *inst);
 
 #ifdef __cplusplus
