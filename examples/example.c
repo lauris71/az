@@ -123,14 +123,14 @@ main(int argc, const char *argv[])
     fprintf (stdout, "\nPrimitive types in packed values\n");
 
     AZPackedValue u32_pval = {.impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_UINT32), .v.uint32_v = 654321};
-    print_type_info(u32_pval.impl, az_packed_value_get_instance(&u32_pval));
+    print_type_info(u32_pval.impl, az_packed_value_get_inst(&u32_pval));
 
     /* Set a packed value from type/instance */
     /* NB! A new packed value has to be initialized to zero */
     AZPackedValue i32_pval = {0};
     int32_t i32 = -123456;
-    az_packed_value_set_from_type_inst(&i32_pval, AZ_TYPE_INT32, &i32);
-    print_type_info(i32_pval.impl, az_packed_value_get_instance(&i32_pval));
+    az_packed_value_set_from_type(&i32_pval, AZ_TYPE_INT32, &i32);
+    print_type_info(i32_pval.impl, az_packed_value_get_inst(&i32_pval));
 
     /*
      * Case 3 - create a new value type
@@ -167,12 +167,12 @@ main(int argc, const char *argv[])
     print_type_info(&matrix_class->impl, &mat);
 
     /* Use AZPackedValue64 to store matrix */
-    /* NB! 1. As Matrix is avalue class, the actual value is copied */
-    /* NB! 2. As Matrix is a value type with size 36 bytes, it cannot be stored inside AZPacked value */
+    /* NB! 1. As Matrix is a value class, the actual value is copied */
+    /* NB! 2. As Matrix has instance size 36 bytes, it cannot be stored inside AZPacked value */
     /* So we should use AZPackedValue64 for it */
     AZPackedValue64 m_pval = {0};
-    az_packed_value_64_set_from_type_inst(&m_pval, matrix_type, &mat);
-    print_type_info(m_pval.impl, az_packed_value_get_instance(&m_pval.packed_val));
+    az_packed_value_set_from_type(&m_pval.packed_val, matrix_type, &mat);
+    print_type_info(m_pval.impl, az_packed_value_get_inst(&m_pval.packed_val));
 
     /*
      * Case 5 - create a new block type
@@ -193,8 +193,8 @@ main(int argc, const char *argv[])
     /* Use AZPackedValue to store matrix */
     /* Block type value size is 8 so we can use simple PackedValue */
     AZPackedValue bm_pval = {0};
-    az_packed_value_set_from_type_inst(&bm_pval, b_matrix_type, b_mat);
-    print_type_info(bm_pval.impl, az_packed_value_get_instance(&bm_pval));
+    az_packed_value_set_from_type(&bm_pval, b_matrix_type, b_mat);
+    print_type_info(bm_pval.impl, az_packed_value_get_inst(&bm_pval));
 
     /*
      * Now we can check what happens if we change instance of value and block types
@@ -206,14 +206,14 @@ main(int argc, const char *argv[])
     fprintf (stdout, "The modified value matrix\n");
     print_type_info(&matrix_class->impl, &mat);
     fprintf (stdout, "A value copy in packed value\n");
-    print_type_info(m_pval.impl, az_packed_value_get_instance(&m_pval.packed_val));
+    print_type_info(m_pval.impl, az_packed_value_get_inst(&m_pval.packed_val));
 
     /* Modify the block type */
     b_mat->c[4] = -1;
     fprintf (stdout, "The modified block matrix\n");
     print_type_info(&b_matrix_class->impl, b_mat);
     fprintf (stdout, "A value copy in packed value\n");
-    print_type_info(bm_pval.impl, az_packed_value_get_instance(&bm_pval));
+    print_type_info(bm_pval.impl, az_packed_value_get_inst(&bm_pval));
 
     /* No-op here but some instances may have destructors */
     az_instance_finalize_by_type(&mat, matrix_type);

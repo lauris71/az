@@ -28,14 +28,14 @@ extern "C" {
  * is performed only after class_init returns (and thus the interfaces and fields are known).
  * 
  * @param type pointer where the typecode will be written
- * @param name the name of the new class
+ * @param name the name of the new type
  * @param parent_type the parent typecode
  * @param class_size the size of the class
- * @param instance_size  the size of the instance
+ * @param instance_size the size of the instance
  * @param flags type flags
- * @param class_init a callback for initialzaton of the class
- * @param instance_init a callback for the intialization of an instance
- * @param instance_finalize a callback for the finalization of an instance
+ * @param class_init the class constructor
+ * @param instance_init the instance constructor
+ * @param instance_finalize the instance destructor
  * @return allocated and initialized class
  */
 
@@ -54,15 +54,15 @@ AZClass *az_register_type (unsigned int *type, const unsigned char *name, unsign
  * It is used to build composite classes (e.g. reference of another type). 
  * 
  * @param type pointer where the typecode will be written
- * @param name the name of the new class
+ * @param name the name of the new type
  * @param parent_type the parent typecode
  * @param class_size the size of the class
  * @param instance_size  the size of the instance
  * @param flags type flags
- * @param class_init a callback for initialzaton of the class
- * @param instance_init a callback for the intialization of an instance
- * @param instance_finalize a callback for the finalization of an instance
- * @param data extra parameter to the class_init function
+ * @param class_init the class constructor
+ * @param instance_init a the instance constructor
+ * @param instance_finalize the instance destructor
+ * @param data extra parameter to the class constructor
  * @return allocated and initialized class
  */
 AZClass *az_register_composite_type (unsigned int *type, const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,

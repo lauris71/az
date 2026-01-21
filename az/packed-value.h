@@ -21,6 +21,11 @@ extern "C" {
 
 #define AZ_PACKED_VALUE_MAX_SIZE 16
 
+/**
+ * @brief A convenience structure that holds both an _AZImplementation and the value
+ * 
+ * As a plain _AZValue it can hold values of up to 16 bytes size.
+ */
 struct _AZPackedValue {
 	const AZImplementation *impl;
 	uint64_t filler;
@@ -29,6 +34,10 @@ struct _AZPackedValue {
 
 #define AZ_PACKED_VALUE_TYPE(v) AZ_IMPL_TYPE((v)->impl)
 
+/**
+ * @brief An extension of _AZPackedValue for value size up to 64 bytes
+ * 
+ */
 struct _AZPackedValue64 {
 	union {
 		struct {
@@ -43,16 +52,51 @@ struct _AZPackedValue64 {
 	};
 } ARIKKEI_ALIGN_16;
 
-ARIKKEI_INLINE void
-az_value_set_from_packed_value (const AZImplementation **dst_impl, AZValue *dst_val, const AZPackedValue *src)
+static inline void
+az_packed_value_init(AZPackedValue *dst, const AZImplementation *impl)
 {
-	*dst_impl = src->impl;
-	if (src->impl) az_value_copy (src->impl, dst_val, &src->v);
+	dst->impl = impl;
+	az_value_init(impl, &dst->v);
 }
 
-/* Packed values */
+static inline void
+az_packed_value_init_autobox(AZPackedValue *dst, const AZImplementation *impl)
+{
+	az_value_init_autobox(impl, &dst->v, AZ_PACKED_VALUE_MAX_SIZE);
+}
 
-ARIKKEI_INLINE void
+static inline void
+az_packed_value_64_init_autobox(AZPackedValue *dst, const AZImplementation *impl)
+{
+	az_value_init_autobox(impl, &dst->v, 64);
+}
+
+static inline void *
+az_packed_value_get_inst(AZPackedValue *val)
+{
+	return az_value_get_inst(val->impl, &val->v);
+}
+
+static inline const AZImplementation *
+az_packed_value_get_inst_autobox(AZPackedValue *val, void **inst)
+{
+	return az_value_get_inst_autobox(val->impl, &val->v, inst);
+}
+
+static inline const AZImplementation *
+az_value_set_from_packed_value (AZValue *dst_val, const AZPackedValue *src)
+{
+	az_value_copy (src->impl, dst_val, &src->v);
+	return src->impl;
+}
+
+static inline const AZImplementation *
+az_value_set_from_packed_value_autobox (AZValue *dst_val, const AZPackedValue *src, unsigned int size)
+{
+	return az_value_copy_autobox (src->impl, dst_val, &src->v, size);
+}
+
+static inline void
 az_packed_value_clear (AZPackedValue *val)
 {
 	if (val->impl && AZ_IMPL_IS_REFERENCE(val->impl) && val->v.reference) {
@@ -61,8 +105,58 @@ az_packed_value_clear (AZPackedValue *val)
 	val->impl = NULL;
 }
 
-void az_packed_value_set_from_type_inst(AZPackedValue *dst, unsigned int type, void *inst);
-void az_packed_value_64_set_from_type_inst(AZPackedValue64 *dst, unsigned int type, void *inst);
+void az_packed_value_set(AZPackedValue *dst, const AZImplementation *impl, void *inst);
+
+static inline void
+az_packed_value_set_from_val(AZPackedValue *dst, const AZImplementation *impl, const AZValue *val)
+{
+	az_packed_value_set(dst, impl, az_value_get_inst(impl, val));
+}
+
+static inline void az_packed_value_set_from_type(AZPackedValue *dst, unsigned int type, void *inst)
+{
+	az_packed_value_set(dst, AZ_IMPL_FROM_TYPE(type), inst);
+}
+
+void az_packed_value_set_autobox(AZPackedValue *dst, const AZImplementation *impl, void *inst);
+
+static inline void
+az_packed_value_set_from_val_autobox(AZPackedValue *dst, const AZImplementation *impl, const AZValue *val)
+{
+	az_packed_value_set_autobox(dst, impl, az_value_get_inst(impl, val));
+}
+
+static inline void az_packed_value_set_from_type_autobox(AZPackedValue *dst, unsigned int type, void *inst)
+{
+	az_packed_value_set_autobox(dst, AZ_IMPL_FROM_TYPE(type), inst);
+}
+
+void az_packed_value_64_set_autobox(AZPackedValue64 *dst, const AZImplementation *impl, void *inst);
+
+static inline void
+az_packed_value_64_set_from_val_autobox(AZPackedValue64 *dst, const AZImplementation *impl, const AZValue *val)
+{
+	az_packed_value_64_set_autobox(dst, impl, az_value_get_inst(impl, val));
+}
+
+static inline void
+az_packed_value_64_set_from_type_autobox(AZPackedValue64 *dst, unsigned int type, void *inst)
+{
+	az_packed_value_64_set_autobox(dst, AZ_IMPL_FROM_TYPE(type), inst);
+}
+
+static inline void
+az_packed_value_copy (AZPackedValue *dst, const AZPackedValue *src)
+{
+	if (dst == src) return;
+	if (src->impl && AZ_IMPL_IS_REFERENCE(src->impl) && src->v.reference) {
+		az_reference_ref (src->v.reference);
+	}
+	if (dst->impl && AZ_IMPL_IS_REFERENCE(dst->impl) && dst->v.reference) {
+		az_reference_unref ((AZReferenceClass *) dst->impl, dst->v.reference);
+	}
+	*dst = *src;
+}
 
 ARIKKEI_INLINE void
 az_packed_value_set_boolean (AZPackedValue *val, unsigned int boolean_v)
@@ -163,28 +257,17 @@ az_packed_value_transfer_string (AZPackedValue *value, AZString *str)
 	value->v.string = str;
 }
 
-void az_packed_value_copy_indirect (AZPackedValue *dst, const AZPackedValue *src);
-
-ARIKKEI_INLINE void
-az_packed_value_copy (AZPackedValue *dst, const AZPackedValue *src)
-{
-	if (dst == src) return;
-	if (!src->impl || (AZ_IMPL_TYPE(src->impl) < AZ_TYPE_REFERENCE)) {
-		if (dst->impl && (AZ_IMPL_TYPE(dst->impl) >= AZ_TYPE_REFERENCE)) az_packed_value_clear (dst);
-		*dst = *src;
-	} else {
-		az_packed_value_copy_indirect (dst, src);
-	}
-}
-
 unsigned int az_packed_value_can_convert (unsigned int to, const AZPackedValue *from);
 unsigned int az_packed_value_convert (AZPackedValue *dst, unsigned int type, const AZPackedValue *from);
 
-void *az_packed_value_get_instance (AZPackedValue *value);
-void az_packed_value_set_from_type_value (AZPackedValue *dst, unsigned int type, const void *src);
-void az_packed_value_set_from_impl_value (AZPackedValue *dst, const AZImplementation *impl, const void *src);
+static inline void
+az_packed_value_set_from_type_value (AZPackedValue *dst, unsigned int type, const AZValue *val)
+{
+	az_packed_value_set_from_val(dst, AZ_IMPL_FROM_TYPE(type), val);
+}
 
-void az_packed_value_set_from_impl_instance (AZPackedValue *dst, const AZImplementation *impl, void *inst);
+#define az_packed_value_set_from_impl_value az_packed_value_set_from_val
+#define az_packed_value_set_from_impl_instance az_packed_value_set
 
 #ifdef __cplusplus
 };

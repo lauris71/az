@@ -24,6 +24,12 @@ extern "C" {
 
 #define AZ_PACKED_VALUE_MAX_SIZE 16
 
+/**
+ * @brief A convenience union of most common values
+ * 
+ * Allows easy access the most common value and block types in values. The maximum size of an
+ * value is 16 bytes - thus complex doubles and 4-component float vectors fit into it.
+ */
 struct _AZValue {
 	union {
 		uint32_t boolean_v;
@@ -43,10 +49,17 @@ struct _AZValue {
 		void *block;
 		AZReference *reference;
 		AZString *string;
+		AZObject *object;
 		uint8_t data[16];
 	};
 };
 
+/**
+ * @brief A convenience union for value sizes up to 64 bytes
+ * 
+ * An wrapper around _AZValue that can store larger values - up to 64 bytes, thus
+ * 4x4 float matrixes fit into it.
+ */
 struct _AZValue64 {
 	AZValue value;
 	uint8_t data[48];
@@ -55,10 +68,10 @@ struct _AZValue64 {
 /**
  * @brief initialize a value location
  * 
- * For value types it copies the default value, for block types set pointer to null.
+ * For value types it calls the constructor, for block types sets pointer to null.
  * 
  * @param impl the type implementation
- * @param val pointer to the value to be initialized
+ * @param val the value (uninitialized)
  */
 static inline void
 az_value_init (const AZImplementation *impl, AZValue *val)
@@ -70,13 +83,15 @@ az_value_init (const AZImplementation *impl, AZValue *val)
 	}
 }
 
+const AZImplementation *az_value_init_autobox(const AZImplementation *impl, AZValue *dst, unsigned int size);
+
 /**
  * @brief clear an value location
  * 
- * Remove reference hold by the value for reference types. After the operation the val is uninitialized.
+ * Remove reference hold by the value for reference types. After the operation the val is in uninitialized state.
  * 
- * @param impl the tye implementation
- * @param val pointer to the value to be cleared
+ * @param impl the value implementation
+ * @param val the value to be cleared
  */
 static inline void
 az_value_clear (const AZImplementation *impl, AZValue *val)
@@ -91,9 +106,9 @@ az_value_clear (const AZImplementation *impl, AZValue *val)
  * 
  * Move data from initialized src to uninitialized dst. After the operation src will be uninitialized.
  * 
- * @param impl the type implementation
- * @param dst pointer to the destination (uninitialized)
- * @param src pointer to the source (initialized)
+ * @param impl the src implementation
+ * @param dst the destination (uninitialized)
+ * @param src the source value
  */
 static inline void
 az_value_transfer (const AZImplementation *impl, AZValue *dst, const AZValue *src)
@@ -104,11 +119,28 @@ az_value_transfer (const AZImplementation *impl, AZValue *dst, const AZValue *sr
 }
 
 /**
- * @brief copy a value to a new unitialized location
+ * @brief tranfer a value to a new location, boxing/unboxing if needed
  * 
- * @param impl the type implementation
- * @param dst pointer to the source location
- * @param src pointer to the destination location
+ * If the src value does not fit into size bytes, AZBoxedValue is created at dst. If the src
+ * is an AZBoxedValue but the value fits into dst, the actual value is unboxed to dst.
+ * After the transfer src will be in uninitialized state.
+ * 
+ * @param impl the src implemntation
+ * @param dst the destination (uninitialized)
+ * @param src the source value
+ * @param size the size of the destination value
+ * @return the dst implementation (may be changed by boxing/unboxing)
+ */
+const AZImplementation *az_value_transfer_autobox(const AZImplementation *impl, AZValue *dst, AZValue *src, unsigned int size);
+
+/**
+ * @brief copy a value to a new location
+ * 
+ * Copy data from initialized src to uninitialized dst. After the operation src will reamin intact.
+ * 
+ * @param impl the src implemntation
+ * @param dst the destination (uninitialized)
+ * @param src the source value
  */
 static inline void
 az_value_copy (const AZImplementation *impl, AZValue *dst, const AZValue *src)
@@ -124,13 +156,42 @@ az_value_copy (const AZImplementation *impl, AZValue *dst, const AZValue *src)
 }
 
 /**
+ * @brief copy a value from one handle to another, boxing/unboxing if needed
+ * 
+ * Copy data from initialized src to uninitialized dst. After the operation src will reamin intact.
+ * If the source does not fit into size bytes AZBoxedValue is created in dst. If src
+ * is AZBoxedValue but the value fits into dst the actual value is copied.
+ * 
+ * @param impl the src implemntation
+ * @param dst the destination (uninitialized)
+ * @param src the source value
+ * @param size the size of the destination value
+ * @return the dst implementation (may be changed by boxing/unboxing)
+ */
+const AZImplementation *az_value_copy_autobox(const AZImplementation *impl, AZValue *dst, const AZValue *src, unsigned int size);
+
+/**
  * @brief set value from instance
  * 
  * @param impl the type implementation
- * @param dst pointer to the value
- * @param inst pointer to the instance
+ * @param dst the destination (uninitialized)
+ * @param inst the source instance
  */
 void az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *inst);
+
+/**
+ * @brief set value from instance, boxing if needed
+ * 
+ * If the value does not fit into size bytes, AZBoxedValue is created at dst.
+ * It does not unbox automatically.
+ * 
+ * @param impl the type implemntation
+ * @param dst the destination (uninitialized)
+ * @param inst the source instance
+ * @param size the size of the destination value
+ * @return the dst implementation (may be changed by boxing)
+ */
+const AZImplementation *az_value_set_from_inst_autobox(const AZImplementation *impl, AZValue *dst, void *inst, unsigned int size);
 
 /**
  * @brief dereference instance from value
@@ -138,7 +199,7 @@ void az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *i
  * Does not unbox automatically.
  * 
  * @param impl the type implementation
- * @param val pointer to a value
+ * @param val the source value
  * @return pointer to the instance
  */
 static inline void *
@@ -150,6 +211,18 @@ az_value_get_inst (const AZImplementation *impl, const AZValue *val)
 		return (void *) val;
 	}
 }
+
+/**
+ * @brief ereference instance from value, unboxing if needed
+ * 
+ * If the value is AZBoxedValue, return the actual implementation and instance inside it.
+ * 
+ * @param impl the type implementation
+ * @param val the source value
+ * @param inst the result instance
+ * @return the actual implementation (may be changed by unboxing)
+ */
+const AZImplementation *az_value_get_inst_autobox (const AZImplementation *impl, const AZValue *val, void **inst);
 
 /**
  * @brief creates a value from serialized data
@@ -175,7 +248,9 @@ unsigned int az_value_deserialize (const AZImplementation *impl, AZValue *val, c
  * @return 1 if equal, 0 if not
  */
 unsigned int az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue *rhs);
+unsigned int az_value_equals_autobox (const AZImplementation *lhs_impl, const AZValue *lhs, const AZImplementation *rhs_impl, const AZValue *rhs);
 unsigned int az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, const void *rhs);
+unsigned int az_value_equals_instance_autobox (const AZImplementation *lhs_impl, const AZValue *lhs, const AZImplementation *rhs_impl, const void *rhs);
 
 /* Transfer reference instance to destination */
 

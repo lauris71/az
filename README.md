@@ -129,7 +129,7 @@ To retreve polymorphic data, both implementaton and value has to be retrieved (t
 
     AZImplementation *impl = az_parse_type(const uint8_t *buf, AZValue *val);
 
-For final types and objects the implementation pointer is usually omitted in methods because for those it either if fixed or can be derived from the instance
+For final types and objects the implementation pointer is usually omitted in methods because for those it either is fixed or can be derived from the instance
 
 Methods that do not use polymorphic parts of data also often omit the implementation pointer.
 

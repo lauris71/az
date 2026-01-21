@@ -50,44 +50,40 @@ az_init_packed_value_class (void)
 	az_class_new_with_value(&AZPackedValueKlass);
 }
 
-static void
-az_packed_value_set_from_type_inst_size (AZPackedValue *dst, unsigned int type, void *inst, unsigned int size)
+void
+az_packed_value_set(AZPackedValue *dst, const AZImplementation *impl, void *inst)
 {
 	if (dst->impl && AZ_IMPL_IS_REFERENCE(dst->impl) && dst->v.reference) {
 		az_reference_unref ((AZReferenceClass *) dst->impl, dst->v.reference);
 	}
-	if (!type) {
-		dst->impl = NULL;
-	} else {
-		AZClass *klass = AZ_CLASS_FROM_TYPE(type);
-		if (AZ_CLASS_IS_VALUE(klass)) {
-			unsigned int val_size = az_class_value_size(klass);
-			if (val_size > size) {
-				fprintf (stderr, "az_packed_value_set_from_type_inst_size: value size too big (%u > %u)\n", val_size, size);
-				dst->impl = NULL;
-			} else if (val_size) {
-				memcpy (&dst->v, inst, az_class_value_size(klass));
-			}
-		} else {
-			dst->v.block = inst;
-			if (AZ_CLASS_IS_REFERENCE(klass) && inst) {
-				az_reference_ref ((AZReference *) inst);
-			}
-		}
-		dst->impl = &klass->impl;
+	if (impl) {
+		az_value_set_from_inst(impl, &dst->v, inst);
 	}
+	dst->impl = impl;
 }
 
 void
-az_packed_value_set_from_type_inst (AZPackedValue *dst, unsigned int type, void *inst)
+az_packed_value_set_autobox(AZPackedValue *dst, const AZImplementation *impl, void *inst)
 {
-	az_packed_value_set_from_type_inst_size(dst, type, inst, AZ_PACKED_VALUE_MAX_SIZE);
+	if (dst->impl && AZ_IMPL_IS_REFERENCE(dst->impl) && dst->v.reference) {
+		az_reference_unref ((AZReferenceClass *) dst->impl, dst->v.reference);
+	}
+	if (impl) {
+		impl = az_value_set_from_inst_autobox(impl, &dst->v, inst, AZ_PACKED_VALUE_MAX_SIZE);
+	}
+	dst->impl = impl;
 }
 
 void
-az_packed_value_64_set_from_type_inst(AZPackedValue64 *dst, unsigned int type, void *inst)
+az_packed_value_64_set_autobox(AZPackedValue64 *dst, const AZImplementation *impl, void *inst)
 {
-	az_packed_value_set_from_type_inst_size(&dst->packed_val, type, inst, 64);
+	if (dst->impl && AZ_IMPL_IS_REFERENCE(dst->impl) && dst->v.value.reference) {
+		az_reference_unref ((AZReferenceClass *) dst->impl, dst->v.value.reference);
+	}
+	if (impl) {
+		impl = az_value_set_from_inst_autobox(impl, &dst->v.value, inst, 64);
+	}
+	dst->impl = impl;
 }
 
 void
@@ -99,19 +95,6 @@ az_packed_value_set_reference (AZPackedValue *val, unsigned int type, AZReferenc
 	val->impl = AZ_IMPL_FROM_TYPE(type);
 	val->v.reference = ref;
 	if (ref) az_reference_ref (ref);
-}
-
-void
-az_packed_value_copy_indirect (AZPackedValue *dst, const AZPackedValue *src)
-{
-	if (dst == src) return;
-	if (dst->impl && AZ_TYPE_IS_REFERENCE(AZ_PACKED_VALUE_TYPE(dst)) && dst->v.reference) {
-		az_reference_unref ((AZReferenceClass *) dst->impl, dst->v.reference);
-	}
-	*dst = *src;
-	if (dst->impl && AZ_TYPE_IS_REFERENCE(AZ_PACKED_VALUE_TYPE(dst)) && dst->v.reference) {
-		az_reference_ref (dst->v.reference);
-	}
 }
 
 #define AZ_VALUE_IS_NULL(val) ((AZ_IMPL_TYPE((val)->impl) == AZ_TYPE_STRUCT) && ((val)->v.block == NULL))
@@ -183,92 +166,4 @@ az_packed_value_convert (AZPackedValue *dst, unsigned int to_type, const AZPacke
 		return 1;
 	}
 	return 0;
-}
-
-void *
-az_packed_value_get_instance (AZPackedValue *value)
-{
-	if (!value->impl) return NULL;
-	if (az_type_is_a (AZ_PACKED_VALUE_TYPE(value), AZ_TYPE_BLOCK)) return value->v.block;
-	return &value->v;
-}
-
-void
-az_packed_value_set_from_type_value (AZPackedValue *dst, unsigned int type, const void *src)
-{
-	if (dst->impl && AZ_TYPE_IS_REFERENCE(AZ_PACKED_VALUE_TYPE(dst)) && dst->v.reference) {
-		az_reference_unref ((AZReferenceClass *) dst->impl, dst->v.reference);
-	}
-	if (!type) {
-		dst->impl = NULL;
-	} else {
-		AZClass *klass = AZ_CLASS_FROM_TYPE(type);
-		if (az_class_value_size(klass) > AZ_PACKED_VALUE_MAX_SIZE) {
-			fprintf (stderr, "az_packed_value_set_from_type_value: value size too big (%u)\n", az_class_value_size(klass));
-			dst->impl = NULL;
-			return;
-		}
-		dst->impl = &klass->impl;
-		if (az_class_value_size(klass)) {
-			memcpy (&dst->v, src, az_class_value_size(klass));
-		}
-		if ((AZ_CLASS_FLAGS(klass) & AZ_FLAG_REFERENCE) && dst->v.reference) {
-			az_reference_ref (dst->v.reference);
-		}
-	}
-}
-
-void
-az_packed_value_set_from_impl_value (AZPackedValue *dst, const AZImplementation *impl, const void *src)
-{
-	if (dst->impl && AZ_TYPE_IS_REFERENCE(AZ_PACKED_VALUE_TYPE(dst)) && dst->v.reference) {
-		az_reference_unref ((AZReferenceClass *) dst->impl, dst->v.reference);
-	}
-	if (!impl) {
-		dst->impl = NULL;
-	} else {
-		AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
-		if (az_class_value_size(klass) > AZ_PACKED_VALUE_MAX_SIZE) {
-			fprintf (stderr, "az_packed_value_set_from_type_value: value size too big (%u)\n", az_class_value_size(klass));
-			dst->impl = NULL;
-			return;
-		}
-		dst->impl = impl;
-		if (az_class_value_size(klass)) {
-			memcpy (&dst->v, src, az_class_value_size(klass));
-		}
-		if ((AZ_CLASS_FLAGS(klass) & AZ_FLAG_REFERENCE) && dst->v.reference) {
-			az_reference_ref (dst->v.reference);
-		}
-	}
-}
-
-void
-az_packed_value_set_from_impl_instance (AZPackedValue *dst, const AZImplementation *impl, void *inst)
-{
-	if (dst->impl && AZ_PACKED_VALUE_TYPE(dst) >= AZ_TYPE_REFERENCE) az_packed_value_clear (dst);
-	if (dst->impl && AZ_TYPE_IS_REFERENCE(AZ_PACKED_VALUE_TYPE(dst)) && dst->v.reference) {
-		az_reference_unref ((AZReferenceClass *) dst->impl, dst->v.reference);
-	}
-	if (!impl) {
-		dst->impl = NULL;
-	} else {
-		AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
-		if (az_class_value_size(klass) > AZ_PACKED_VALUE_MAX_SIZE) {
-			fprintf (stderr, "az_packed_value_set_from_type_value: value size too big (%u)\n", az_class_value_size(klass));
-			dst->impl = NULL;
-			return;
-		}
-		dst->impl = impl;
-		if (AZ_CLASS_IS_VALUE(klass)) {
-			if (az_class_value_size(klass)) {
-				memcpy (&dst->v, inst, az_class_value_size(klass));
-			}
-		} else {
-			dst->v.block = inst;
-			if ((AZ_CLASS_FLAGS(klass) & AZ_FLAG_REFERENCE) && dst->v.reference) {
-				az_reference_ref (dst->v.reference);
-			}
-		}
-	}
 }
