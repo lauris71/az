@@ -258,7 +258,7 @@ az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const
 	int idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, inst, str, &sub_class, &sub_impl, &sub_inst);
 	az_string_unref(str);
 	if (idx < 0) return 0;
-	return az_instance_get_property_by_id (sub_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, sub_inst, idx, dst_impl, dst_val, 64, NULL);
+	return az_instance_get_property_by_id (sub_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, sub_inst, idx, dst_impl, &dst_val->value, 64, NULL);
 }
 
 unsigned int
@@ -272,7 +272,7 @@ az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const
 	AZString *str = az_string_new(key);
 	int idx = az_class_lookup_function (AZ_CLASS_FROM_IMPL(impl), impl, inst, str, sig, &def_class, &def_impl, &def_inst);
 	if (idx < 0) return 0;
-	return az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(def_impl), def_impl, def_inst, idx, dst_impl, (AZValue64 *) dst_val, 16, NULL);
+	return az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(def_impl), def_impl, def_inst, idx, dst_impl, dst_val, 16, NULL);
 }
 
 unsigned int
@@ -347,12 +347,12 @@ az_instance_set_property_by_id (const AZClass *klass, const AZImplementation *im
 }
 
 unsigned int
-az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **val_impl, AZValue64 *val, unsigned int val_size, AZContext *ctx)
+az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, unsigned int val_size, AZContext *ctx)
 {
 	arikkei_return_val_if_fail (def_klass != NULL, 0);
 	arikkei_return_val_if_fail (klass != NULL, 0);
-	arikkei_return_val_if_fail (val_impl != NULL, 0);
-	arikkei_return_val_if_fail (val != NULL, 0);
+	arikkei_return_val_if_fail (prop_impl != NULL, 0);
+	arikkei_return_val_if_fail (prop_val != NULL, 0);
 	arikkei_return_val_if_fail (def_klass->props_self[idx].read != AZ_FIELD_READ_NONE, 0);
 
 	const AZField *prop = &def_klass->props_self[idx];
@@ -373,8 +373,8 @@ az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, 
 			if (prop->mask) {
 				if (prop->type == AZ_TYPE_BOOLEAN) {
 					uint32_t v = ((src->uint32_v & prop->mask) >> prop->shift) ^ prop->bits;
-					*val_impl = &AZBooleanKlass.impl;
-					val->value.boolean_v = (v != 0);
+					*prop_impl = &AZBooleanKlass.impl;
+					prop_val->boolean_v = (v != 0);
 					return 1;
 				} else {
 					// fixme: handle integral types
@@ -382,14 +382,14 @@ az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, 
 				}
 			}
 			if (AZ_TYPE_IS_OBJECT(prop->type)) {
-				az_value_set_object (val_impl, &val->value, (AZObject *) src->reference);
+				az_value_set_object (prop_impl, prop_val, (AZObject *) src->reference);
 			} else {
 				AZClass *prop_class = AZ_CLASS_FROM_TYPE(prop->type);
 				if (!AZ_CLASS_IS_FINAL(prop_class)) {
 					fprintf(stderr, ".");
 				}
 				arikkei_return_val_if_fail (AZ_CLASS_IS_FINAL(prop_class), 0);
-				*val_impl = az_value_copy_autobox (&prop_class->impl, &val->value, src, val_size);
+				*prop_impl = az_value_copy_autobox (&prop_class->impl, prop_val, src, val_size);
 			}
 			break;
 		}
@@ -406,19 +406,19 @@ az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, 
 				AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 				src = (AZPackedValue *) ((char *) klass + prop->offset);
 			}
-			*val_impl = az_value_copy_autobox (src->impl, &val->value, &src->v, val_size);
+			*prop_impl = az_value_copy_autobox (src->impl, prop_val, &src->v, val_size);
 			break;
 		}
 		case AZ_FIELD_READ_STORED_STATIC:
 			/* Packed value inside field definition */
 			if (prop->value->impl) {
-				*val_impl = az_value_copy_autobox (prop->value->impl, &val->value, &prop->value->v, val_size);
+				*prop_impl = az_value_copy_autobox (prop->value->impl, prop_val, &prop->value->v, val_size);
 			} else {
-				*val_impl = NULL;
+				*prop_impl = NULL;
 			}
 			break;
 		case AZ_FIELD_READ_METHOD:
-			return def_klass->get_property (impl, inst, idx, val_impl, &val->value, ctx);
+			return def_klass->get_property (impl, inst, idx, prop_impl, prop_val, ctx);
 		default:
 			/* Not readable */
 			return 0;
