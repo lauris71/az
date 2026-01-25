@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 struct _AZFunctionValue {
-	AZFunctionInstance function_inst;
+	AZFunctionSignature *signature;
 	unsigned int (*invoke) (const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
 };
 

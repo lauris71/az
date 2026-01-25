@@ -80,7 +80,7 @@ impl_call_getstaticProperty (const AZImplementation **arg_impls, const AZValue *
 	AZField *prop = &def_class->props_self[prop_idx];
 	arikkei_return_val_if_fail (prop->spec == AZ_FIELD_CLASS, 0);
 	arikkei_return_val_if_fail (prop->read != AZ_FIELD_READ_NONE, 0);
-	az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, ret_impl, ret_val, 64, NULL);
+	az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, ret_impl, &ret_val->value, 64, NULL);
 	return 1;
 }
 
@@ -475,7 +475,7 @@ int
 az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
 	int result, i;
-	arikkei_return_val_if_fail (impl != NULL, -1);
+	//arikkei_return_val_if_fail (impl != NULL, -1);
 	arikkei_return_val_if_fail (key != NULL, -1);
 	/* NB! Until "new" is handled differently we have to go subclass-first */
 	for (i = 0; i < (int) klass->n_props_self; i++) {

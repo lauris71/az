@@ -130,7 +130,7 @@ unsigned int az_instance_set_property_by_key (const AZImplementation *impl, void
  * @param ctx an execution context
  * @return 1 if successful, 0 if the property is not readable
  */
-unsigned int az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation **prop_impl, AZValue64 *prop_val, unsigned int val_size, AZContext *ctx);
+unsigned int az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation **prop_impl, AZValue *prop_val, unsigned int val_size, AZContext *ctx);
 unsigned int az_instance_set_property_by_id (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
 #endif
 
