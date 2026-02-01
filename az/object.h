@@ -45,6 +45,9 @@ struct _AZObjectClass {
 
 extern AZObjectClass AZObjectKlass;
 
+#define AZ_CLASS_FROM_OBJ(o) ((const AZClass *) (((AZObject *) o)->klass))
+#define AZ_IMPL_FROM_OBJ(o) ((const AZImplementation *) (((AZObject *) o)->klass))
+
 static inline void
 az_object_ref (AZObject *obj)
 {
