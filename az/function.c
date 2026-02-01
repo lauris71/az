@@ -375,7 +375,7 @@ az_function_invoke_va (const AZFunctionImplementation *impl, void *inst, const A
 	/* We exploit AMD64 calling convention */
 	/* fixme: Implement checks and fallbacks */
 	uint64_t *p = (uint64_t *) &ret_val + 1;
-	function_build_arguments (inst->signature, p, arg_impls, arg_ptrs);
+	function_build_arguments (sig, p, arg_impls, arg_ptrs);
 #endif
 #ifdef ARCH_ARM_64
         AZValue arg_vals[64];
