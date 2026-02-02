@@ -60,6 +60,7 @@ set_property(TARGET az PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_include_directories(az PUBLIC
 	${PROJECT_SOURCE_DIR}
 	${CMAKE_SOURCE_DIR}/arikkei
+	${CMAKE_SOURCE_DIR}/../arikkei
 )
 
 add_subdirectory(classes)
