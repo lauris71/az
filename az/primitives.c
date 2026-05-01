@@ -1132,8 +1132,12 @@ convert_uint64 (unsigned int to_type, void *to_val, uint64_t val)
 	return result;
 }
 
+#define MAX_FLOAT_LT_INT32_MIN -2147483650.0f
+#define MIN_FLOAT_GT_I32_MAX 2147483648.0f
+#define MIN_FLOAT_GT_U32_MAX 4294967296.0f
+
 static unsigned int
-convert_float (unsigned int to_type, void *to_val, float val)
+convert_float (unsigned int to_type, AZValue *to_val, float val)
 {
 	unsigned int result = 0;
 	/* C, C, C, C, C, C, C, C, A, A, A, A */
@@ -1147,7 +1151,7 @@ convert_float (unsigned int to_type, void *to_val, float val)
 		} else if (floorf (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
 		}
-		*((char *) to_val) = (char) val;
+		to_val->int8_v = (int8_t) val;
 	} else if (to_type == AZ_TYPE_UINT8) {
 		if (val < 0) {
 			val = 0;
@@ -1158,7 +1162,7 @@ convert_float (unsigned int to_type, void *to_val, float val)
 		} else if (floorf (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
 		}
-		*((unsigned char *) to_val) = (unsigned char) val;
+		to_val->uint8_v = (uint8_t) val;
 	} if (to_type == AZ_TYPE_INT16) {
 		if (val < INT16_MIN) {
 			val = INT16_MIN;
@@ -1169,7 +1173,7 @@ convert_float (unsigned int to_type, void *to_val, float val)
 		} else if (floorf (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
 		}
-		*((short *) to_val) = (short) val;
+		to_val->int16_v = (int16_t) val;
 	} else if (to_type == AZ_TYPE_UINT16) {
 		if (val < 0) {
 			val = 0;
@@ -1180,29 +1184,33 @@ convert_float (unsigned int to_type, void *to_val, float val)
 		} else if (floorf (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
 		}
-		*((unsigned short *) to_val) = (unsigned short) val;
+		to_val->uint16_v = (uint16_t) val;
 	} else if (to_type == AZ_TYPE_INT32) {
-		if (val < INT32_MIN) {
-			val = INT32_MIN;
+		if (val <= MAX_FLOAT_LT_INT32_MIN) {
+			to_val->int32_v = INT32_MIN;
 			result = AZ_CONVERSION_CLAMPED;
-		} else if (val > INT32_MAX) {
-			val = (float) INT32_MAX;
+		} else if (val >= MIN_FLOAT_GT_I32_MAX) {
+			to_val->int32_v = INT32_MAX;
 			result = AZ_CONVERSION_CLAMPED;
 		} else if (floorf (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
+			to_val->int32_v = (int32_t) val;
+		} else {
+			to_val->int32_v = (int32_t) val;
 		}
-		*((int *) to_val) = (int) val;
 	} else if (to_type == AZ_TYPE_UINT32) {
 		if (val < 0) {
-			val = 0;
+			to_val->uint32_v = 0;
 			result = AZ_CONVERSION_CLAMPED;
-		} else if (val > UINT32_MAX) {
-			val = (float) UINT32_MAX;
+		} else if (val >= MIN_FLOAT_GT_U32_MAX) {
+			to_val->uint32_v = UINT32_MAX;
 			result = AZ_CONVERSION_CLAMPED;
 		} else if (floorf (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
+			to_val->uint32_v = (uint32_t) val;
+		} else {
+		to_val->uint32_v = (uint32_t) val;
 		}
-		*((unsigned int *) to_val) = (unsigned int) val;
 	} else if (to_type == AZ_TYPE_INT64) {
 		if (val < INT64_MIN) {
 			val = (float) INT64_MIN;
@@ -1213,7 +1221,7 @@ convert_float (unsigned int to_type, void *to_val, float val)
 		} else if (floorf (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
 		}
-		*((int *) to_val) = (int) val;
+		to_val->int64_v = (int64_t) val;
 	} else if (to_type == AZ_TYPE_UINT64) {
 		if (val < 0) {
 			val = 0;
@@ -1224,15 +1232,13 @@ convert_float (unsigned int to_type, void *to_val, float val)
 		} else if (floorf (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
 		}
-		*((unsigned long long *) to_val) = (unsigned long long) val;
+		to_val->uint64_v = (uint64_t) val;
 	} else if (to_type == AZ_TYPE_DOUBLE) {
-		*((double *) to_val) = (double) val;
+		to_val->double_v = val;
 	} else if (to_type == AZ_TYPE_COMPLEX_FLOAT) {
-		*((float *) to_val) = (float) val;
-		*((float *) to_val + 1) = 0;
+		to_val->cfloat_v = (AZComplexFloat) {val, 0};
 	} else if (to_type == AZ_TYPE_COMPLEX_DOUBLE) {
-		*((double *) to_val) = (double) val;
-		*((double *) to_val + 1) = 0;
+		to_val->cdouble_v = (AZComplexDouble) {val, 0};
 	}
 	return result;
 }

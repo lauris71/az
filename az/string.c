@@ -27,20 +27,15 @@ struct _AZStringLookup {
 static unsigned int
 string_hash (const void *data)
 {
-	AZString *str = (AZString *) data;
-	unsigned int hval, i;
-	hval = 0;
-	for (i = 0; i < str->length; i++) {
-		hval = (hval << 5) - hval + str->str[i];
-	}
-	return hval ^ str->length;
+	AZString *str = *((AZString **) data);
+	return arikkei_memory_hash(str->str, str->length);
 }
 
 static unsigned int
 string_equal (const void *l, const void *r)
 {
-	AZString *lhs = (AZString *) l;
-	AZString *rhs = (AZString *) r;
+	AZString *lhs = *((AZString **) l);
+	AZString *rhs = *((AZString **) r);
 	if (lhs->length != rhs->length) return 0;
 	return !strcmp ((const char *) lhs->str, (const char *) rhs->str);
 }
@@ -49,19 +44,14 @@ static unsigned int
 string_data_hash (const void *data)
 {
 	AZStringLookup *lookup = (AZStringLookup *) data;
-	unsigned int hval, i;
-	hval = 0;
-	for (i = 0; i < lookup->len; i++) {
-		hval = (hval << 5) - hval + lookup->str[i];
-	}
-	return hval ^ lookup->len;
+	return arikkei_memory_hash(lookup->str, lookup->len);
 }
 
 static unsigned int
 string_data_equal (const void *l, const void *r)
 {
 	AZStringLookup *lhs = (AZStringLookup *) l;
-	AZString *rhs = (AZString *) r;
+	AZString *rhs = *((AZString **) r);
 	if (lhs->len != rhs->length) return 0;
 	return !strncmp ((const char *) lhs->str, (const char *) rhs->str, lhs->len);
 }
@@ -118,7 +108,7 @@ static void
 string_dispose (AZReferenceClass *klass, AZReference *ref)
 {
 	AZString *str = (AZString *) ref;
-	arikkei_dict_remove (&AZStringKlass.chr2str, str);
+	arikkei_dict_remove_pval (&AZStringKlass.chr2str, str);
 }
 
 AZStringClass AZStringKlass = {
@@ -152,12 +142,11 @@ az_string_new (const unsigned char *str)
 AZString *
 az_string_new_length (const unsigned char *str, unsigned int length)
 {
-	AZStringLookup lookup;
 	AZString *astr;
-	lookup.len = length;
-	lookup.str = str;
-	astr = (AZString *) arikkei_dict_lookup_foreign (&AZStringKlass.chr2str, &lookup, string_data_hash, string_data_equal);
-	if (astr) {
+	AZStringLookup lookup = {length, str};
+	AZString **ptr = (AZString **) arikkei_dict_lookup_foreign(&AZStringKlass.chr2str, &lookup, string_data_hash(&lookup), string_data_equal);
+	if (ptr) {
+		astr = *ptr;
 		az_string_ref (astr);
 	} else {
 		astr = (AZString *) malloc (sizeof (AZString) + length);
@@ -165,7 +154,7 @@ az_string_new_length (const unsigned char *str, unsigned int length)
 		astr->length = length;
 		memcpy ((unsigned char *) astr->str, str, length);
 		((unsigned char *) astr->str)[length] = 0;
-		arikkei_dict_insert (&AZStringKlass.chr2str, astr, astr);
+		arikkei_dict_insert_pval (&AZStringKlass.chr2str, astr, astr);
 	}
 	return astr;
 }
@@ -180,11 +169,10 @@ az_string_lookup (const unsigned char *chars)
 AZString *
 az_string_lookup_length (const unsigned char *chars, unsigned int length)
 {
-	AZStringLookup lookup;
-	AZString *astr;
-	lookup.len = length;
-	lookup.str = chars;
-	astr = (AZString *) arikkei_dict_lookup_foreign (&AZStringKlass.chr2str, &lookup, string_data_hash, string_data_equal);
+	AZStringLookup lookup = {length, chars};
+	AZString **ptr = (AZString **) arikkei_dict_lookup_foreign(&AZStringKlass.chr2str, &lookup, string_data_hash(&lookup), string_data_equal);
+	if (!ptr) return NULL;
+	AZString *astr = *ptr;
 	if (astr) az_string_ref (astr);
 	return astr;
 }
@@ -201,14 +189,14 @@ az_string_concat (AZString *lhs, AZString *rhs)
 	if (lhs->length) memcpy ((unsigned char *) built->str, lhs->str, lhs->length);
 	if (rhs->length) memcpy ((unsigned char *) built->str + lhs->length, rhs->str, rhs->length);
 	((unsigned char *) built->str)[lhs->length + rhs->length] = 0;
-	astr = (AZString *) arikkei_dict_lookup (&AZStringKlass.chr2str, built);
-	if (astr) {
-		az_string_unref (built);
+	AZString **ptr = (AZString **) arikkei_dict_lookup(&AZStringKlass.chr2str, &built);
+	if (ptr) {
+		az_string_unref (*ptr);
+		return *ptr;
 	} else {
-		astr = built;
-		arikkei_dict_insert (&AZStringKlass.chr2str, astr, astr);
+		arikkei_dict_insert_pval (&AZStringKlass.chr2str, built, built);
 	}
-	return astr;
+	return built;
 }
 
 const unsigned char *

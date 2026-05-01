@@ -3,6 +3,7 @@ SET(SOURCES
     array-list.c array-list.h
     collection.c collection.h
     list.c list.h
+    map.c map.h
 )
 
 list(TRANSFORM SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)

@@ -2,7 +2,6 @@ SET(SOURCES
     active-object.c active-object.h
     attrib-dict.c attrib-dict.h
     interface-list.c interface-list.h
-    map.c map.h
     object-interface-list.c object-interface-list.h
     object-list.c object-list.h
     value-array.c value-array.h

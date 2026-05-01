@@ -4,7 +4,8 @@ find_library(MATH_LIBRARY m)
 find_library(LIBARIKKEI arikkei
     PATHS
         ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei/Release
-        ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei/Release)
+        ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei/Release
+        ${CMAKE_SOURCE_DIR}/../../build/arikkei/arikkei ${CMAKE_SOURCE_DIR}/../../build/arikkei/arikkei/Release)
 
 add_executable(az_test
     unity/unity.c
