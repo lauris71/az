@@ -76,7 +76,7 @@ az_hash_map_get_type (void)
 {
 	if (!hmap_type) {
 		hmap_class = (AZHashMapClass *) az_register_interface_type (&hmap_type, (const unsigned char *) "AZHashMap", AZ_TYPE_MAP,
-			sizeof (AZMapClass), sizeof (AZMapImplementation), 0, AZ_FLAG_ZERO_MEMORY,
+			sizeof (AZMapClass), sizeof (AZHashMapImplementation), sizeof(AZHashMap), AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT,
 			NULL,
 			(void (*) (AZImplementation *)) hmap_implementation_init,
             (void (*) (const AZImplementation *, void *)) hmap_instance_init,
@@ -127,11 +127,11 @@ hmap_instance_finalize (AZHashMapImplementation *impl, AZHashMap *hmap)
 void
 az_hash_map_insert(AZHashMapImplementation *impl, AZHashMap *hmap, const AZValue *key, const AZValue *val)
 {
-	hmap->n_entries += 1;
 	unsigned int pos = impl->hash(impl, key) % hmap->root_size;
 	AZHashMapEntry *root_entry = entry_ptr(impl, hmap->entries, pos);
 	if(root_entry->next == EMPTY) {
 		set_entry(impl, root_entry, END, key, val, 0);
+		hmap->n_entries += 1;
 		return;
 	}
 	if (impl->equal(impl, key, key_ptr(impl, root_entry))) {
@@ -153,6 +153,7 @@ az_hash_map_insert(AZHashMapImplementation *impl, AZHashMap *hmap, const AZValue
 		hmap->free = entry->next;
 		set_entry(impl, entry, root_entry->next, key, val, 0);
 		root_entry->next = pos;
+		hmap->n_entries += 1;
 		return;
 	}
 	reallocate (impl, hmap, hmap->root_size << 1);
@@ -314,10 +315,8 @@ static AZHashMapEntry *
 allocate_entries(AZHashMapImplementation *impl, unsigned int size, unsigned int root_size)
 {
 	AZHashMapEntry *entries = aligned_alloc (16, size * impl->entry_size);
-    for (unsigned int i = 0; i < root_size; i++) {
-        *((unsigned int *) ((char *) entries + i * impl->entry_size)) = EMPTY;
-    }
-	for (unsigned int i = root_size; i < size - 1; i++) {
+    memset(entries, 0, size * impl->entry_size);
+    for (unsigned int i = root_size; i < size - 1; i++) {
         *((unsigned int *) ((char *) entries + i * impl->entry_size)) = i + 1;
     }
     *((unsigned int *) ((char *) entries + (size - 1) * impl->entry_size)) = END;

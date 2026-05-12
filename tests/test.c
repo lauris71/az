@@ -11,6 +11,7 @@
 #include <az/value.h>
 #include <az/collections/array-list.h>
 #include <az/collections/array.h>
+#include <az/collections/hash-map.h>
 
 #include "unity/unity.h"
 
@@ -18,6 +19,8 @@ static void test_types();
 static void test_boxed_value();
 static void test_array_list();
 static void test_array();
+
+void test_hash_map(void);
 
 void setUp(void) {
     // set stuff up here
@@ -40,6 +43,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_array_list);
         } else if (!strcmp(argv[i], "array")) {
             RUN_TEST(test_array);
+        } else if (!strcmp(argv[i], "hash-map")) {
+            RUN_TEST(test_hash_map);
         }
     }
     return UNITY_END();
