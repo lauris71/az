@@ -24,11 +24,20 @@ extern "C" {
 
 struct _AZMapImplementation {
 	AZCollectionImplementation collection_impl;
+	/*
+	 * AZCollection methods:
+	 *  get_element_type
+	 *  get_size
+	 *  contains
+	 *  get_element
+	 * access values
+	 */
 	unsigned int (*get_key_type) (const AZMapImplementation *map_impl, void *map_inst);
 	/* Get corresponding key using the same iterator as value */
 	const AZImplementation *(*get_key) (const AZMapImplementation *map_impl, void *map_inst, const AZPackedValue *iter, AZValue *val, unsigned int size);
 	/* Get keys as distinct collection */
 	const AZCollectionImplementation *(*get_keys) (const AZMapImplementation *map_impl, void *map_inst, void **inst);
+	unsigned int (*contains_key) (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, const void *key_inst);
 	const AZImplementation *(*lookup) (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
 };
 
@@ -55,6 +64,12 @@ static inline const AZCollectionImplementation *
 az_map_get_keys (const AZMapImplementation *map_impl, void *map_inst, void **inst)
 {
 	return map_impl->get_keys (map_impl, map_inst, inst);
+}
+
+static inline unsigned int
+az_map_contains_key (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, const void *key_inst)
+{
+	return map_impl->contains_key (map_impl, map_inst, key_impl, key_inst);
 }
 
 static inline const AZImplementation *

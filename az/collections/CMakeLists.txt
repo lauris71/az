@@ -2,6 +2,7 @@ SET(SOURCES
     array.c array.h
     array-list.c array-list.h
     collection.c collection.h
+    hash-map.c hash-map.h
     list.c list.h
     map.c map.h
 )
