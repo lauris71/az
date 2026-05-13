@@ -34,7 +34,7 @@ struct _AZMapImplementation {
 	 */
 	unsigned int (*get_key_type) (const AZMapImplementation *map_impl, void *map_inst);
 	/* Get corresponding key using the same iterator as value */
-	const AZImplementation *(*get_key) (const AZMapImplementation *map_impl, void *map_inst, const AZPackedValue *iter, AZValue *val, unsigned int size);
+	const AZImplementation *(*get_key) (const AZMapImplementation *map_impl, void *map_inst, const AZValue *iter, AZValue *val, unsigned int size);
 	/* Get keys as distinct collection */
 	const AZCollectionImplementation *(*get_keys) (const AZMapImplementation *map_impl, void *map_inst, void **inst);
 	unsigned int (*contains_key) (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, const void *key_inst);
@@ -55,7 +55,7 @@ az_map_get_key_type (const AZMapImplementation *map_impl, void *map_inst)
 
 /* Get corresponding key using the same iterator as value */
 static inline const AZImplementation *
-az_map_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZPackedValue *iter, AZValue *val, unsigned int size)
+az_map_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZValue *iter, AZValue *val, unsigned int size)
 {
 	return map_impl->get_key (map_impl, map_inst, iter, val, size);
 }

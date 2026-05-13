@@ -23,7 +23,7 @@ static const AZImplementation *attrd_get_iterator (const AZCollectionImplementat
 static const AZImplementation *attrd_iterator_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
 const AZImplementation *attrd_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZValue *iter, AZValue *val, unsigned int size);
 static unsigned int attrd_get_key_type (const AZMapImplementation *map_impl, void *map_inst);
-static const AZImplementation *attrd_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZPackedValue *iter, AZValue *val, unsigned int size);
+static const AZImplementation *attrd_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZValue *iter, AZValue *val, unsigned int size);
 const AZCollectionImplementation *attrd_get_keys (const AZMapImplementation *map_impl, void *map_inst, void **inst);
 const AZImplementation *attrd_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
 /* Value list */
@@ -110,10 +110,10 @@ attrd_get_key_type (const AZMapImplementation *map_impl, void *map_inst)
 }
 
 static const AZImplementation *
-attrd_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZPackedValue *iter, AZValue *val, unsigned int size)
+attrd_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZValue *iter, AZValue *val, unsigned int size)
 {
 	AZAttribDictImplementation *impl = (AZAttribDictImplementation *) map_impl;
-	return az_list_get_element (&impl->key_list_impl, map_inst, iter->v.uint32_v, val, size);
+	return az_list_get_element (&impl->key_list_impl, map_inst, iter->uint32_v, val, size);
 }
 
 const AZCollectionImplementation *

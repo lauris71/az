@@ -11,6 +11,7 @@
 
 #include <az/base.h>
 #include <az/value.h>
+#include <az/packed-value.h>
 
 #include "hash-map.h"
 
@@ -85,6 +86,10 @@ unsigned int hmap_contains (const AZCollectionImplementation *coll_impl, void *c
 static const AZImplementation *hmap_get_iter (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
 static const AZImplementation *hmap_iter_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
 const AZImplementation *hmap_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZValue *iter, AZValue *val, unsigned int size);
+static unsigned int hmap_get_key_type (const AZMapImplementation *map_impl, void *map_inst);
+static const AZImplementation *hmap_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZValue *iter, AZValue *val, unsigned int size);
+static unsigned int hmap_contains_key (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, const void *key_inst);
+static const AZImplementation *hmap_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
 
 static unsigned int hmap_type = 0;
 static AZHashMapClass *hmap_class;
@@ -112,6 +117,10 @@ hmap_implementation_init (AZHashMapImplementation *impl)
 	impl->map_impl.collection_impl.get_iterator = hmap_get_iter;
 	impl->map_impl.collection_impl.iterator_next = hmap_iter_next;
 	impl->map_impl.collection_impl.get_element = hmap_get_element;
+	impl->map_impl.get_key_type = hmap_get_key_type;
+	impl->map_impl.get_key = hmap_get_key;
+	impl->map_impl.contains_key = hmap_contains_key;
+	impl->map_impl.lookup = hmap_map_lookup;
     impl->key_impl = NULL;
     impl->val_impl = NULL;
     impl->root_size = 31;
@@ -178,7 +187,7 @@ hmap_get_iter (const AZCollectionImplementation *coll_impl, void *coll_inst, AZV
 	for (unsigned int hval = 0; hval < hmap->root_size; hval++) {
 		AZHashMapEntry *root_entry = entry_ptr(impl, hmap->entries, hval);
 		if (root_entry->next != EMPTY) {
-			iter->uint64_v = (uint64_t) hval << 32;
+			iter->uint64_v = ((uint64_t) hval << 32) | hval;
 			return &AZUint64Klass.impl;
 		}
 	}
@@ -194,13 +203,13 @@ hmap_iter_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZ
 	uint32_t pos = (uint32_t) iter->uint64_v;
 	AZHashMapEntry *entry = entry_ptr(impl, hmap->entries, pos);
 	if (entry->next != END) {
-		iter->uint64_v = (uint64_t) hval << 32 | entry->next;
+		iter->uint64_v = ((uint64_t) hval << 32) | entry->next;
 		return &AZUint64Klass.impl;
 	}
 	for (hval += 1; hval < hmap->root_size; hval++) {
 		AZHashMapEntry *root_entry = entry_ptr(impl, hmap->entries, hval);
 		if (root_entry->next != EMPTY) {
-			iter->uint64_v = (uint64_t) hval << 32;
+			iter->uint64_v = ((uint64_t) hval << 32) | hval;
 			return &AZUint64Klass.impl;
 		}
 	}
@@ -215,6 +224,41 @@ hmap_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, 
 	uint32_t pos = (uint32_t) iter->uint64_v;
 	AZHashMapEntry *entry = entry_ptr(impl, hmap->entries, pos);
 	return az_value_copy_autobox(impl->val_impl, val, val_ptr(impl, entry), size);
+}
+
+static unsigned int
+hmap_get_key_type (const AZMapImplementation *map_impl, void *map_inst)
+{
+	AZHashMapImplementation *impl = (AZHashMapImplementation *) map_impl;
+	return AZ_IMPL_TYPE(impl->key_impl);
+}
+
+static const AZImplementation *
+hmap_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZValue *iter, AZValue *val, unsigned int size)
+{
+	AZHashMapImplementation *impl = (AZHashMapImplementation *) map_impl;
+	AZHashMap *hmap = (AZHashMap *) map_inst;
+	uint32_t pos = (uint32_t) iter->uint64_v;
+	AZHashMapEntry *entry = entry_ptr(impl, hmap->entries, pos);
+	return az_value_copy_autobox(impl->key_impl, val, key_ptr(impl, entry), size);
+}
+
+static unsigned int
+hmap_contains_key (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, const void *key_inst)
+{
+	AZHashMapImplementation *impl = (AZHashMapImplementation *) map_impl;
+	AZHashMap *hmap = (AZHashMap *) map_inst;
+	return az_hash_map_exists(impl, hmap, key_inst);
+}
+
+static const AZImplementation *
+hmap_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size)
+{
+	AZHashMapImplementation *impl = (AZHashMapImplementation *) map_impl;
+	AZHashMap *hmap = (AZHashMap *) map_inst;
+	const void *result = az_hash_map_lookup(impl, hmap, key_inst);
+	if (!result) return NULL;
+	return az_value_set_from_inst_autobox(impl->val_impl, val, (void *) result, size);
 }
 
 void
