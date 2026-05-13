@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 #include <az/interface.h>
-#include <az/packed-value.h>
+#include <az/base.h>
 #include <az/extend.h>
 
 #include "list.h"
@@ -18,9 +18,9 @@
 static void list_class_init (AZListClass *klass);
 static void list_implementation_init (AZListImplementation *impl);
 /* AZCollection implementation */
-static unsigned int list_get_iterator (const AZCollectionImplementation *collection_impl, void *collection_inst, AZPackedValue *iterator);
-static unsigned int list_iterator_next (const AZCollectionImplementation *collection_impl, void *collection_inst, AZPackedValue *iterator);
-static const AZImplementation *list_get_element (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZPackedValue *iterator, AZValue *val, unsigned int size);
+static const AZImplementation *list_get_iterator (const AZCollectionImplementation *collection_impl, void *collection_inst, AZValue *iter);
+static const AZImplementation *list_iterator_next (const AZCollectionImplementation *collection_impl, void *collection_inst, AZValue *iter);
+static const AZImplementation *list_get_element (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZValue *iter, AZValue *val, unsigned int size);
 /* AZInstance implementation */
 static unsigned int list_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
 
@@ -70,23 +70,23 @@ list_get_property (const AZImplementation *impl, void *inst, unsigned int idx, c
 	return 1;
 }
 
-static unsigned int
-list_get_iterator (const AZCollectionImplementation *collection_impl, void *collection_inst, AZPackedValue *iterator)
+static const AZImplementation *
+list_get_iterator (const AZCollectionImplementation *collection_impl, void *collection_inst, AZValue *iter)
 {
-	az_packed_value_set_unsigned_int (iterator, AZ_TYPE_UINT32, 0);
-	return 1;
-}
-
-static unsigned int
-list_iterator_next (const AZCollectionImplementation *collection_impl, void *collection_inst, AZPackedValue *iterator)
-{
-	if (iterator->v.uint32_v >= az_collection_get_size (collection_impl, collection_inst)) return 0;
-	iterator->v.uint32_v += 1;
-	return 1;
+	if (!az_collection_get_size(collection_impl, collection_inst)) return NULL;
+	iter->uint32_v = 0;
+	return &AZUint32Klass.impl;
 }
 
 static const AZImplementation *
-list_get_element (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZPackedValue *iterator, AZValue *val, unsigned int size)
+list_iterator_next (const AZCollectionImplementation *collection_impl, void *collection_inst, AZValue *iter)
 {
-	return az_list_get_element ((AZListImplementation *) collection_impl, collection_inst, iterator->v.uint32_v, val,  size);
+	iter->uint32_v += 1;
+	return (iter->uint32_v < az_collection_get_size (collection_impl, collection_inst)) ? NULL : &AZUint32Klass.impl;
+}
+
+static const AZImplementation *
+list_get_element (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZValue *iter, AZValue *val, unsigned int size)
+{
+	return az_list_get_element ((AZListImplementation *) collection_impl, collection_inst, iter->uint32_v, val,  size);
 }

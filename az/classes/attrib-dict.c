@@ -8,6 +8,7 @@
 
 #include <arikkei/arikkei-utils.h>
 
+#include <az/base.h>
 #include <az/packed-value.h>
 
 #include "attrib-dict.h"
@@ -18,9 +19,9 @@ static void attrib_dict_impl_init (AZAttribDictImplementation *impl);
 /* We need three sets of collecion methods */
 /* Base */
 static unsigned int attrd_get_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst);
-static unsigned int attrd_get_iterator (const AZCollectionImplementation *coll_impl, void *coll_inst, AZPackedValue *iter);
-static unsigned int attrd_iterator_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZPackedValue *iter);
-const AZImplementation *attrd_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZPackedValue *iterator, AZValue *val, unsigned int size);
+static const AZImplementation *attrd_get_iterator (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
+static const AZImplementation *attrd_iterator_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
+const AZImplementation *attrd_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZValue *iter, AZValue *val, unsigned int size);
 static unsigned int attrd_get_key_type (const AZMapImplementation *map_impl, void *map_inst);
 static const AZImplementation *attrd_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZPackedValue *iter, AZValue *val, unsigned int size);
 const AZCollectionImplementation *attrd_get_keys (const AZMapImplementation *map_impl, void *map_inst, void **inst);
@@ -80,26 +81,26 @@ attrd_get_element_type (const AZCollectionImplementation *coll_impl, void *coll_
 	return AZ_TYPE_ANY;
 }
 
-static unsigned int
-attrd_get_iterator (const AZCollectionImplementation *coll_impl, void *coll_inst, AZPackedValue *iter)
+static const AZImplementation *
+attrd_get_iterator (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter)
 {
-	az_packed_value_set_unsigned_int (iter, AZ_TYPE_UINT32, 0);
-	return 1;
+	if (!az_collection_get_size (coll_impl, coll_inst)) return NULL;
+	iter->uint32_v = 0;
+	return &AZUint32Klass.impl;
 }
 
-static unsigned int
-attrd_iterator_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZPackedValue *iter)
+static const AZImplementation *
+attrd_iterator_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter)
 {
-	if (iter->v.uint32_v >= az_collection_get_size (coll_impl, coll_inst)) return 0;
-	iter->v.uint32_v += 1;
-	return 1;
+	iter->uint32_v += 1;
+	return (iter->uint32_v < az_collection_get_size (coll_impl, coll_inst)) ? &AZUint32Klass.impl : NULL;
 }
 
 const AZImplementation *
-attrd_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZPackedValue *iter, AZValue *val, unsigned int size)
+attrd_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZValue *iter, AZValue *val, unsigned int size)
 {
 	AZAttribDictImplementation *impl = (AZAttribDictImplementation *) coll_impl;
-	return az_list_get_element (&impl->val_list_impl, coll_inst, iter->v.uint32_v, val, size);
+	return az_list_get_element(&impl->val_list_impl, coll_inst, iter->uint32_v, val, size);
 }
 
 static unsigned int

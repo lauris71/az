@@ -20,6 +20,15 @@ typedef struct _AZHashMapEntry AZHashMapEntry;
 extern "C" {
 #endif
 
+/**
+ * @brief A map implementation based on a hash table.
+ * 
+ * The collection interface access values.
+ * The iterator is 64-bit unsigned integer with the following layout:
+ *   - 63-32: current root index
+ *   - 31-0: current entry index
+ * 
+ */
 struct _AZHashMap {
     unsigned int root_size;
     unsigned int size;
@@ -39,8 +48,8 @@ struct _AZHashMapImplementation {
 	uint16_t val_offset;
 	uint16_t val_size;
 
-    uint32_t (*hash) (AZHashMapImplementation *impl, const AZValue *key);
-	unsigned int (*equal) (AZHashMapImplementation *impl, const AZValue *lhs, const AZValue *rhs);
+    uint32_t (*hash) (const AZHashMapImplementation *impl, const void *key);
+    unsigned int (*equal) (const AZHashMapImplementation *impl, const void *lhs, const void *rhs);
 };
 
 struct _AZHashMapClass {
@@ -49,15 +58,14 @@ struct _AZHashMapClass {
 
 unsigned int az_hash_map_get_type (void);
 
-void az_hash_map_insert(AZHashMapImplementation *impl, AZHashMap *hmap, const AZValue *key, const AZValue *val);
-unsigned int az_hash_map_remove(AZHashMapImplementation *impl, AZHashMap *hmap, const AZValue *key);
-void az_hash_map_clear(AZHashMapImplementation *impl, AZHashMap *hmap);
-unsigned int az_hash_map_exists(AZHashMapImplementation *impl, AZHashMap *hmap, const AZValue *key);
-const AZValue *az_hash_map_lookup(AZHashMapImplementation *impl, AZHashMap *hmap, const AZValue *key);
-/* Stop if forall returns 0 */
-unsigned int az_hash_map_forall (AZHashMapImplementation *impl, AZHashMap *hmap, unsigned int (* forall) (const AZValue *, const AZValue *, void *), void *data);
-/* Remove entry if remove returns 1, return number of entries removed */
-unsigned int az_hash_map_remove_all (AZHashMapImplementation *impl, AZHashMap *hmap, unsigned int (*remove) (const AZValue *, const AZValue *, void *), void *data);
+void az_hash_map_insert(const AZHashMapImplementation *impl, AZHashMap *hmap, void *key, void *val);
+unsigned int az_hash_map_remove(const AZHashMapImplementation *impl, AZHashMap *hmap, const void *key);
+void az_hash_map_clear(const AZHashMapImplementation *impl, AZHashMap *hmap);
+unsigned int az_hash_map_exists(const AZHashMapImplementation *impl, AZHashMap *hmap, const void *key);
+unsigned int az_hash_map_exists_val(const AZHashMapImplementation *impl, AZHashMap *hmap, const void *val);
+const void *az_hash_map_lookup(const AZHashMapImplementation *impl, AZHashMap *hmap, const void *key);
+unsigned int az_hash_map_forall (const AZHashMapImplementation *impl, AZHashMap *hmap, unsigned int (* forall) (const void *, const void *, void *), void *data);
+unsigned int az_hash_map_remove_all (const AZHashMapImplementation *impl, AZHashMap *hmap, unsigned int (*remove) (const void *, const void *, void *), void *data);
 
 #ifdef __cplusplus
 };

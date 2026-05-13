@@ -23,9 +23,9 @@ struct _AZCollectionImplementation {
 	unsigned int (*get_element_type) (const AZCollectionImplementation *coll_impl, void *coll_inst);
 	unsigned int (*get_size) (const AZCollectionImplementation *coll_impl, void *coll_inst);
 	unsigned int (*contains) (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst);
-	unsigned int (*get_iterator) (const AZCollectionImplementation *coll_impl, void *coll_inst, AZPackedValue *iterator);
-	unsigned int (*iterator_next) (const AZCollectionImplementation *coll_impl, void *coll_inst, AZPackedValue *iterator);
-	const AZImplementation *(*get_element) (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZPackedValue *iterator, AZValue *val, unsigned int size);
+	const AZImplementation *(*get_iterator) (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
+	const AZImplementation *(*iterator_next) (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
+	const AZImplementation *(*get_element) (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZValue *iter, AZValue *val, unsigned int size);
 };
 
 struct _AZCollectionClass {
@@ -54,22 +54,22 @@ az_collection_contains (const AZCollectionImplementation *coll_impl, void *coll_
 }
 
 /* Return 0 if unsuccessful */
-static inline unsigned int
-az_collection_get_iterator (const AZCollectionImplementation *coll_impl, void *coll_inst, AZPackedValue *iterator)
+static inline const AZImplementation *
+az_collection_get_iterator (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter)
 {
-	return coll_impl->get_iterator (coll_impl, coll_inst, iterator);
-}
-
-static inline unsigned int
-az_collection_iterator_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZPackedValue *iterator)
-{
-	return coll_impl->iterator_next (coll_impl, coll_inst, iterator);
+	return coll_impl->get_iterator (coll_impl, coll_inst, iter);
 }
 
 static inline const AZImplementation *
-az_collection_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZPackedValue *iterator, AZValue *val, unsigned int size)
+az_collection_iterator_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter)
 {
-	return coll_impl->get_element (coll_impl, coll_inst, iterator, val, size);
+	return coll_impl->iterator_next (coll_impl, coll_inst, iter);
+}
+
+static inline const AZImplementation *
+az_collection_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZValue *iter, AZValue *val, unsigned int size)
+{
+	return coll_impl->get_element (coll_impl, coll_inst, iter, val, size);
 }
 
 #ifdef __cplusplus
