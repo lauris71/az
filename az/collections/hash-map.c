@@ -15,6 +15,13 @@
 
 #include "hash-map.h"
 
+#ifdef _WIN32
+#define aligned_alloc(a,s) _aligned_malloc(s,a)
+#define aligned_free(p) _aligned_free(p)
+#else
+#define aligned_free(p) free(p)
+#endif
+
 struct _AZHashMapEntry {
     uint32_t next;
 };
@@ -154,7 +161,7 @@ hmap_instance_finalize (const AZHashMapImplementation *impl, AZHashMap *hmap)
 			pos = entry->next;
 		}
 	}
-    free(hmap->entries);
+    aligned_free(hmap->entries);
 }
 
 unsigned int
@@ -498,7 +505,7 @@ reallocate (const AZHashMapImplementation *impl, AZHashMap *hmap, unsigned int n
 			pos = entry->next;
 		} while (pos != END);
 	}
-	free (hmap->entries);
+	aligned_free (hmap->entries);
 	hmap->root_size = new_root_size;
 	hmap->size = new_size;
 	hmap->free = new_free;
