@@ -15,6 +15,13 @@
 
 #include "hash-set.h"
 
+#ifdef _WIN32
+#define aligned_alloc(a,s) _aligned_malloc(s,a)
+#define aligned_free(p) _aligned_free(p)
+#else
+#define aligned_free(p) free(p)
+#endif
+
 struct _AZHashSetEntry {
     uint32_t next;
 };
@@ -124,7 +131,7 @@ hset_instance_finalize (const AZHashSetImplementation *impl, AZHashSet *hset)
 			pos = entry->next;
 		}
 	}
-    free(hset->entries);
+    aligned_free(hset->entries);
 }
 
 static unsigned int
@@ -371,7 +378,7 @@ az_hash_set_remove_all (const AZHashSetImplementation *impl, AZHashSet *hset, un
 static AZHashSetEntry *
 allocate_entries(const AZHashSetImplementation *impl, unsigned int size, unsigned int root_size)
 {
-	AZHashSetEntry *entries = aligned_alloc (16, size * impl->entry_size);
+	AZHashSetEntry *entries = (AZHashSetEntry *) aligned_alloc (16, size * impl->entry_size);
     memset(entries, 0, size * impl->entry_size);
     for (unsigned int i = root_size; i < size - 1; i++) {
         *((unsigned int *) ((char *) entries + i * impl->entry_size)) = i + 1;
@@ -408,7 +415,7 @@ reallocate (const AZHashSetImplementation *impl, AZHashSet *hset, unsigned int n
 			pos = entry->next;
 		} while (pos != END);
 	}
-	free (hset->entries);
+	aligned_free (hset->entries);
 	hset->root_size = new_root_size;
 	hset->size = new_size;
 	hset->free = new_free;
