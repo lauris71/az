@@ -9,10 +9,11 @@
 
 #define AZ_TYPE_MAP (az_map_get_type ())
 
+typedef struct _AZMap AZMap; 
 typedef struct _AZMapImplementation AZMapImplementation;
 typedef struct _AZMapClass AZMapClass;
 
-#include <az/collections/collection.h>
+#include <az/collections/set.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,8 +36,8 @@ struct _AZMapImplementation {
 	unsigned int (*get_key_type) (const AZMapImplementation *map_impl, void *map_inst);
 	/* Get corresponding key using the same iterator as value */
 	const AZImplementation *(*get_key) (const AZMapImplementation *map_impl, void *map_inst, const AZValue *iter, AZValue *val, unsigned int size);
-	/* Get keys as distinct collection */
-	const AZCollectionImplementation *(*get_keys) (const AZMapImplementation *map_impl, void *map_inst, void **inst);
+	/* Get keys as a distinct map */
+	const AZSetImplementation *(*get_keys) (const AZMapImplementation *map_impl, void *map_inst, AZSet **inst);
 	unsigned int (*contains_key) (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, const void *key_inst);
 	const AZImplementation *(*lookup) (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
 };
@@ -60,8 +61,8 @@ az_map_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZVal
 	return map_impl->get_key (map_impl, map_inst, iter, val, size);
 }
 /* Get keys as distinct collection */
-static inline const AZCollectionImplementation *
-az_map_get_keys (const AZMapImplementation *map_impl, void *map_inst, void **inst)
+static inline const AZSetImplementation *
+az_map_get_keys (const AZMapImplementation *map_impl, void *map_inst, AZSet **inst)
 {
 	return map_impl->get_keys (map_impl, map_inst, inst);
 }

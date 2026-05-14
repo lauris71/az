@@ -24,7 +24,7 @@ static const AZImplementation *attrd_iterator_next (const AZCollectionImplementa
 const AZImplementation *attrd_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZValue *iter, AZValue *val, unsigned int size);
 static unsigned int attrd_get_key_type (const AZMapImplementation *map_impl, void *map_inst);
 static const AZImplementation *attrd_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZValue *iter, AZValue *val, unsigned int size);
-const AZCollectionImplementation *attrd_get_keys (const AZMapImplementation *map_impl, void *map_inst, void **inst);
+const AZSetImplementation *attrd_get_keys (const AZMapImplementation *map_impl, void *map_inst, AZSet **inst);
 const AZImplementation *attrd_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
 /* Value list */
 static unsigned int attrd_val_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst);
@@ -116,12 +116,17 @@ attrd_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZValu
 	return az_list_get_element (&impl->key_list_impl, map_inst, iter->uint32_v, val, size);
 }
 
-const AZCollectionImplementation *
-attrd_get_keys (const AZMapImplementation *map_impl, void *map_inst, void **inst)
+const AZSetImplementation *
+attrd_get_keys (const AZMapImplementation *map_impl, void *map_inst, AZSet **inst)
 {
 	AZAttribDictImplementation *impl = (AZAttribDictImplementation *) map_impl;
-	*inst = map_inst;
-	return &impl->key_list_impl.collection_impl;
+	/*
+	 * FIXME: We use the instance of the map as the instance of the set.
+	 * This works now but is not guaranteed in future.
+	 * TODO: Reimple,ment the whole class.
+	 */
+	*inst = (AZSet *) map_inst;
+	return (AZSetImplementation *) &impl->key_list_impl.collection_impl;
 }
 
 const AZImplementation *
