@@ -33,13 +33,11 @@ struct _AZMapImplementation {
 	 *  get_element
 	 * access values
 	 */
-	unsigned int (*get_key_type) (const AZMapImplementation *map_impl, void *map_inst);
-	/* Get corresponding key using the same iterator as value */
-	const AZImplementation *(*get_key) (const AZMapImplementation *map_impl, void *map_inst, const AZValue *iter, AZValue *val, unsigned int size);
-	/* Get keys as a distinct map */
-	const AZSetImplementation *(*get_keys) (const AZMapImplementation *map_impl, void *map_inst, AZSet **inst);
-	unsigned int (*contains_key) (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, const void *key_inst);
-	const AZImplementation *(*lookup) (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
+	unsigned int (*get_key_type) (const AZMapImplementation *map_impl, AZMap *map_inst);
+	const AZImplementation *(*get_key) (const AZMapImplementation *map_impl, AZMap *map_inst, const AZValue *iter, AZValue *val, unsigned int size);
+	const AZSetImplementation *(*get_keys) (const AZMapImplementation *map_impl, AZMap *map_inst, AZSet **inst);
+	unsigned int (*contains_key) (const AZMapImplementation *map_impl, AZMap *map_inst, const AZImplementation *key_impl, const void *key_inst);
+	const AZImplementation *(*lookup) (const AZMapImplementation *map_impl, AZMap *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
 };
 
 struct _AZMapClass {
@@ -49,32 +47,31 @@ struct _AZMapClass {
 unsigned int az_map_get_type (void);
 
 static inline unsigned int
-az_map_get_key_type (const AZMapImplementation *map_impl, void *map_inst)
+az_map_get_key_type (const AZMapImplementation *map_impl, AZMap *map_inst)
 {
 	return map_impl->get_key_type (map_impl, map_inst);
 }
 
-/* Get corresponding key using the same iterator as value */
 static inline const AZImplementation *
-az_map_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZValue *iter, AZValue *val, unsigned int size)
+az_map_get_key (const AZMapImplementation *map_impl, AZMap *map_inst, const AZValue *iter, AZValue *val, unsigned int size)
 {
 	return map_impl->get_key (map_impl, map_inst, iter, val, size);
 }
-/* Get keys as distinct collection */
+
 static inline const AZSetImplementation *
-az_map_get_keys (const AZMapImplementation *map_impl, void *map_inst, AZSet **inst)
+az_map_get_keys (const AZMapImplementation *map_impl, AZMap *map_inst, AZSet **inst)
 {
 	return map_impl->get_keys (map_impl, map_inst, inst);
 }
 
 static inline unsigned int
-az_map_contains_key (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, const void *key_inst)
+az_map_contains_key (const AZMapImplementation *map_impl, AZMap *map_inst, const AZImplementation *key_impl, const void *key_inst)
 {
 	return map_impl->contains_key (map_impl, map_inst, key_impl, key_inst);
 }
 
 static inline const AZImplementation *
-az_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size)
+az_map_lookup (const AZMapImplementation *map_impl, AZMap *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size)
 {
 	return map_impl->lookup (map_impl, map_inst, key_impl, key_inst, val, size);
 }

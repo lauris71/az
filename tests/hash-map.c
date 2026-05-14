@@ -217,7 +217,7 @@ test_iterator(const AZHashMapImplementation *impl, int32_t *keys, int32_t *vals,
         TEST_ASSERT_NOT_NULL(elem_impl);
 
         AZValue kval;
-        const AZImplementation *key_ret = az_map_get_key(map, &hmap, &iter, &kval, sizeof(AZValue));
+        const AZImplementation *key_ret = az_map_get_key(map, (AZMap *) &hmap, &iter, &kval, sizeof(AZValue));
         TEST_ASSERT_NOT_NULL(key_ret);
 
         const int32_t *lookup_val = (const int32_t *) az_hash_map_lookup(impl, &hmap, &kval.int32_v);

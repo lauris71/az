@@ -86,10 +86,10 @@ unsigned int hmap_contains (const AZCollectionImplementation *coll_impl, void *c
 static const AZImplementation *hmap_get_iter (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
 static const AZImplementation *hmap_iter_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
 const AZImplementation *hmap_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZValue *iter, AZValue *val, unsigned int size);
-static unsigned int hmap_get_key_type (const AZMapImplementation *map_impl, void *map_inst);
-static const AZImplementation *hmap_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZValue *iter, AZValue *val, unsigned int size);
-static unsigned int hmap_contains_key (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, const void *key_inst);
-static const AZImplementation *hmap_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
+static unsigned int hmap_get_key_type (const AZMapImplementation *map_impl, AZMap *map_inst);
+static const AZImplementation *hmap_get_key (const AZMapImplementation *map_impl, AZMap *map_inst, const AZValue *iter, AZValue *val, unsigned int size);
+static unsigned int hmap_contains_key (const AZMapImplementation *map_impl, AZMap *map_inst, const AZImplementation *key_impl, const void *key_inst);
+static const AZImplementation *hmap_map_lookup (const AZMapImplementation *map_impl, AZMap *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
 
 static unsigned int hmap_type = 0;
 static AZHashMapClass *hmap_class;
@@ -227,14 +227,14 @@ hmap_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, 
 }
 
 static unsigned int
-hmap_get_key_type (const AZMapImplementation *map_impl, void *map_inst)
+hmap_get_key_type (const AZMapImplementation *map_impl, AZMap *map_inst)
 {
 	AZHashMapImplementation *impl = (AZHashMapImplementation *) map_impl;
 	return AZ_IMPL_TYPE(impl->key_impl);
 }
 
 static const AZImplementation *
-hmap_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZValue *iter, AZValue *val, unsigned int size)
+hmap_get_key (const AZMapImplementation *map_impl, AZMap *map_inst, const AZValue *iter, AZValue *val, unsigned int size)
 {
 	AZHashMapImplementation *impl = (AZHashMapImplementation *) map_impl;
 	AZHashMap *hmap = (AZHashMap *) map_inst;
@@ -244,7 +244,7 @@ hmap_get_key (const AZMapImplementation *map_impl, void *map_inst, const AZValue
 }
 
 static unsigned int
-hmap_contains_key (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, const void *key_inst)
+hmap_contains_key (const AZMapImplementation *map_impl, AZMap *map_inst, const AZImplementation *key_impl, const void *key_inst)
 {
 	AZHashMapImplementation *impl = (AZHashMapImplementation *) map_impl;
 	AZHashMap *hmap = (AZHashMap *) map_inst;
@@ -252,7 +252,7 @@ hmap_contains_key (const AZMapImplementation *map_impl, void *map_inst, const AZ
 }
 
 static const AZImplementation *
-hmap_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size)
+hmap_map_lookup (const AZMapImplementation *map_impl, AZMap *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size)
 {
 	AZHashMapImplementation *impl = (AZHashMapImplementation *) map_impl;
 	AZHashMap *hmap = (AZHashMap *) map_inst;

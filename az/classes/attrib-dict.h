@@ -47,8 +47,8 @@ struct _AZAttribDictImplementation {
 	AZMapImplementation map_impl;
 	AZListImplementation val_list_impl;
 	AZListImplementation key_list_impl;
-	const AZImplementation *(*lookup) (const AZAttribDictImplementation *aa_impl, void *aa_inst, const AZString *key, AZValue *val, int size, unsigned int *flags);
-	unsigned int (*set) (const AZAttribDictImplementation *aa_impl, void *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
+	const AZImplementation *(*lookup) (const AZAttribDictImplementation *aa_impl, AZMap *aa_inst, const AZString *key, AZValue *val, int size, unsigned int *flags);
+	unsigned int (*set) (const AZAttribDictImplementation *aa_impl, AZMap *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
 };
 
 struct _AZAttribDictClass {
@@ -57,8 +57,8 @@ struct _AZAttribDictClass {
 
 unsigned int az_attrib_dict_get_type (void);
 
-const AZImplementation *az_attrib_dict_lookup (const AZAttribDictImplementation *aa_impl, void *aa_inst, const AZString *key, AZValue64 *val, unsigned int *flags);
-unsigned int az_attrib_dict_set (const AZAttribDictImplementation *aa_impl, void *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
+const AZImplementation *az_attrib_dict_lookup (const AZAttribDictImplementation *aa_impl, AZMap *aa_inst, const AZString *key, AZValue64 *val, unsigned int *flags);
+unsigned int az_attrib_dict_set (const AZAttribDictImplementation *aa_impl, AZMap *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
 
 #ifdef __cplusplus
 };
