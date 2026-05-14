@@ -14,6 +14,7 @@ add_executable(az_test
     unity/unity.c
     test.c
     hash-map.c
+    hash-set.c
 )
 
 target_compile_definitions(az_test PRIVATE UNITY_INCLUDE_DOUBLE)
@@ -30,3 +31,4 @@ add_test(NAME types COMMAND az_test types)
 add_test(NAME boxed-value COMMAND az_test boxed-value)
 add_test(NAME array-list COMMAND az_test array-list)
 add_test(NAME hash-map COMMAND az_test hash-map)
+add_test(NAME hash-set COMMAND az_test hash-set)

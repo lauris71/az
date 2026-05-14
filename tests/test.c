@@ -12,6 +12,7 @@
 #include <az/collections/array-list.h>
 #include <az/collections/array.h>
 #include <az/collections/hash-map.h>
+#include <az/collections/hash-set.h>
 
 #include "unity/unity.h"
 
@@ -21,6 +22,7 @@ static void test_array_list();
 static void test_array();
 
 void test_hash_map(void);
+void test_hash_set(void);
 
 void setUp(void) {
     // set stuff up here
@@ -45,6 +47,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_array);
         } else if (!strcmp(argv[i], "hash-map")) {
             RUN_TEST(test_hash_map);
+        } else if (!strcmp(argv[i], "hash-set")) {
+            RUN_TEST(test_hash_set);
         }
     }
     return UNITY_END();

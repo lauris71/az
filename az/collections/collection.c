@@ -35,7 +35,7 @@ az_collection_get_type (void)
 {
 	if (!collection_type) {
 		collection_class = (AZCollectionClass *) az_register_interface_type (&collection_type, (const unsigned char *) "AZCollection", AZ_TYPE_INTERFACE,
-			sizeof (AZCollectionClass), sizeof (AZCollectionImplementation), 0, 0,
+			sizeof (AZCollectionClass), sizeof (AZCollectionImplementation), 0, AZ_FLAG_ABSTRACT,
 			(void (*) (AZClass *)) collection_class_init,
 			NULL,
 			NULL, NULL);
