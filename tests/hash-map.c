@@ -74,11 +74,14 @@ test_insert_remove(const AZHashMapImplementation *impl, int32_t *keys, int32_t *
     AZHashMap hmap;
     az_instance_init((const AZImplementation *) impl, &hmap);
 
+    TEST_ASSERT_EQUAL_UINT(az_collection_get_element_type((AZCollectionImplementation *) impl, &hmap.map.collection), AZ_TYPE_INT32);
+    TEST_ASSERT_EQUAL_UINT(az_collection_get_element_type((AZCollectionImplementation *) impl, &hmap.map.collection), AZ_TYPE_INT32);
+
     for (unsigned int i = 0; i < n_entries; i++) {
         az_hash_map_insert(impl, &hmap, &keys[i], &vals[i]);
     }
 
-    TEST_ASSERT_EQUAL_UINT(n_entries, hmap.n_entries);
+    TEST_ASSERT_EQUAL_UINT(n_entries, hmap.map.collection.size);
 
     for (unsigned int i = 0; i < n_entries; i++) {
         TEST_ASSERT(az_hash_map_exists(impl, &hmap, &keys[i]));
@@ -92,7 +95,7 @@ test_insert_remove(const AZHashMapImplementation *impl, int32_t *keys, int32_t *
         TEST_ASSERT(!az_hash_map_exists(impl, &hmap, &keys[i]));
     }
 
-    TEST_ASSERT_EQUAL_UINT(n_entries / 2, hmap.n_entries);
+    TEST_ASSERT_EQUAL_UINT(n_entries / 2, hmap.map.collection.size);
 
     for (unsigned int i = 1; i < n_entries; i += 2) {
         TEST_ASSERT(az_hash_map_exists(impl, &hmap, &keys[i]));
@@ -100,7 +103,7 @@ test_insert_remove(const AZHashMapImplementation *impl, int32_t *keys, int32_t *
         TEST_ASSERT(!az_hash_map_exists(impl, &hmap, &keys[i]));
     }
 
-    TEST_ASSERT_EQUAL_UINT(0, hmap.n_entries);
+    TEST_ASSERT_EQUAL_UINT(0, hmap.map.collection.size);
 
     az_instance_finalize((const AZImplementation *) impl, &hmap);
 }
@@ -115,11 +118,11 @@ test_insert_remove_all(const AZHashMapImplementation *impl, int32_t *keys, int32
         az_hash_map_insert(impl, &hmap, &keys[i], &vals[i]);
     }
 
-    TEST_ASSERT_EQUAL_UINT(n_entries, hmap.n_entries);
+    TEST_ASSERT_EQUAL_UINT(n_entries, hmap.map.collection.size);
 
     unsigned int n_removed = az_hash_map_remove_all(impl, &hmap, remove_odd_val, NULL);
     TEST_ASSERT_TRUE(n_removed > 0);
-    TEST_ASSERT_EQUAL_UINT(n_entries - n_removed, hmap.n_entries);
+    TEST_ASSERT_EQUAL_UINT(n_entries - n_removed, hmap.map.collection.size);
 
     for (unsigned int i = 0; i < n_entries; i++) {
         if (vals[i] & 1) {
@@ -130,7 +133,7 @@ test_insert_remove_all(const AZHashMapImplementation *impl, int32_t *keys, int32
     }
 
     az_hash_map_clear(impl, &hmap);
-    TEST_ASSERT_EQUAL_UINT(0, hmap.n_entries);
+    TEST_ASSERT_EQUAL_UINT(0, hmap.map.collection.size);
 
     for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
         TEST_ASSERT(!az_hash_map_exists(impl, &hmap, &keys[i]));
@@ -149,14 +152,14 @@ test_overwrite_remove_val(const AZHashMapImplementation *impl, int32_t *keys, in
         az_hash_map_insert(impl, &hmap, &keys[i], &vals[i]);
     }
 
-    TEST_ASSERT_EQUAL_UINT(NUM_ENTRIES, hmap.n_entries);
+    TEST_ASSERT_EQUAL_UINT(NUM_ENTRIES, hmap.map.collection.size);
 
     for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
         uint32_t new_val = vals[i] + 1000;
         az_hash_map_insert(impl, &hmap, &keys[i], &new_val);
     }
 
-    TEST_ASSERT_EQUAL_UINT(NUM_ENTRIES, hmap.n_entries);
+    TEST_ASSERT_EQUAL_UINT(NUM_ENTRIES, hmap.map.collection.size);
 
     for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
         const int32_t *found = (const int32_t *) az_hash_map_lookup(impl, &hmap, &keys[i]);
@@ -164,7 +167,7 @@ test_overwrite_remove_val(const AZHashMapImplementation *impl, int32_t *keys, in
         TEST_ASSERT_EQUAL_INT32(vals[i] + 1000, *found);
     }
 
-    TEST_ASSERT_EQUAL_UINT(NUM_ENTRIES, hmap.n_entries);
+    TEST_ASSERT_EQUAL_UINT(NUM_ENTRIES, hmap.map.collection.size);
 
     for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
         uint32_t new_val = vals[i] + 1000;
@@ -210,10 +213,10 @@ test_iterator(const AZHashMapImplementation *impl, int32_t *keys, int32_t *vals,
 
     unsigned int count = 0;
     AZValue iter;
-    const AZImplementation *iter_impl = az_collection_get_iterator(coll, &hmap, &iter);
+    const AZImplementation *iter_impl = az_collection_get_iterator(coll, &hmap.map.collection, &iter);
     while (iter_impl) {
         AZValue val;
-        const AZImplementation *elem_impl = az_collection_get_element(coll, &hmap, &iter, &val, sizeof(AZValue));
+        const AZImplementation *elem_impl = az_collection_get_element(coll, &hmap.map.collection, &iter, &val, sizeof(AZValue));
         TEST_ASSERT_NOT_NULL(elem_impl);
 
         AZValue kval;
@@ -225,15 +228,15 @@ test_iterator(const AZHashMapImplementation *impl, int32_t *keys, int32_t *vals,
         TEST_ASSERT_EQUAL_INT32(val.int32_v, *lookup_val);
 
         count++;
-        iter_impl = az_collection_iterator_next(coll, &hmap, &iter);
+        iter_impl = az_collection_iterator_next(coll, &hmap.map.collection, &iter);
     }
 
     TEST_ASSERT_EQUAL_UINT(n_entries, count);
 
     az_hash_map_clear(impl, &hmap);
-    TEST_ASSERT_EQUAL_UINT(0, hmap.n_entries);
+    TEST_ASSERT_EQUAL_UINT(0, hmap.map.collection.size);
 
-    iter_impl = az_collection_get_iterator(coll, &hmap, &iter);
+    iter_impl = az_collection_get_iterator(coll, &hmap.map.collection, &iter);
     TEST_ASSERT_NULL(iter_impl);
 
     az_instance_finalize((const AZImplementation *) impl, &hmap);

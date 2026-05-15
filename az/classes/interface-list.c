@@ -48,7 +48,7 @@ interface_list_class_init (AZInterfaceListClass* klass)
 {
 	/* Interfaces */
 	az_class_set_num_interfaces (( AZClass*) klass, 1);
-	az_class_declare_interface (( AZClass*) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET (AZInterfaceListClass, list_impl), 0);
+	az_class_declare_interface (( AZClass*) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET (AZInterfaceListClass, list_impl), ARIKKEI_OFFSET (AZInterfaceList, list));
 	/* Array implementation */
 	klass->list_impl.collection_impl.get_element_type = interface_list_get_element_type;
 	klass->list_impl.collection_impl.get_size = interface_list_get_size;
@@ -72,21 +72,21 @@ interface_list_finalize (AZInterfaceListClass* klass, AZInterfaceList* ifl)
 static unsigned int
 interface_list_get_element_type (const AZCollectionImplementation* collection_impl, AZCollection* collection_inst)
 {
-	AZInterfaceList* ifl = ( AZInterfaceList*) collection_inst;
+	AZInterfaceList* ifl = (AZInterfaceList*) ARIKKEI_BASE_ADDRESS(AZInterfaceList,list,collection_inst);
 	return ifl->iface_type;
 }
 
 static unsigned int
 interface_list_get_size (const AZCollectionImplementation* collection_impl, AZCollection* collection_inst)
 {
-	AZInterfaceList* ifl = ( AZInterfaceList*) collection_inst;
+	AZInterfaceList* ifl = (AZInterfaceList*) ARIKKEI_BASE_ADDRESS(AZInterfaceList,list,collection_inst);
 	return ifl->length;
 }
 
 static unsigned int
 interface_list_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
-	AZInterfaceList *ifl = (AZInterfaceList *) collection_inst;
+	AZInterfaceList *ifl = (AZInterfaceList*) ARIKKEI_BASE_ADDRESS(AZInterfaceList,list,collection_inst);
 	unsigned int i;
 	for (i = 0; i < ifl->length; i++) {
 		if ((ifl->elements[i].impl == impl) && (ifl->elements[i].inst == inst)) return 1;
@@ -97,7 +97,7 @@ interface_list_contains (const AZCollectionImplementation *collection_impl, AZCo
 static const AZImplementation*
 interface_list_get_element (const AZListImplementation* list_impl, void* list_inst, unsigned int idx, AZValue *val, unsigned int size)
 {
-	AZInterfaceList* ifl = ( AZInterfaceList*) list_inst;
+	AZInterfaceList* ifl = (AZInterfaceList*) ARIKKEI_BASE_ADDRESS(AZInterfaceList,list,list_inst);
 	arikkei_return_val_if_fail (idx < ifl->length, 0);
 	val->block = ifl->elements[idx].inst;
 	return ifl->elements[idx].impl;

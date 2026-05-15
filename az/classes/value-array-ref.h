@@ -21,6 +21,7 @@ extern "C" {
 
 struct _AZValueArrayRef {
 	AZReference reference;
+	AZList list;
 	AZValueArray varray;
 };
 

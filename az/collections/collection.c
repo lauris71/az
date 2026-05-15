@@ -35,7 +35,7 @@ az_collection_get_type (void)
 {
 	if (!collection_type) {
 		collection_class = (AZCollectionClass *) az_register_interface_type (&collection_type, (const unsigned char *) "AZCollection", AZ_TYPE_INTERFACE,
-			sizeof (AZCollectionClass), sizeof (AZCollectionImplementation), 0, AZ_FLAG_ABSTRACT,
+			sizeof(AZCollectionClass), sizeof(AZCollectionImplementation), sizeof(AZCollection), AZ_FLAG_ABSTRACT,
 			(void (*) (AZClass *)) collection_class_init,
 			NULL,
 			NULL, NULL);
@@ -49,7 +49,7 @@ collection_class_init (AZCollectionClass *klass)
 	az_class_set_num_properties ((AZClass *) klass, NUM_PROPERTIES);
 	az_class_define_method_va ((AZClass *) klass, FUNC_CONTAINS, (const unsigned char *) "contains", collection_call_contains, AZ_TYPE_BOOLEAN, 1, AZ_TYPE_ANY);
 	az_class_define_property ((AZClass *) klass, PROP_SIZE, (const unsigned char *) "size", AZ_TYPE_UINT32, 0, AZ_FIELD_INSTANCE, AZ_FIELD_READ_METHOD, 0, 0, NULL, NULL);
-	klass->interface_class.klass.get_property = collection_get_property;
+	klass->iface_class.klass.get_property = collection_get_property;
 }
 
 static unsigned int

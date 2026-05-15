@@ -47,7 +47,7 @@ object_interface_list_class_init (AZObjectInterfaceListClass *klass)
 {
 	/* Interfaces */
 	az_class_set_num_interfaces ((AZClass *) klass, 1);
-	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET (AZObjectInterfaceListClass, list_implementation), 0);
+	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZObjectInterfaceListClass, list_implementation), ARIKKEI_OFFSET(AZObjectInterfaceList, list));
 	/* Array implementation */
 	klass->list_implementation.collection_impl.get_element_type = object_interface_list_get_element_type;
 	klass->list_implementation.collection_impl.get_size = object_interface_list_get_size;
@@ -74,21 +74,21 @@ object_interface_list_finalize (AZObjectInterfaceListClass *klass, AZObjectInter
 static unsigned int
 object_interface_list_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
-	AZObjectInterfaceList *objifl = (AZObjectInterfaceList *) collection_inst;
+	AZObjectInterfaceList *objifl = (AZObjectInterfaceList *) ARIKKEI_BASE_ADDRESS(AZObjectInterfaceList,list,collection_inst);
 	return objifl->interface_type;
 }
 
 static unsigned int
 object_interface_list_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
-	AZObjectInterfaceList *objifl = (AZObjectInterfaceList *) collection_inst;
+	AZObjectInterfaceList *objifl = (AZObjectInterfaceList *) ARIKKEI_BASE_ADDRESS(AZObjectInterfaceList,list,collection_inst);
 	return objifl->length;
 }
 
 static unsigned int
 object_interface_list_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
-	AZObjectInterfaceList *objifl = ( AZObjectInterfaceList *) collection_inst;
+	AZObjectInterfaceList *objifl = (AZObjectInterfaceList *) ARIKKEI_BASE_ADDRESS(AZObjectInterfaceList,list,collection_inst);
 	unsigned int i;
 	for (i = 0; i < objifl->length; i++) {
 		if ((objifl->elements[i].impl == impl) && (objifl->elements[i].inst == inst)) return 1;
@@ -99,7 +99,7 @@ object_interface_list_contains (const AZCollectionImplementation *collection_imp
 static const AZImplementation *
 object_interface_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue* val, unsigned int size)
 {
-	AZObjectInterfaceList *objifl = (AZObjectInterfaceList *) list_inst;
+	AZObjectInterfaceList *objifl = (AZObjectInterfaceList *) ARIKKEI_BASE_ADDRESS(AZObjectInterfaceList,list,list_inst);
 	arikkei_return_val_if_fail (idx < objifl->length, 0);
 	val->block = objifl->elements[idx].inst;
 	return objifl->elements[idx].impl;

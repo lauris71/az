@@ -9,6 +9,7 @@
 
 #define AZ_TYPE_LIST (az_list_get_type ())
 
+typedef struct _AZList AZList;
 typedef struct _AZListImplementation AZListImplementation;
 typedef struct _AZListClass AZListClass;
 
@@ -22,6 +23,10 @@ extern "C" {
 * An hybrid interface that allows sequential access by index
 * The iterator of a list is always unsigned integer
 */
+
+struct _AZList {
+	AZCollection collection;
+};
 
 struct _AZListImplementation {
 	AZCollectionImplementation collection_impl;

@@ -19,18 +19,23 @@ typedef struct _AZCollectionClass AZCollectionClass;
 extern "C" {
 #endif
 
+struct _AZCollection {
+	uint32_t element_type;
+	uint32_t size;
+};
+
 struct _AZCollectionImplementation {
-	AZImplementation implementation;
+	AZImplementation impl;
 	unsigned int (*get_element_type) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 	unsigned int (*get_size) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
-	unsigned int (*contains) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
+	unsigned int (*contains) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *val_impl, const void *val_inst);
 	const AZImplementation *(*get_iterator) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
 	const AZImplementation *(*iterator_next) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
 	const AZImplementation *(*get_element) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZValue *iter, AZValue *val, unsigned int size);
 };
 
 struct _AZCollectionClass {
-	AZInterfaceClass interface_class;
+	AZInterfaceClass iface_class;
 };
 
 unsigned int az_collection_get_type (void);
@@ -39,19 +44,21 @@ unsigned int az_collection_get_type (void);
 static inline unsigned int
 az_collection_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
-	return coll_impl->get_element_type (coll_impl, coll_inst);
+	if (coll_impl->get_element_type) return coll_impl->get_element_type (coll_impl, coll_inst);
+	return coll_inst->element_type;
 }
 
 static inline unsigned int
 az_collection_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
-	return coll_impl->get_size (coll_impl, coll_inst);
+	if (coll_impl->get_size) return coll_impl->get_size (coll_impl, coll_inst);
+	return coll_inst->size;
 }
 
 static inline unsigned int
-az_collection_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst)
+az_collection_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *val_impl, const void *val_inst)
 {
-	return coll_impl->contains (coll_impl, coll_inst, impl, inst);
+	return coll_impl->contains (coll_impl, coll_inst, val_impl, val_inst);
 }
 
 /* Return 0 if unsuccessful */

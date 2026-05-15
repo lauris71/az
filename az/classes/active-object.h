@@ -58,6 +58,7 @@ struct _AZObjectCallbackBlock {
 struct _AZActiveObject {
 	AZObject object;
 	AZObjectCallbackBlock *callbacks;
+	AZAttribDict adict;
 	AZObjectAttributeArray *attributes;
 };
 

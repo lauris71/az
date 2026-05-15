@@ -87,8 +87,6 @@ static void hmap_implementation_init (AZHashMapImplementation *impl);
 static void hmap_instance_init (const AZHashMapImplementation *impl, AZHashMap *hmap);
 static void hmap_instance_finalize (const AZHashMapImplementation *impl, AZHashMap *hmap);
 
-unsigned int hmap_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
-unsigned int hmap_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 unsigned int hmap_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
 static const AZImplementation *hmap_get_iter (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
 static const AZImplementation *hmap_iter_next (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
@@ -118,13 +116,10 @@ az_hash_map_get_type (void)
 static void
 hmap_implementation_init (AZHashMapImplementation *impl)
 {
-	impl->map_impl.collection_impl.get_element_type = hmap_get_element_type;
-	impl->map_impl.collection_impl.get_size = hmap_get_size;
 	impl->map_impl.collection_impl.contains = hmap_contains;
 	impl->map_impl.collection_impl.get_iterator = hmap_get_iter;
 	impl->map_impl.collection_impl.iterator_next = hmap_iter_next;
 	impl->map_impl.collection_impl.get_element = hmap_get_element;
-	impl->map_impl.get_key_type = hmap_get_key_type;
 	impl->map_impl.get_key = hmap_get_key;
 	impl->map_impl.contains_key = hmap_contains_key;
 	impl->map_impl.lookup = hmap_map_lookup;
@@ -141,6 +136,8 @@ hmap_implementation_init (AZHashMapImplementation *impl)
 static void
 hmap_instance_init (const AZHashMapImplementation *impl, AZHashMap *hmap)
 {
+	hmap->map.collection.element_type = AZ_IMPL_TYPE(impl->val_impl);
+	hmap->map.key_type = AZ_IMPL_TYPE(impl->key_impl);
     hmap->root_size = impl->root_size;
     hmap->size = 3 * impl->root_size;
     hmap->free = hmap->root_size;
@@ -165,17 +162,10 @@ hmap_instance_finalize (const AZHashMapImplementation *impl, AZHashMap *hmap)
 }
 
 unsigned int
-hmap_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
-{
-	AZHashMapImplementation *impl = (AZHashMapImplementation *) coll_impl;
-	return AZ_IMPL_TYPE(impl->val_impl);
-}
-
-unsigned int
 hmap_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	AZHashMap *hmap = (AZHashMap *) coll_inst;
-	return hmap->n_entries;
+	return hmap->map.collection.size;
 }
 
 unsigned int
@@ -275,7 +265,7 @@ az_hash_map_insert(const AZHashMapImplementation *impl, AZHashMap *hmap, void *k
 	AZHashMapEntry *root_entry = entry_ptr(impl, hmap->entries, pos);
 	if(root_entry->next == EMPTY) {
 		set_entry(impl, root_entry, END, key, val, 0);
-		hmap->n_entries += 1;
+		hmap->map.collection.size += 1;
 		return;
 	}
 	if (impl->equal(impl, key, key_inst(impl, root_entry))) {
@@ -297,7 +287,7 @@ az_hash_map_insert(const AZHashMapImplementation *impl, AZHashMap *hmap, void *k
 		hmap->free = entry->next;
 		set_entry(impl, entry, root_entry->next, key, val, 0);
 		root_entry->next = pos;
-		hmap->n_entries += 1;
+		hmap->map.collection.size += 1;
 		return;
 	}
 	reallocate (impl, hmap, hmap->root_size << 1);
@@ -321,7 +311,7 @@ az_hash_map_remove(const AZHashMapImplementation *impl, AZHashMap *hmap, const v
 		} else {
 			root_entry->next = EMPTY;
 		}
-		hmap->n_entries -= 1;
+		hmap->map.collection.size -= 1;
 		return 1;
 	}
 	AZHashMapEntry *prev_entry = root_entry;
@@ -333,7 +323,7 @@ az_hash_map_remove(const AZHashMapImplementation *impl, AZHashMap *hmap, const v
 			prev_entry->next = entry->next;
 			entry->next = hmap->free;
 			hmap->free = pos;
-			hmap->n_entries -= 1;
+			hmap->map.collection.size -= 1;
 			return 1;
 		}
 		prev_entry = entry;
@@ -364,7 +354,7 @@ az_hash_map_clear(const AZHashMapImplementation *impl, AZHashMap *hmap)
 	AZHashMapEntry *entry = entry_ptr(impl, hmap->entries, hmap->size - 1);
 	entry->next = END;
 	hmap->free = hmap->root_size;
-	hmap->n_entries = 0;
+	hmap->map.collection.size = 0;
 }
 
 unsigned int
@@ -433,7 +423,7 @@ az_hash_map_remove_all (const AZHashMapImplementation *impl, AZHashMap *hmap, un
 		if (remove(key_inst(impl, root_entry), val_inst(impl, root_entry), data)) {
 			clear_entry(impl, root_entry);
 			root_entry->next = EMPTY;
-			hmap->n_entries -= 1;
+			hmap->map.collection.size -= 1;
 			n_removed += 1;
 			prev = NULL;
 		} else {
@@ -447,7 +437,7 @@ az_hash_map_remove_all (const AZHashMapImplementation *impl, AZHashMap *hmap, un
 				entry->next = hmap->free;
 				hmap->free = pos;
 				if (prev) prev->next = next;
-				hmap->n_entries -= 1;
+				hmap->map.collection.size -= 1;
 				n_removed += 1;
 			} else {
 				if (!prev) {

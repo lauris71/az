@@ -42,7 +42,7 @@ az_attrib_dict_get_type (void)
 {
 	if (!attrib_dict_type) {
 		attrib_dict_class = (AZAttribDictClass *) az_register_interface_type (&attrib_dict_type, (const unsigned char *) "AZAttributeArray", AZ_TYPE_LIST,
-			sizeof (AZAttribDictClass), sizeof (AZAttribDictImplementation), 0, AZ_FLAG_ZERO_MEMORY,
+			sizeof (AZAttribDictClass), sizeof (AZAttribDictImplementation), sizeof(AZAttribDict), AZ_FLAG_ZERO_MEMORY,
 			NULL,
 			(void (*) (AZImplementation *)) attrib_dict_impl_init,
 			NULL, NULL);
@@ -53,8 +53,8 @@ az_attrib_dict_get_type (void)
 static void
 attrib_dict_impl_init (AZAttribDictImplementation *impl)
 {
-	az_implementation_init_by_type (&impl->val_list_impl.collection_impl.implementation, AZ_TYPE_LIST);
-	az_implementation_init_by_type (&impl->key_list_impl.collection_impl.implementation, AZ_TYPE_LIST);
+	az_implementation_init_by_type (&impl->val_list_impl.collection_impl.impl, AZ_TYPE_LIST);
+	az_implementation_init_by_type (&impl->key_list_impl.collection_impl.impl, AZ_TYPE_LIST);
 	/* Base */
 	impl->map_impl.collection_impl.get_element_type = attrd_get_element_type;
 	impl->map_impl.collection_impl.get_iterator = attrd_get_iterator;
@@ -173,13 +173,13 @@ attrd_keys_get_size (const AZCollectionImplementation *coll_impl, AZCollection *
 
 
 const AZImplementation *
-az_attrib_dict_lookup (const AZAttribDictImplementation *attrd_impl, AZMap *attrd_inst, const AZString *key, AZValue64 *val, unsigned int *flags)
+az_attrib_dict_lookup (const AZAttribDictImplementation *attrd_impl, AZAttribDict *attrd_inst, const AZString *key, AZValue64 *val, unsigned int *flags)
 {
 	return attrd_impl->lookup (attrd_impl, attrd_inst, key, &val->value, 64, flags);
 }
 
 unsigned int
-az_attrib_dict_set (const AZAttribDictImplementation *attrd_impl, AZMap *attrd_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags)
+az_attrib_dict_set (const AZAttribDictImplementation *attrd_impl, AZAttribDict *attrd_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags)
 {
 	return attrd_impl->set (attrd_impl, attrd_inst, key, impl, inst, flags);
 }

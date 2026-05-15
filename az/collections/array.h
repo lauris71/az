@@ -30,8 +30,7 @@ extern "C" {
  * 
  */
 struct _AZArray {
-	uint32_t elem_type;
-	uint32_t length;
+	AZCollection collection;
 	void *values;
 };
 
@@ -45,7 +44,7 @@ unsigned int az_array_get_type ();
 static inline AZValue *
 az_array_value_at (const AZArray *array, unsigned int idx)
 {
-	return (AZValue *) ((char *) array->values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(array->elem_type)));
+	return (AZValue *) ((char *) array->values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(array->collection.element_type)));
 }
 
 /**
@@ -76,7 +75,7 @@ const AZListImplementation *az_array_object_get_list(AZArrayObject *obj, void **
 static inline AZValue *
 az_array_object_value_at (AZArrayObject *aobj, unsigned int idx)
 {
-	return (AZValue *) ((char *) aobj->array.values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(aobj->array.elem_type)));
+	return (AZValue *) ((char *) aobj->array.values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(aobj->array.collection.element_type)));
 }
 
 #ifdef __cplusplus

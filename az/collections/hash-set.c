@@ -68,8 +68,6 @@ static void hset_implementation_init (AZHashSetImplementation *impl);
 static void hset_instance_init (const AZHashSetImplementation *impl, AZHashSet *hset);
 static void hset_instance_finalize (const AZHashSetImplementation *impl, AZHashSet *hset);
 
-static unsigned int hset_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
-static unsigned int hset_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 static unsigned int hset_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
 static const AZImplementation *hset_get_iter (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
 static const AZImplementation *hset_iter_next (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
@@ -95,8 +93,6 @@ az_hash_set_get_type (void)
 static void
 hset_implementation_init (AZHashSetImplementation *impl)
 {
-	impl->set_impl.collection_impl.get_element_type = hset_get_element_type;
-	impl->set_impl.collection_impl.get_size = hset_get_size;
 	impl->set_impl.collection_impl.contains = hset_contains;
 	impl->set_impl.collection_impl.get_iterator = hset_get_iter;
 	impl->set_impl.collection_impl.iterator_next = hset_iter_next;
@@ -111,6 +107,7 @@ hset_implementation_init (AZHashSetImplementation *impl)
 static void
 hset_instance_init (const AZHashSetImplementation *impl, AZHashSet *hset)
 {
+	hset->set.collection.element_type = AZ_IMPL_TYPE(impl->elem_impl);
     hset->root_size = impl->root_size;
     hset->size = 3 * impl->root_size;
     hset->free = hset->root_size;
@@ -132,20 +129,6 @@ hset_instance_finalize (const AZHashSetImplementation *impl, AZHashSet *hset)
 		}
 	}
     aligned_free(hset->entries);
-}
-
-static unsigned int
-hset_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
-{
-	AZHashSetImplementation *impl = (AZHashSetImplementation *) coll_impl;
-	return AZ_IMPL_TYPE(impl->elem_impl);
-}
-
-static unsigned int
-hset_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
-{
-	AZHashSet *hset = (AZHashSet *) coll_inst;
-	return hset->n_entries;
 }
 
 static unsigned int
@@ -210,7 +193,7 @@ az_hash_set_insert(const AZHashSetImplementation *impl, AZHashSet *hset, void *e
 	AZHashSetEntry *root_entry = entry_ptr(impl, hset->entries, pos);
 	if(root_entry->next == EMPTY) {
 		set_entry(impl, root_entry, END, elem);
-		hset->n_entries += 1;
+		hset->set.collection.size += 1;
 		return;
 	}
 	if (impl->equal(impl, elem, elem_inst(impl, root_entry))) {
@@ -230,7 +213,7 @@ az_hash_set_insert(const AZHashSetImplementation *impl, AZHashSet *hset, void *e
 		hset->free = entry->next;
 		set_entry(impl, entry, root_entry->next, elem);
 		root_entry->next = pos;
-		hset->n_entries += 1;
+		hset->set.collection.size += 1;
 		return;
 	}
 	reallocate (impl, hset, hset->root_size << 1);
@@ -254,7 +237,7 @@ az_hash_set_remove(const AZHashSetImplementation *impl, AZHashSet *hset, const v
 		} else {
 			root_entry->next = EMPTY;
 		}
-		hset->n_entries -= 1;
+		hset->set.collection.size -= 1;
 		return 1;
 	}
 	AZHashSetEntry *prev_entry = root_entry;
@@ -266,7 +249,7 @@ az_hash_set_remove(const AZHashSetImplementation *impl, AZHashSet *hset, const v
 			prev_entry->next = entry->next;
 			entry->next = hset->free;
 			hset->free = pos;
-			hset->n_entries -= 1;
+			hset->set.collection.size -= 1;
 			return 1;
 		}
 		prev_entry = entry;
@@ -297,7 +280,7 @@ az_hash_set_clear(const AZHashSetImplementation *impl, AZHashSet *hset)
 	AZHashSetEntry *entry = entry_ptr(impl, hset->entries, hset->size - 1);
 	entry->next = END;
 	hset->free = hset->root_size;
-	hset->n_entries = 0;
+	hset->set.collection.size = 0;
 }
 
 unsigned int
@@ -343,7 +326,7 @@ az_hash_set_remove_all (const AZHashSetImplementation *impl, AZHashSet *hset, un
 		if (remove(elem_inst(impl, root_entry), data)) {
 			clear_entry(impl, root_entry);
 			root_entry->next = EMPTY;
-			hset->n_entries -= 1;
+			hset->set.collection.size -= 1;
 			n_removed += 1;
 			prev = NULL;
 		} else {
@@ -357,7 +340,7 @@ az_hash_set_remove_all (const AZHashSetImplementation *impl, AZHashSet *hset, un
 				entry->next = hset->free;
 				hset->free = pos;
 				if (prev) prev->next = next;
-				hset->n_entries -= 1;
+				hset->set.collection.size -= 1;
 				n_removed += 1;
 			} else {
 				if (!prev) {

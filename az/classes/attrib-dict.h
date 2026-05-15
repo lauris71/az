@@ -11,6 +11,7 @@
 
 typedef struct _AZAttribDictImplementation AZAttribDictImplementation;
 typedef struct _AZAttribDictClass AZAttribDictClass;
+typedef struct _AZAttribDict AZAttribDict;
 
 #include <az/collections/list.h>
 #include <az/collections/map.h>
@@ -38,7 +39,7 @@ extern "C" {
 *   lookup
 *   set
 *
-* Iterator is uint32 and can be shared between all interfaces
+* Iterator is uint32 and can be shared between map and keyset
 */
 
 #define AZ_ATTRIB_ARRAY_IS_FINAL 1
@@ -47,18 +48,22 @@ struct _AZAttribDictImplementation {
 	AZMapImplementation map_impl;
 	AZListImplementation val_list_impl;
 	AZListImplementation key_list_impl;
-	const AZImplementation *(*lookup) (const AZAttribDictImplementation *aa_impl, AZMap *aa_inst, const AZString *key, AZValue *val, int size, unsigned int *flags);
-	unsigned int (*set) (const AZAttribDictImplementation *aa_impl, AZMap *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
+	const AZImplementation *(*lookup) (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, const AZString *key, AZValue *val, int size, unsigned int *flags);
+	unsigned int (*set) (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
 };
 
 struct _AZAttribDictClass {
 	AZMapClass map_class;
 };
 
+struct _AZAttribDict {
+	AZMap map;
+};
+
 unsigned int az_attrib_dict_get_type (void);
 
-const AZImplementation *az_attrib_dict_lookup (const AZAttribDictImplementation *aa_impl, AZMap *aa_inst, const AZString *key, AZValue64 *val, unsigned int *flags);
-unsigned int az_attrib_dict_set (const AZAttribDictImplementation *aa_impl, AZMap *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
+const AZImplementation *az_attrib_dict_lookup (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, const AZString *key, AZValue64 *val, unsigned int *flags);
+unsigned int az_attrib_dict_set (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
 
 #ifdef __cplusplus
 };

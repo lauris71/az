@@ -35,6 +35,7 @@ struct _AZObjectInterfaceList {
 	unsigned int interface_type;
 	unsigned int size;
 	unsigned int length;
+	AZList list;
 	AZObjectInterfaceListElement *elements;
 };
 

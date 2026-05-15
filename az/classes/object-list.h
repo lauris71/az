@@ -30,6 +30,7 @@ struct _AZObjectList {
 	unsigned int length;
 	unsigned int interface : 1;
 	unsigned int weak : 1;
+	AZList list;
 	AZObject **objects;
 };
 

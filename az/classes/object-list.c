@@ -56,7 +56,7 @@ object_list_class_init (AZObjectListClass *klass)
 {
 	/* Interfaces */
 	az_class_set_num_interfaces ((AZClass *) klass, 1);
-	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZObjectListClass, list_implementation), 0);
+	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZObjectListClass, list_implementation), ARIKKEI_OFFSET(AZObjectList, list));
 	/* Properties */
 	az_class_set_num_properties (( AZClass*) klass, NUM_PROPERTIES);
 	az_class_define_method_va ((AZClass *) klass, FUNC_APPEND, (const unsigned char *) "append", object_list_call_Append, AZ_TYPE_NONE, 1, AZ_TYPE_OBJECT );
@@ -93,21 +93,21 @@ object_list_finalize (AZObjectListClass *klass, AZObjectList *objl)
 static unsigned int
 object_list_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
-	AZObjectList *objl = (AZObjectList *) collection_inst;
+	AZObjectList *objl = (AZObjectList *) ARIKKEI_BASE_ADDRESS(AZObjectList,list,collection_inst);
 	return objl->type;
 }
 
 static unsigned int
 object_list_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
-	AZObjectList *objl = (AZObjectList *) collection_inst;
+	AZObjectList *objl = (AZObjectList *) ARIKKEI_BASE_ADDRESS(AZObjectList,list,collection_inst);
 	return objl->length;
 }
 
 static unsigned int
 object_list_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
-	AZObjectList *objl = ( AZObjectList *) collection_inst;
+	AZObjectList *objl = (AZObjectList *) ARIKKEI_BASE_ADDRESS(AZObjectList,list,collection_inst);
 	unsigned int i;
 	for (i = 0; i < objl->length; i++) {
 		if (objl->objects[i] == (AZObject *) inst) return 1;
@@ -119,7 +119,7 @@ static const AZImplementation *
 object_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
 {
 	const AZImplementation *impl;
-	AZObjectList *objl = (AZObjectList *) list_inst;
+	AZObjectList *objl = (AZObjectList *) ARIKKEI_BASE_ADDRESS(AZObjectList,list,list_inst);
 	arikkei_return_val_if_fail (idx < objl->length, 0);
 	az_value_set_object (&impl, val, objl->objects[idx]);
 	return impl;

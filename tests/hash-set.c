@@ -72,7 +72,7 @@ test_insert_remove(const AZHashSetImplementation *impl, int32_t *elems, unsigned
         az_hash_set_insert(impl, &hset, &elems[i]);
     }
 
-    TEST_ASSERT_EQUAL_UINT(n_entries, hset.n_entries);
+    TEST_ASSERT_EQUAL_UINT(n_entries, hset.set.collection.size);
 
     for (unsigned int i = 0; i < n_entries; i++) {
         TEST_ASSERT(az_hash_set_contains(impl, &hset, &elems[i]));
@@ -83,7 +83,7 @@ test_insert_remove(const AZHashSetImplementation *impl, int32_t *elems, unsigned
         TEST_ASSERT(!az_hash_set_contains(impl, &hset, &elems[i]));
     }
 
-    TEST_ASSERT_EQUAL_UINT(n_entries / 2, hset.n_entries);
+    TEST_ASSERT_EQUAL_UINT(n_entries / 2, hset.set.collection.size);
 
     for (unsigned int i = 1; i < n_entries; i += 2) {
         TEST_ASSERT(az_hash_set_contains(impl, &hset, &elems[i]));
@@ -91,7 +91,7 @@ test_insert_remove(const AZHashSetImplementation *impl, int32_t *elems, unsigned
         TEST_ASSERT(!az_hash_set_contains(impl, &hset, &elems[i]));
     }
 
-    TEST_ASSERT_EQUAL_UINT(0, hset.n_entries);
+    TEST_ASSERT_EQUAL_UINT(0, hset.set.collection.size);
 
     az_instance_finalize((const AZImplementation *) impl, &hset);
 }
@@ -106,13 +106,13 @@ test_insert_duplicate(const AZHashSetImplementation *impl, int32_t *elems, unsig
         az_hash_set_insert(impl, &hset, &elems[i]);
     }
 
-    TEST_ASSERT_EQUAL_UINT(n_entries, hset.n_entries);
+    TEST_ASSERT_EQUAL_UINT(n_entries, hset.set.collection.size);
 
     for (unsigned int i = 0; i < n_entries; i++) {
         az_hash_set_insert(impl, &hset, &elems[i]);
     }
 
-    TEST_ASSERT_EQUAL_UINT(n_entries, hset.n_entries);
+    TEST_ASSERT_EQUAL_UINT(n_entries, hset.set.collection.size);
 
     az_instance_finalize((const AZImplementation *) impl, &hset);
 }
@@ -127,11 +127,11 @@ test_insert_remove_all(const AZHashSetImplementation *impl, int32_t *elems, unsi
         az_hash_set_insert(impl, &hset, &elems[i]);
     }
 
-    TEST_ASSERT_EQUAL_UINT(n_entries, hset.n_entries);
+    TEST_ASSERT_EQUAL_UINT(n_entries, hset.set.collection.size);
 
     unsigned int n_removed = az_hash_set_remove_all(impl, &hset, remove_odd_elem, NULL);
     TEST_ASSERT_TRUE(n_removed > 0);
-    TEST_ASSERT_EQUAL_UINT(n_entries - n_removed, hset.n_entries);
+    TEST_ASSERT_EQUAL_UINT(n_entries - n_removed, hset.set.collection.size);
 
     for (unsigned int i = 0; i < n_entries; i++) {
         if (elems[i] & 1) {
@@ -142,7 +142,7 @@ test_insert_remove_all(const AZHashSetImplementation *impl, int32_t *elems, unsi
     }
 
     az_hash_set_clear(impl, &hset);
-    TEST_ASSERT_EQUAL_UINT(0, hset.n_entries);
+    TEST_ASSERT_EQUAL_UINT(0, hset.set.collection.size);
 
     for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
         TEST_ASSERT(!az_hash_set_contains(impl, &hset, &elems[i]));
@@ -165,24 +165,24 @@ test_iterator(const AZHashSetImplementation *impl, int32_t *elems, unsigned int 
 
     unsigned int count = 0;
     AZValue iter;
-    const AZImplementation *iter_impl = az_collection_get_iterator(coll, &hset, &iter);
+    const AZImplementation *iter_impl = az_collection_get_iterator(coll, &hset.set.collection, &iter);
     while (iter_impl) {
         AZValue val;
-        const AZImplementation *elem_impl = az_collection_get_element(coll, &hset, &iter, &val, sizeof(AZValue));
+        const AZImplementation *elem_impl = az_collection_get_element(coll, &hset.set.collection, &iter, &val, sizeof(AZValue));
         TEST_ASSERT_NOT_NULL(elem_impl);
 
         TEST_ASSERT(az_hash_set_contains(impl, &hset, &val.int32_v));
 
         count++;
-        iter_impl = az_collection_iterator_next(coll, &hset, &iter);
+        iter_impl = az_collection_iterator_next(coll, &hset.set.collection, &iter);
     }
 
     TEST_ASSERT_EQUAL_UINT(n_entries, count);
 
     az_hash_set_clear(impl, &hset);
-    TEST_ASSERT_EQUAL_UINT(0, hset.n_entries);
+    TEST_ASSERT_EQUAL_UINT(0, hset.set.collection.size);
 
-    iter_impl = az_collection_get_iterator(coll, &hset, &iter);
+    iter_impl = az_collection_get_iterator(coll, &hset.set.collection, &iter);
     TEST_ASSERT_NULL(iter_impl);
 
     az_instance_finalize((const AZImplementation *) impl, &hset);
@@ -200,10 +200,10 @@ test_collection_interface(const AZHashSetImplementation *impl, int32_t *elems, u
 
     const AZCollectionImplementation *coll = &impl->set_impl.collection_impl;
 
-    TEST_ASSERT_EQUAL_UINT(AZ_TYPE_INT32, az_collection_get_element_type(coll, &hset));
-    TEST_ASSERT_EQUAL_UINT(n_entries, az_collection_get_size(coll, &hset));
-    TEST_ASSERT(az_collection_contains(coll, &hset, &AZInt32Klass.impl, &elems[0]));
-    TEST_ASSERT(!az_collection_contains(coll, &hset, &AZInt32Klass.impl, &(int32_t){-999999}));
+    TEST_ASSERT_EQUAL_UINT(AZ_TYPE_INT32, az_collection_get_element_type(coll, &hset.set.collection));
+    TEST_ASSERT_EQUAL_UINT(n_entries, az_collection_get_size(coll, &hset.set.collection));
+    TEST_ASSERT(az_collection_contains(coll, &hset.set.collection, &AZInt32Klass.impl, &elems[0]));
+    TEST_ASSERT(!az_collection_contains(coll, &hset.set.collection, &AZInt32Klass.impl, &(int32_t){-999999}));
 
     az_instance_finalize((const AZImplementation *) impl, &hset);
 }

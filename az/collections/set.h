@@ -19,6 +19,10 @@ typedef struct _AZSetClass AZSetClass;
 extern "C" {
 #endif
 
+struct _AZSet {
+	AZCollection collection;
+};
+
 struct _AZSetImplementation {
 	AZCollectionImplementation collection_impl;
 };
