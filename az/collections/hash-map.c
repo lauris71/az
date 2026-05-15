@@ -87,12 +87,12 @@ static void hmap_implementation_init (AZHashMapImplementation *impl);
 static void hmap_instance_init (const AZHashMapImplementation *impl, AZHashMap *hmap);
 static void hmap_instance_finalize (const AZHashMapImplementation *impl, AZHashMap *hmap);
 
-unsigned int hmap_get_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst);
-unsigned int hmap_get_size (const AZCollectionImplementation *coll_impl, void *coll_inst);
-unsigned int hmap_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst);
-static const AZImplementation *hmap_get_iter (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
-static const AZImplementation *hmap_iter_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
-const AZImplementation *hmap_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZValue *iter, AZValue *val, unsigned int size);
+unsigned int hmap_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+unsigned int hmap_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+unsigned int hmap_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
+static const AZImplementation *hmap_get_iter (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
+static const AZImplementation *hmap_iter_next (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
+const AZImplementation *hmap_get_element (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZValue *iter, AZValue *val, unsigned int size);
 static unsigned int hmap_get_key_type (const AZMapImplementation *map_impl, AZMap *map_inst);
 static const AZImplementation *hmap_get_key (const AZMapImplementation *map_impl, AZMap *map_inst, const AZValue *iter, AZValue *val, unsigned int size);
 static unsigned int hmap_contains_key (const AZMapImplementation *map_impl, AZMap *map_inst, const AZImplementation *key_impl, const void *key_inst);
@@ -165,21 +165,21 @@ hmap_instance_finalize (const AZHashMapImplementation *impl, AZHashMap *hmap)
 }
 
 unsigned int
-hmap_get_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst)
+hmap_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	AZHashMapImplementation *impl = (AZHashMapImplementation *) coll_impl;
 	return AZ_IMPL_TYPE(impl->val_impl);
 }
 
 unsigned int
-hmap_get_size (const AZCollectionImplementation *coll_impl, void *coll_inst)
+hmap_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	AZHashMap *hmap = (AZHashMap *) coll_inst;
 	return hmap->n_entries;
 }
 
 unsigned int
-hmap_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst)
+hmap_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst)
 {
 	AZHashMapImplementation *hmap_impl = (AZHashMapImplementation *) coll_impl;
 	AZHashMap *hmap = (AZHashMap *) coll_inst;
@@ -187,7 +187,7 @@ hmap_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, con
 }
 
 static const AZImplementation *
-hmap_get_iter (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter)
+hmap_get_iter (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter)
 {
 	AZHashMapImplementation *impl = (AZHashMapImplementation *) coll_impl;
 	AZHashMap *hmap = (AZHashMap *) coll_inst;
@@ -202,7 +202,7 @@ hmap_get_iter (const AZCollectionImplementation *coll_impl, void *coll_inst, AZV
 }
 
 static const AZImplementation *
-hmap_iter_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter)
+hmap_iter_next (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter)
 {
 	AZHashMapImplementation *impl = (AZHashMapImplementation *) coll_impl;
 	AZHashMap *hmap = (AZHashMap *) coll_inst;
@@ -224,7 +224,7 @@ hmap_iter_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZ
 }
 
 const AZImplementation *
-hmap_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZValue *iter, AZValue *val, unsigned int size)
+hmap_get_element (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZValue *iter, AZValue *val, unsigned int size)
 {
 	AZHashMapImplementation *impl = (AZHashMapImplementation *) coll_impl;
 	AZHashMap *hmap = (AZHashMap *) coll_inst;

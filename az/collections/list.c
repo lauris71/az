@@ -18,9 +18,9 @@
 static void list_class_init (AZListClass *klass);
 static void list_implementation_init (AZListImplementation *impl);
 /* AZCollection implementation */
-static const AZImplementation *list_get_iterator (const AZCollectionImplementation *collection_impl, void *collection_inst, AZValue *iter);
-static const AZImplementation *list_iterator_next (const AZCollectionImplementation *collection_impl, void *collection_inst, AZValue *iter);
-static const AZImplementation *list_get_element (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZValue *iter, AZValue *val, unsigned int size);
+static const AZImplementation *list_get_iterator (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, AZValue *iter);
+static const AZImplementation *list_iterator_next (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, AZValue *iter);
+static const AZImplementation *list_get_element (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZValue *iter, AZValue *val, unsigned int size);
 /* AZInstance implementation */
 static unsigned int list_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
 
@@ -71,7 +71,7 @@ list_get_property (const AZImplementation *impl, void *inst, unsigned int idx, c
 }
 
 static const AZImplementation *
-list_get_iterator (const AZCollectionImplementation *collection_impl, void *collection_inst, AZValue *iter)
+list_get_iterator (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, AZValue *iter)
 {
 	if (!az_collection_get_size(collection_impl, collection_inst)) return NULL;
 	iter->uint32_v = 0;
@@ -79,14 +79,14 @@ list_get_iterator (const AZCollectionImplementation *collection_impl, void *coll
 }
 
 static const AZImplementation *
-list_iterator_next (const AZCollectionImplementation *collection_impl, void *collection_inst, AZValue *iter)
+list_iterator_next (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, AZValue *iter)
 {
 	iter->uint32_v += 1;
 	return (iter->uint32_v < az_collection_get_size (collection_impl, collection_inst)) ? NULL : &AZUint32Klass.impl;
 }
 
 static const AZImplementation *
-list_get_element (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZValue *iter, AZValue *val, unsigned int size)
+list_get_element (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZValue *iter, AZValue *val, unsigned int size)
 {
 	return az_list_get_element ((AZListImplementation *) collection_impl, collection_inst, iter->uint32_v, val,  size);
 }

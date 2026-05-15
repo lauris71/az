@@ -30,7 +30,7 @@ typedef struct _AZObjectEventVector AZObjectEventVector;
 
 struct _AZObjectAttribute {
 	AZString *key;
-	AZPackedValue64 value;
+	AZPackedValue value;
 };
 
 struct _AZObjectAttributeArray {

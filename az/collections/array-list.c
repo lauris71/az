@@ -23,9 +23,9 @@ static void array_list_init (AZArrayListClass *klass, AZArrayList *alist);
 static void array_list_finalize (AZArrayListClass *klass, AZArrayList *alist);
 
 /* AZCollection implementation */
-static unsigned int array_list_get_element_type (const AZCollectionImplementation *collection_impl, void *collection_inst);
-static unsigned int array_list_get_size (const AZCollectionImplementation *collection_impl, void *collection_inst);
-static unsigned int array_list_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst);
+static unsigned int array_list_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
+static unsigned int array_list_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
+static unsigned int array_list_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
 static const AZImplementation *array_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
@@ -78,21 +78,21 @@ array_list_finalize (AZArrayListClass *klass, AZArrayList *alist)
 }
 
 static unsigned int
-array_list_get_element_type (const AZCollectionImplementation *coll_impl, void *collection_inst)
+array_list_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *collection_inst)
 {
 	AZArrayList *alist = (AZArrayList *) collection_inst;
 	return alist->type;
 }
 
 static unsigned int
-array_list_get_size (const AZCollectionImplementation *coll_impl, void *collection_inst)
+array_list_get_size (const AZCollectionImplementation *coll_impl, AZCollection *collection_inst)
 {
 	AZArrayList *alist = (AZArrayList *) collection_inst;
 	return alist->length;
 }
 
 static unsigned int
-array_list_contains (const AZCollectionImplementation *coll_impl, void *collection_inst, const AZImplementation *impl, const void *inst)
+array_list_contains (const AZCollectionImplementation *coll_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
 	AZArrayList *alist = (AZArrayList *) collection_inst;
 	for (unsigned int i = 0; i < alist->length; i++) {

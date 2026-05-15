@@ -19,9 +19,9 @@ static void object_list_init (AZObjectListClass *klass, AZObjectList *objl);
 static void object_list_finalize (AZObjectListClass *klass, AZObjectList *objl);
 
 /* AZCollection implementation */
-static unsigned int object_list_get_element_type (const AZCollectionImplementation *impl, void *collection_instance);
-static unsigned int object_list_get_size (const AZCollectionImplementation *impl, void *collection_instance);
-static unsigned int object_list_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst);
+static unsigned int object_list_get_element_type (const AZCollectionImplementation *impl, AZCollection *collection_instance);
+static unsigned int object_list_get_size (const AZCollectionImplementation *impl, AZCollection *collection_instance);
+static unsigned int object_list_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
 static const AZImplementation *object_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
@@ -91,21 +91,21 @@ object_list_finalize (AZObjectListClass *klass, AZObjectList *objl)
 }
 
 static unsigned int
-object_list_get_element_type (const AZCollectionImplementation *collection_impl, void *collection_inst)
+object_list_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
 	AZObjectList *objl = (AZObjectList *) collection_inst;
 	return objl->type;
 }
 
 static unsigned int
-object_list_get_size (const AZCollectionImplementation *collection_impl, void *collection_inst)
+object_list_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
 	AZObjectList *objl = (AZObjectList *) collection_inst;
 	return objl->length;
 }
 
 static unsigned int
-object_list_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst)
+object_list_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
 	AZObjectList *objl = ( AZObjectList *) collection_inst;
 	unsigned int i;

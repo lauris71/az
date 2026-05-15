@@ -18,21 +18,21 @@ static void attrib_dict_impl_init (AZAttribDictImplementation *impl);
 
 /* We need three sets of collecion methods */
 /* Base */
-static unsigned int attrd_get_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst);
-static const AZImplementation *attrd_get_iterator (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
-static const AZImplementation *attrd_iterator_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter);
-const AZImplementation *attrd_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZValue *iter, AZValue *val, unsigned int size);
+static unsigned int attrd_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+static const AZImplementation *attrd_get_iterator (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
+static const AZImplementation *attrd_iterator_next (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
+const AZImplementation *attrd_get_element (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZValue *iter, AZValue *val, unsigned int size);
 static unsigned int attrd_get_key_type (const AZMapImplementation *map_impl, AZMap *map_inst);
 static const AZImplementation *attrd_get_key (const AZMapImplementation *map_impl, AZMap *map_inst, const AZValue *iter, AZValue *val, unsigned int size);
 const AZSetImplementation *attrd_get_keys (const AZMapImplementation *map_impl, AZMap *map_inst, AZSet **inst);
 const AZImplementation *attrd_lookup (const AZMapImplementation *map_impl, AZMap *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
 /* Value list */
-static unsigned int attrd_val_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst);
-static unsigned int attrd_val_get_size (const AZCollectionImplementation *coll_impl, void *coll_inst);
-static unsigned int attrd_val_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst);
+static unsigned int attrd_val_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+static unsigned int attrd_val_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+static unsigned int attrd_val_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
 /* Key list */
-static unsigned int attrd_keys_get_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst);
-static unsigned int attrd_keys_get_size (const AZCollectionImplementation *coll_impl, void *coll_inst);
+static unsigned int attrd_keys_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+static unsigned int attrd_keys_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 
 static unsigned int attrib_dict_type = 0;
 static AZAttribDictClass *attrib_dict_class;
@@ -76,13 +76,13 @@ attrib_dict_impl_init (AZAttribDictImplementation *impl)
 /* Base */
 
 static unsigned int
-attrd_get_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst)
+attrd_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	return AZ_TYPE_ANY;
 }
 
 static const AZImplementation *
-attrd_get_iterator (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter)
+attrd_get_iterator (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter)
 {
 	if (!az_collection_get_size (coll_impl, coll_inst)) return NULL;
 	iter->uint32_v = 0;
@@ -90,14 +90,14 @@ attrd_get_iterator (const AZCollectionImplementation *coll_impl, void *coll_inst
 }
 
 static const AZImplementation *
-attrd_iterator_next (const AZCollectionImplementation *coll_impl, void *coll_inst, AZValue *iter)
+attrd_iterator_next (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter)
 {
 	iter->uint32_v += 1;
 	return (iter->uint32_v < az_collection_get_size (coll_impl, coll_inst)) ? &AZUint32Klass.impl : NULL;
 }
 
 const AZImplementation *
-attrd_get_element (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZValue *iter, AZValue *val, unsigned int size)
+attrd_get_element (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZValue *iter, AZValue *val, unsigned int size)
 {
 	AZAttribDictImplementation *impl = (AZAttribDictImplementation *) coll_impl;
 	return az_list_get_element(&impl->val_list_impl, coll_inst, iter->uint32_v, val, size);
@@ -136,21 +136,21 @@ attrd_lookup (const AZMapImplementation *map_impl, AZMap *map_inst, const AZImpl
 /* Value list */
 
 static unsigned int
-attrd_val_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst)
+attrd_val_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	AZAttribDictImplementation *attrd_impl = (AZAttribDictImplementation *) ARIKKEI_BASE_ADDRESS(AZAttribDictImplementation,val_list_impl,coll_impl);
 	return attrd_impl->map_impl.collection_impl.get_element_type (&attrd_impl->map_impl.collection_impl, coll_inst);
 }
 
 static unsigned int
-attrd_val_get_size (const AZCollectionImplementation *coll_impl, void *coll_inst)
+attrd_val_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	AZAttribDictImplementation *attrd_impl = (AZAttribDictImplementation *) ARIKKEI_BASE_ADDRESS(AZAttribDictImplementation,val_list_impl,coll_impl);
 	return attrd_impl->map_impl.collection_impl.get_size (&attrd_impl->map_impl.collection_impl, coll_inst);
 }
 
 static unsigned int
-attrd_val_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst)
+attrd_val_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst)
 {
 	AZAttribDictImplementation *attrd_impl = (AZAttribDictImplementation *) ARIKKEI_BASE_ADDRESS(AZAttribDictImplementation,val_list_impl,coll_impl);
 	return attrd_impl->map_impl.collection_impl.contains (&attrd_impl->map_impl.collection_impl, coll_inst, impl, inst);
@@ -159,13 +159,13 @@ attrd_val_contains (const AZCollectionImplementation *coll_impl, void *coll_inst
 /* Key list */
 
 static unsigned int
-attrd_keys_get_element_type (const AZCollectionImplementation *coll_impl, void *coll_inst)
+attrd_keys_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	return AZ_TYPE_STRING;
 }
 
 static unsigned int
-attrd_keys_get_size (const AZCollectionImplementation *coll_impl, void *coll_inst)
+attrd_keys_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	AZAttribDictImplementation *attrd_impl = (AZAttribDictImplementation *) ARIKKEI_BASE_ADDRESS (AZAttribDictImplementation, key_list_impl, coll_impl);
 	return attrd_impl->map_impl.collection_impl.get_size (&attrd_impl->map_impl.collection_impl, coll_inst);

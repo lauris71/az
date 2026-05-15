@@ -19,9 +19,9 @@ static void object_interface_list_init (AZObjectInterfaceListClass *klass, AZObj
 static void object_interface_list_finalize (AZObjectInterfaceListClass *klass, AZObjectInterfaceList *objifl);
 
 /* AZCollection implementation */
-static unsigned int object_interface_list_get_element_type (const AZCollectionImplementation *impl, void *collection_instance);
-static unsigned int object_interface_list_get_size (const AZCollectionImplementation *impl, void *collection_instance);
-static unsigned int object_interface_list_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst);
+static unsigned int object_interface_list_get_element_type (const AZCollectionImplementation *impl, AZCollection *collection_instance);
+static unsigned int object_interface_list_get_size (const AZCollectionImplementation *impl, AZCollection *collection_instance);
+static unsigned int object_interface_list_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
 static const AZImplementation *object_interface_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
@@ -72,21 +72,21 @@ object_interface_list_finalize (AZObjectInterfaceListClass *klass, AZObjectInter
 }
 
 static unsigned int
-object_interface_list_get_element_type (const AZCollectionImplementation *collection_impl, void *collection_inst)
+object_interface_list_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
 	AZObjectInterfaceList *objifl = (AZObjectInterfaceList *) collection_inst;
 	return objifl->interface_type;
 }
 
 static unsigned int
-object_interface_list_get_size (const AZCollectionImplementation *collection_impl, void *collection_inst)
+object_interface_list_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
 	AZObjectInterfaceList *objifl = (AZObjectInterfaceList *) collection_inst;
 	return objifl->length;
 }
 
 static unsigned int
-object_interface_list_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst)
+object_interface_list_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
 	AZObjectInterfaceList *objifl = ( AZObjectInterfaceList *) collection_inst;
 	unsigned int i;

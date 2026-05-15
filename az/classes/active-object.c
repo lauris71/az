@@ -24,11 +24,11 @@ static void az_active_object_class_init (AZActiveObjectClass *klass);
 /* AZObject implementation */
 static void az_active_object_shutdown (AZObject *object);
 /* Attribute array */
-static unsigned int aobj_aa_get_size (const AZCollectionImplementation *coll_impl, void *coll_inst);
-static unsigned int aobj_aa_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst);
+static unsigned int aobj_aa_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+static unsigned int aobj_aa_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
 static const AZImplementation *aobj_aa_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 static const AZImplementation *aobj_aa_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
-static unsigned int aobj_aa_keys_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst);
+static unsigned int aobj_aa_keys_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
 static const AZImplementation *aobj_aa_keys_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 const AZImplementation *aobj_attrd_lookup (const AZAttribDictImplementation *aa_impl, AZMap *aa_inst, const AZString *key, AZValue *val, int size, unsigned int *flags);
 
@@ -90,7 +90,7 @@ static unsigned int
 active_object_call_getAttribute (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
 {
 	if (!arg_impls[1]) return 0;
-	if (!az_active_object_get_attribute (( AZActiveObject *) arg_vals[0]->reference, arg_vals[1]->string, ret_impl, ret_val)) {
+	if (!az_active_object_get_attribute ((AZActiveObject *) arg_vals[0]->reference, arg_vals[1]->string, ret_impl, ret_val)) {
 		*ret_impl = NULL;
 	}
 	return 1;
@@ -114,7 +114,7 @@ az_active_object_shutdown (AZObject *object)
 		unsigned int i;
 		for (i = 0; i < aobj->attributes->length; i++) {
 			az_string_unref (aobj->attributes->attribs[i].key);
-			az_packed_value_clear (&aobj->attributes->attribs[i].value.packed_val);
+			az_packed_value_clear (&aobj->attributes->attribs[i].value);
 		}
 		free (aobj->attributes);
 		aobj->attributes = NULL;
@@ -177,7 +177,7 @@ az_active_object_clear_attribute (AZActiveObject *aobj, AZString *key)
 	for (i = 0; i < aobj->attributes->length; i++) {
 		if (aobj->attributes->attribs[i].key == key) {
 			az_string_unref (aobj->attributes->attribs[i].key);
-			az_packed_value_clear (&aobj->attributes->attribs[i].value.packed_val);
+			az_packed_value_clear (&aobj->attributes->attribs[i].value);
 			if ((i + 1) < aobj->attributes->length) {
 				memcpy (&aobj->attributes->attribs[i], &aobj->attributes->attribs[i + 1], (aobj->attributes->length - (i + 1)) * sizeof (AZObjectAttribute));
 			}
@@ -256,7 +256,7 @@ az_active_object_set_attribute_object (AZActiveObject *aobj, const unsigned char
 }
 
 static unsigned int
-aobj_aa_get_size (const AZCollectionImplementation *coll_impl, void *coll_inst)
+aobj_aa_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	AZActiveObject *aobj = (AZActiveObject *) ARIKKEI_BASE_ADDRESS(AZActiveObjectClass,aa_impl,coll_impl);
 	if (!aobj->attributes) return 0;
@@ -264,13 +264,13 @@ aobj_aa_get_size (const AZCollectionImplementation *coll_impl, void *coll_inst)
 }
 
 static unsigned int
-aobj_aa_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst)
+aobj_aa_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst)
 {
 	unsigned int i;
 	AZActiveObject *aobj = (AZActiveObject *) coll_inst;
 	if (!aobj->attributes) return 0;
 	for (i = 0; i < aobj->attributes->length; i++) {
-		if (az_value_equals_instance (impl, &aobj->attributes->attribs[i].value.v.value, inst)) return 1;
+		if (az_value_equals_instance_autobox (aobj->attributes->attribs[i].value.impl, &aobj->attributes->attribs[i].value.v, impl, inst)) return 1;
 	}
 	return 0;
 }
@@ -280,8 +280,7 @@ aobj_aa_get_element (const AZListImplementation *list_impl, void *list_inst, uns
 {
 	AZActiveObject *aobj = (AZActiveObject *) list_inst;
 	if (!aobj->attributes || (aobj->attributes->length <= idx)) return NULL;
-	AZPackedValue64 *pval64 = &aobj->attributes->attribs[idx].value;
-	return az_value_copy_autobox (pval64->impl, val, &pval64->v.value, size);
+	return az_value_copy_autobox (aobj->attributes->attribs[idx].value.impl, val, &aobj->attributes->attribs[idx].value.v, size);
 }
 
 static const AZImplementation *
@@ -293,14 +292,14 @@ aobj_aa_map_lookup (const AZMapImplementation *map_impl, void *map_inst, const A
 	if (!aobj->attributes) return 0;
 	for (i = 0; i < aobj->attributes->length; i++) {
 		if (aobj->attributes->attribs[i].key == (AZString *) key_inst) {
-			return az_value_copy_autobox (aobj->attributes->attribs[i].value.impl, val, &aobj->attributes->attribs[i].value.v.value, size);
+			return az_value_copy_autobox (aobj->attributes->attribs[i].value.impl, val, &aobj->attributes->attribs[i].value.v, size);
 		}
 	}
 	return NULL;
 }
 
 static unsigned int
-aobj_aa_keys_contains (const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst)
+aobj_aa_keys_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst)
 {
 	unsigned int i;
 	if (AZ_IMPL_TYPE(impl) != AZ_TYPE_STRING) return 0;
@@ -330,8 +329,7 @@ aobj_attrd_lookup (const AZAttribDictImplementation *aa_impl, AZMap *aa_inst, co
 	if (!aobj->attributes) return NULL;
 	for (i = 0; i < aobj->attributes->length; i++) {
 		if (aobj->attributes->attribs[i].key == key) {
-			AZPackedValue64 *pval64 = &aobj->attributes->attribs[i].value;
-			return az_value_copy_autobox (pval64->impl, val, &pval64->v.value, 64);
+			return az_value_copy_autobox (aobj->attributes->attribs[i].value.impl, val, &aobj->attributes->attribs[i].value.v, size);
 		}
 	}
 	return NULL;
@@ -344,6 +342,6 @@ aobj_attrd_set (const AZAttribDictImplementation *aa_impl, AZMap *aa_inst, AZStr
 	AZActiveObject *aobj = (AZActiveObject *) aa_inst;
 	if (!impl) return az_active_object_clear_attribute (aobj, key);
 	attr = az_active_object_get_attribute_slot (aobj, key, 1);
-	az_packed_value_set_from_impl_instance (&attr->value.packed_val, impl, inst);
+	az_packed_value_set_autobox (&attr->value, impl, inst);
 	return 1;
 }

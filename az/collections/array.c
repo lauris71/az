@@ -23,9 +23,9 @@ static void array_class_init(AZArrayClass *klass);
 static unsigned int array_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx);
 static unsigned int array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
 
-static unsigned int array_get_element_type(const AZCollectionImplementation *coll_impl, void *coll_inst);
-static unsigned int array_get_size(const AZCollectionImplementation *coll_impl, void *coll_inst);
-static unsigned int array_contains(const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst);
+static unsigned int array_get_element_type(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+static unsigned int array_get_size(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+static unsigned int array_contains(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
 static const AZImplementation *array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
 unsigned int
@@ -82,21 +82,21 @@ array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned 
 }
 
 unsigned int
-array_get_element_type(const AZCollectionImplementation *coll_impl, void *coll_inst)
+array_get_element_type(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	AZArray *array = (AZArray *) coll_inst;
 	return array->elem_type;
 }
 
 unsigned int
-array_get_size(const AZCollectionImplementation *coll_impl, void *coll_inst)
+array_get_size(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	AZArray *array = (AZArray *) coll_inst;
 	return array->length;
 }
 
 unsigned int
-array_contains(const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst)
+array_contains(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst)
 {
 	AZArray *array = (AZArray *) coll_inst;
 	for (unsigned int i = 0; i < array->length; i++) {
@@ -118,9 +118,9 @@ static void array_object_class_init(AZArrayObjectClass *klass);
 static void array_object_instance_init(AZArrayObjectClass *klass, AZArrayObject *aobj);
 static void array_object_instance_finalize(AZArrayObjectClass *klass, AZArrayObject *aobj);
 
-static unsigned int array_object_element_type(const AZCollectionImplementation *coll_impl, void *coll_inst);
-static unsigned int array_object_size(const AZCollectionImplementation *coll_impl, void *coll_inst);
-static unsigned int array_object_contains(const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst);
+static unsigned int array_object_element_type(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+static unsigned int array_object_size(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+static unsigned int array_object_contains(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
 static const AZImplementation *array_object_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
 static unsigned int az_array_object_type = 0;
@@ -164,21 +164,21 @@ array_object_instance_finalize(AZArrayObjectClass *klass, AZArrayObject *aobj)
 }
 
 unsigned int
-array_object_element_type(const AZCollectionImplementation *coll_impl, void *coll_inst)
+array_object_element_type(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	AZArrayObject *aof = (AZArrayObject *) coll_inst;
 	return aof->array.elem_type;
 }
 
 unsigned int
-array_object_size(const AZCollectionImplementation *coll_impl, void *coll_inst)
+array_object_size(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	AZArrayObject *aof = (AZArrayObject *) coll_inst;
 	return aof->array.length;
 }
 
 unsigned int
-array_object_contains(const AZCollectionImplementation *coll_impl, void *coll_inst, const AZImplementation *impl, const void *inst)
+array_object_contains(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst)
 {
 	AZArrayObject *aobj = (AZArrayObject *) coll_inst;
 	for (unsigned int i = 0; i < aobj->array.length; i++) {

@@ -20,9 +20,9 @@ static void interface_list_init (AZInterfaceListClass* klass, AZInterfaceList* i
 static void interface_list_finalize (AZInterfaceListClass* klass, AZInterfaceList* ifl);
 
 /* AZCollection implementation */
-static unsigned int interface_list_get_element_type (const AZCollectionImplementation* impl, void* collection_instance);
-static unsigned int interface_list_get_size (const AZCollectionImplementation* impl, void* collection_instance);
-static unsigned int interface_list_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst);
+static unsigned int interface_list_get_element_type (const AZCollectionImplementation* impl, AZCollection* collection_instance);
+static unsigned int interface_list_get_size (const AZCollectionImplementation* impl, AZCollection* collection_instance);
+static unsigned int interface_list_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
 static const AZImplementation* interface_list_get_element (const AZListImplementation* list_impl, void* list_inst, unsigned int idx, AZValue* val, unsigned int size);
 
@@ -70,21 +70,21 @@ interface_list_finalize (AZInterfaceListClass* klass, AZInterfaceList* ifl)
 }
 
 static unsigned int
-interface_list_get_element_type (const AZCollectionImplementation* collection_impl, void* collection_inst)
+interface_list_get_element_type (const AZCollectionImplementation* collection_impl, AZCollection* collection_inst)
 {
 	AZInterfaceList* ifl = ( AZInterfaceList*) collection_inst;
 	return ifl->iface_type;
 }
 
 static unsigned int
-interface_list_get_size (const AZCollectionImplementation* collection_impl, void* collection_inst)
+interface_list_get_size (const AZCollectionImplementation* collection_impl, AZCollection* collection_inst)
 {
 	AZInterfaceList* ifl = ( AZInterfaceList*) collection_inst;
 	return ifl->length;
 }
 
 static unsigned int
-interface_list_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst)
+interface_list_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
 	AZInterfaceList *ifl = (AZInterfaceList *) collection_inst;
 	unsigned int i;

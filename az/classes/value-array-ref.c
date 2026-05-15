@@ -15,9 +15,9 @@ static void value_array_ref_init (AZValueArrayRefClass* klass, AZValueArrayRef* 
 static void value_array_ref_finalize (AZValueArrayRefClass* klass, AZValueArrayRef* varef);
 
 /* AZCollection implementation */
-static unsigned int value_array_ref_get_element_type (const AZCollectionImplementation *collection_impl, void *collection_inst);
-static unsigned int value_array_ref_get_size (const AZCollectionImplementation *collection_impl, void *collection_inst);
-static unsigned int value_array_ref_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst);
+static unsigned int value_array_ref_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
+static unsigned int value_array_ref_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
+static unsigned int value_array_ref_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
 static const AZImplementation* value_array_ref_get_element (const AZListImplementation* list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
@@ -70,21 +70,21 @@ value_array_ref_finalize (AZValueArrayRefClass *klass, AZValueArrayRef *varef)
 }
 
 static unsigned int
-value_array_ref_get_element_type (const AZCollectionImplementation *collection_impl, void *collection_inst)
+value_array_ref_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
 	AZValueArrayRef *varef = (AZValueArrayRef *) collection_inst;
 	return varef->varray.type;
 }
 
 static unsigned int
-value_array_ref_get_size (const AZCollectionImplementation *collection_impl, void *collection_inst)
+value_array_ref_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
 	AZValueArrayRef *varef = (AZValueArrayRef *) collection_inst;
 	return varef->varray.length;
 }
 
 static unsigned int
-value_array_ref_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst)
+value_array_ref_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
 	AZValueArrayRef *varef = (AZValueArrayRef *) collection_inst;
 	return az_collection_contains (&az_value_array_class->list_implementation.collection_impl, &varef->varray, impl, inst);

@@ -23,9 +23,9 @@ static void value_array_init (AZValueArrayClass *klass, AZValueArray *varray);
 static void value_array_finalize (AZValueArrayClass *klass, AZValueArray *varray);
 
 /* AZCollection implementation */
-static unsigned int value_array_get_element_type (const AZCollectionImplementation *collection_impl, void *collection_inst);
-static unsigned int value_array_get_size (const AZCollectionImplementation *collection_impl, void *collection_inst);
-static unsigned int value_array_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst);
+static unsigned int value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
+static unsigned int value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
+static unsigned int value_array_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
 static const AZImplementation *value_array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
@@ -97,21 +97,21 @@ value_array_finalize (AZValueArrayClass *klass, AZValueArray *varray)
 }
 
 static unsigned int
-value_array_get_element_type (const AZCollectionImplementation *collection_impl, void *collection_inst)
+value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
 	AZValueArray *varray = (AZValueArray *) collection_inst;
 	return varray->type;
 }
 
 static unsigned int
-value_array_get_size (const AZCollectionImplementation *collection_impl, void *collection_inst)
+value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
 	AZValueArray *varray = (AZValueArray *) collection_inst;
 	return varray->length;
 }
 
 static unsigned int
-value_array_contains (const AZCollectionImplementation *collection_impl, void *collection_inst, const AZImplementation *impl, const void *inst)
+value_array_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
 	AZValueArray *varray = (AZValueArray *) collection_inst;
 	unsigned int i;
@@ -270,8 +270,8 @@ static void packed_value_array_finalize (AZPackedValueArrayClass *klass, AZPacke
 /* AZInstance implementation */
 static unsigned int packed_value_array_get_property (const AZImplementation *impl, void *instance, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
 /* AZCollection implementation */
-static unsigned int packed_value_array_get_element_type (const AZCollectionImplementation *collection_impl, void *collection_inst);
-static unsigned int packed_value_array_get_size (const AZCollectionImplementation *collection_impl, void *collection_inst);
+static unsigned int packed_value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
+static unsigned int packed_value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
 /* AZList implementation */
 static const AZImplementation *packed_value_array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
@@ -334,13 +334,13 @@ packed_value_array_get_property (const AZImplementation *impl, void *inst, unsig
 }
 
 static unsigned int
-packed_value_array_get_element_type (const AZCollectionImplementation *collection_impl, void *collection_inst)
+packed_value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
 	return AZ_TYPE_ANY;
 }
 
 static unsigned int
-packed_value_array_get_size (const AZCollectionImplementation *collection_impl, void *collection_inst)
+packed_value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
 	AZPackedValueArray *varray = (AZPackedValueArray *) collection_inst;
 	return varray->length;
