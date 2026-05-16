@@ -68,6 +68,7 @@ static void hset_implementation_init (AZHashSetImplementation *impl);
 static void hset_instance_init (const AZHashSetImplementation *impl, AZHashSet *hset);
 static void hset_instance_finalize (const AZHashSetImplementation *impl, AZHashSet *hset);
 
+static unsigned int hset_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 static unsigned int hset_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
 static const AZImplementation *hset_get_iter (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
 static const AZImplementation *hset_iter_next (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
@@ -93,6 +94,7 @@ az_hash_set_get_type (void)
 static void
 hset_implementation_init (AZHashSetImplementation *impl)
 {
+	impl->set_impl.collection_impl.get_element_type = hset_get_element_type;
 	impl->set_impl.collection_impl.contains = hset_contains;
 	impl->set_impl.collection_impl.get_iterator = hset_get_iter;
 	impl->set_impl.collection_impl.iterator_next = hset_iter_next;
@@ -107,7 +109,6 @@ hset_implementation_init (AZHashSetImplementation *impl)
 static void
 hset_instance_init (const AZHashSetImplementation *impl, AZHashSet *hset)
 {
-	hset->set.collection.element_type = AZ_IMPL_TYPE(impl->elem_impl);
     hset->root_size = impl->root_size;
     hset->size = 3 * impl->root_size;
     hset->free = hset->root_size;
@@ -129,6 +130,13 @@ hset_instance_finalize (const AZHashSetImplementation *impl, AZHashSet *hset)
 		}
 	}
     aligned_free(hset->entries);
+}
+
+static unsigned int
+hset_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
+{
+	AZHashSetImplementation *hset_impl = (AZHashSetImplementation *) coll_impl;
+	return AZ_IMPL_TYPE(hset_impl->elem_impl);
 }
 
 static unsigned int

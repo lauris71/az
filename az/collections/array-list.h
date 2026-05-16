@@ -34,6 +34,7 @@ struct _AZArrayListEntry {
 
 struct _AZArrayList {
 	AZList list;
+	unsigned int element_type;
 	unsigned int val_size;
 	unsigned int data_size;
 	void *data;

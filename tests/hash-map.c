@@ -12,6 +12,7 @@
 #include <az/packed-value.h>
 #include <az/collections/collection.h>
 #include <az/collections/map.h>
+#include <az/collections/set.h>
 #include <az/collections/hash-map.h>
 
 #include "unity/unity.h"
@@ -242,6 +243,52 @@ test_iterator(const AZHashMapImplementation *impl, int32_t *keys, int32_t *vals,
     az_instance_finalize((const AZImplementation *) impl, &hmap);
 }
 
+static void
+test_keyset(const AZHashMapImplementation *impl, int32_t *keys, int32_t *vals, unsigned int n_entries)
+{
+    AZHashMap hmap;
+    az_instance_init((const AZImplementation *) impl, &hmap);
+
+    for (unsigned int i = 0; i < n_entries; i++) {
+        az_hash_map_insert(impl, &hmap, &keys[i], &vals[i]);
+    }
+
+    const AZMapImplementation *map = &impl->map_impl;
+
+    AZSet *keyset_inst;
+    const AZSetImplementation *keyset = az_map_get_keys(map, (AZMap *) &hmap, &keyset_inst);
+    TEST_ASSERT_NOT_NULL(keyset);
+
+    const AZCollectionImplementation *keyset_coll = &keyset->collection_impl;
+    TEST_ASSERT_EQUAL_UINT(n_entries, az_collection_get_size(keyset_coll, &keyset_inst->collection));
+    TEST_ASSERT_EQUAL_UINT(AZ_TYPE_INT32, az_collection_get_element_type(keyset_coll, &keyset_inst->collection));
+
+    unsigned int count = 0;
+    AZValue iter;
+    const AZImplementation *iter_impl = az_collection_get_iterator(keyset_coll, &keyset_inst->collection, &iter);
+    while (iter_impl) {
+        AZValue kval;
+        const AZImplementation *elem_impl = az_collection_get_element(keyset_coll, &keyset_inst->collection, &iter, &kval, sizeof(AZValue));
+        TEST_ASSERT_NOT_NULL(elem_impl);
+
+        TEST_ASSERT(az_hash_map_exists(impl, &hmap, &kval.int32_v));
+
+        count++;
+        iter_impl = az_collection_iterator_next(keyset_coll, &keyset_inst->collection, &iter);
+    }
+
+    TEST_ASSERT_EQUAL_UINT(n_entries, count);
+
+    for (unsigned int i = 0; i < n_entries; i++) {
+        TEST_ASSERT(az_collection_contains(keyset_coll, &keyset_inst->collection, &AZInt32Klass.impl, &keys[i]));
+    }
+
+    int32_t absent_key = -999999;
+    TEST_ASSERT(!az_collection_contains(keyset_coll, &keyset_inst->collection, &AZInt32Klass.impl, &absent_key));
+
+    az_instance_finalize((const AZImplementation *) impl, &hmap);
+}
+
 void
 test_hash_map(void)
 {
@@ -262,6 +309,8 @@ test_hash_map(void)
     test_insert_remove(&impl, keys, vals, NUM_ENTRIES);
 
     test_iterator(&impl, keys, vals, NUM_ENTRIES);
+
+    test_keyset(&impl, keys, vals, NUM_ENTRIES);
 
     test_insert_remove_all(&impl, keys, vals, NUM_ENTRIES);
 

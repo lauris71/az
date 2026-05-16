@@ -23,8 +23,13 @@ extern "C" {
 * An hybrid interface that allows lookup by key
 */
 
+struct _AZMap {
+	AZCollection collection;
+};
+
 struct _AZMapImplementation {
 	AZCollectionImplementation collection_impl;
+	AZSetImplementation keyset_impl;
 	/*
 	 * AZCollection methods:
 	 *  get_element_type
@@ -40,11 +45,6 @@ struct _AZMapImplementation {
 	const AZImplementation *(*lookup) (const AZMapImplementation *map_impl, AZMap *map_inst, const AZImplementation *key_impl, void *key_inst, AZValue *val, unsigned int size);
 };
 
-struct _AZMap {
-	AZCollection collection;
-	uint32_t key_type;
-};
-
 struct _AZMapClass {
 	AZCollectionClass collection_class;
 };
@@ -54,8 +54,7 @@ unsigned int az_map_get_type (void);
 static inline unsigned int
 az_map_get_key_type (const AZMapImplementation *map_impl, AZMap *map_inst)
 {
-	if (map_inst->key_type) return map_impl->get_key_type (map_impl, map_inst);
-	return map_inst->key_type;
+	return map_impl->get_key_type(map_impl, map_inst);
 }
 
 static inline const AZImplementation *

@@ -56,7 +56,7 @@ array_list_class_init (AZArrayListClass *klass)
 static void
 array_list_init (AZArrayListClass *klass, AZArrayList *alist)
 {
-	alist->list.collection.element_type = AZ_TYPE_ANY;
+	alist->element_type = AZ_TYPE_ANY;
 	alist->list.collection.size = 0;
 	alist->val_size = 8;
 	alist->data_size = 0;
@@ -99,7 +99,7 @@ AZArrayList *
 az_array_list_new(unsigned int el_type, unsigned int val_size)
 {
 	AZArrayList *alist = az_instance_new(AZ_TYPE_ARRAY_LIST);
-	alist->list.collection.element_type = el_type;
+	alist->element_type = el_type;
 	alist->val_size = (val_size + 0x7) & 0xfffffff8;
 	return alist;
 }
@@ -117,7 +117,7 @@ az_array_list_clear(AZArrayList *alist)
 unsigned int
 az_array_list_set_element (AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst)
 {
-	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->list.collection.element_type), 0);
+	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->element_type), 0);
 	arikkei_return_val_if_fail(idx < alist->list.collection.size, 0);
 	AZArrayListEntry *entry = az_array_list_get_entry(alist, idx);
 	az_value_clear(entry->impl, (AZValue *) entry->val);
@@ -128,7 +128,7 @@ az_array_list_set_element (AZArrayList *alist, unsigned int idx, const AZImpleme
 unsigned int
 az_array_list_append(AZArrayList *alist, const AZImplementation *impl, void *inst)
 {
-	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->list.collection.element_type), 0);
+	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->element_type), 0);
 	if (alist->list.collection.size >= alist->data_size) {
 		alist->data_size = (alist->data_size) ? alist->data_size << 1 : 8;
 		alist->data = (AZArrayListEntry *) realloc(alist->data, alist->data_size * az_array_list_entry_size(alist));
@@ -142,7 +142,7 @@ az_array_list_append(AZArrayList *alist, const AZImplementation *impl, void *ins
 unsigned int
 az_array_list_insert(AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst)
 {
-	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->list.collection.element_type), 0);
+	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->element_type), 0);
 	arikkei_return_val_if_fail(idx <= alist->list.collection.size, 0);
 	if (alist->list.collection.size >= alist->data_size) {
 		alist->data_size = (alist->data_size) ? alist->data_size << 1 : 8;
