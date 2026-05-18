@@ -13,6 +13,7 @@ typedef struct _AZAttribDictImplementation AZAttribDictImplementation;
 typedef struct _AZAttribDictClass AZAttribDictClass;
 typedef struct _AZAttribDict AZAttribDict;
 
+#include <az/value.h>
 #include <az/collections/list.h>
 #include <az/collections/map.h>
 
@@ -47,7 +48,6 @@ extern "C" {
 struct _AZAttribDictImplementation {
 	AZMapImplementation map_impl;
 	AZListImplementation val_list_impl;
-	AZListImplementation key_list_impl;
 	const AZImplementation *(*lookup) (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, const AZString *key, AZValue *val, int size, unsigned int *flags);
 	unsigned int (*set) (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
 };
@@ -62,8 +62,17 @@ struct _AZAttribDict {
 
 unsigned int az_attrib_dict_get_type (void);
 
-const AZImplementation *az_attrib_dict_lookup (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, const AZString *key, AZValue64 *val, unsigned int *flags);
-unsigned int az_attrib_dict_set (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
+static inline const AZImplementation *
+az_attrib_dict_lookup (const AZAttribDictImplementation *attrd_impl, AZAttribDict *attrd_inst, const AZString *key, AZValue64 *val, unsigned int *flags)
+{
+	return attrd_impl->lookup (attrd_impl, attrd_inst, key, &val->value, 64, flags);
+}
+
+static inline unsigned int
+az_attrib_dict_set (const AZAttribDictImplementation *attrd_impl, AZAttribDict *attrd_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags)
+{
+	return attrd_impl->set (attrd_impl, attrd_inst, key, impl, inst, flags);
+}
 
 #ifdef __cplusplus
 };
