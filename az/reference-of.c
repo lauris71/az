@@ -52,7 +52,7 @@ az_reference_of_get_type (unsigned int instance_type)
 		AZClass *inst_class = AZ_CLASS_FROM_TYPE(instance_type);
 		unsigned int len = (unsigned int) strlen ((const char *) inst_class->name);
 		unsigned char *name = malloc (len + 12);
-		sprintf ((char *) name, "ReferenceOf%s", inst_class->name);
+		snprintf ((char *) name, len + 12, "ReferenceOf%s", inst_class->name);
 		unsigned int pos = (sizeof (AZReferenceOf) + inst_class->alignment) & ~(inst_class->alignment);
 		az_register_composite_type (&subtypes[AZ_TYPE_INDEX(instance_type)], name, AZ_TYPE_ABSTRACT_REFERENCE_OF, sizeof (AZReferenceOfClass), pos + inst_class->instance_size, 0,
 			(void (*) (AZClass *, void *)) reference_of_class_init,

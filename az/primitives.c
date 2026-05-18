@@ -43,7 +43,7 @@ az_any_to_string (const AZImplementation* impl, void *inst, unsigned char *d, un
 		pos = arikkei_memcpy_str (d, d_len, (const unsigned char *) "Instance of ");
 		pos += arikkei_memcpy_str (d + pos, (d_len > pos) ? d_len - pos : 0, klass->name);
 		pos += arikkei_memcpy_str (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) " (");
-		sprintf (c, "%p", inst);
+		snprintf (c, 32, "%p", inst);
 		pos += arikkei_memcpy_str (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) c);
 		pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) ")");
 		return pos;

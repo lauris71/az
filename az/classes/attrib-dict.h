@@ -26,28 +26,13 @@ extern "C" {
 *
 * Iterator type is uint32
 * Key type is string
-*
-* Subclasses have to implement
-*   [get_type (unless any)]
-*   get_size
-*   contains
-*   
-*   val_list.get_element
-*
-*   key_list.contains
-*   key_list.get_element
-*
-*   lookup
-*   set
-*
-* Iterator is uint32 and can be shared between map and keyset
+* It is mainly used as a common base interface for azo named attributes
 */
 
 #define AZ_ATTRIB_ARRAY_IS_FINAL 1
 
 struct _AZAttribDictImplementation {
 	AZMapImplementation map_impl;
-	AZListImplementation val_list_impl;
 	const AZImplementation *(*lookup) (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, const AZString *key, AZValue *val, int size, unsigned int *flags);
 	unsigned int (*set) (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
 };
@@ -63,9 +48,9 @@ struct _AZAttribDict {
 unsigned int az_attrib_dict_get_type (void);
 
 static inline const AZImplementation *
-az_attrib_dict_lookup (const AZAttribDictImplementation *attrd_impl, AZAttribDict *attrd_inst, const AZString *key, AZValue64 *val, unsigned int *flags)
+az_attrib_dict_lookup (const AZAttribDictImplementation *attrd_impl, AZAttribDict *attrd_inst, const AZString *key, AZValue *val, unsigned int size, unsigned int *flags)
 {
-	return attrd_impl->lookup (attrd_impl, attrd_inst, key, &val->value, 64, flags);
+	return attrd_impl->lookup (attrd_impl, attrd_inst, key, val, size, flags);
 }
 
 static inline unsigned int
