@@ -87,14 +87,14 @@ static unsigned int
 value_array_ref_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
 	AZValueArrayRef *varef = (AZValueArrayRef *) ARIKKEI_BASE_ADDRESS(AZValueArrayRef,list,collection_inst);
-	return az_collection_contains (&az_value_array_class->list_implementation.collection_impl, &varef->varray, impl, inst);
+	return az_collection_contains (&az_value_array_class->list_impl.collection_impl, &varef->varray, impl, inst);
 }
 
 static const AZImplementation *
 value_array_ref_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
 {
 	AZValueArrayRef *varef = (AZValueArrayRef *) ARIKKEI_BASE_ADDRESS(AZValueArrayRef,list,list_inst);
-	return az_list_get_element (&az_value_array_class->list_implementation, &varef->varray, idx, val, size);
+	return az_list_get_element (&az_value_array_class->list_impl, &varef->varray, idx, val, size);
 }
 
 AZValueArrayRef *

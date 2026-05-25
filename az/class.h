@@ -70,6 +70,8 @@ struct _AZImplementation {
 #define AZ_CLASS_IS_FINAL(c) ((c)->impl.flags & AZ_FLAG_FINAL)
 #define AZ_CLASS_VALUE_SIZE(c) (((c)->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : (c)->instance_size)
 #define AZ_CLASS_ELEMENT_SIZE(c) (((c)->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : ((c)->instance_size + (c)->alignment) & ~(c)->alignment)
+#define AZ_IMPL_VALUE_SIZE(i) (AZ_IMPL_IS_BLOCK(i) ? sizeof(void *) : ((AZClass *) (i))->instance_size)
+#define AZ_IMPL_ELEMENT_SIZE(i) (AZ_IMPL_IS_BLOCK(i) ? sizeof(void *) : (((AZClass *) (i))->instance_size + ((AZClass *) (i))->alignment) & ~((AZClass *) (i))->alignment)
 
 struct _AZIFEntry {
 	uint32_t type;

@@ -33,8 +33,7 @@ struct _AZObjectInterfaceListElement {
 struct _AZObjectInterfaceList {
 	unsigned int object_type;
 	unsigned int interface_type;
-	unsigned int size;
-	unsigned int length;
+	unsigned int allocated_size;
 	AZList list;
 	AZObjectInterfaceListElement *elements;
 };
@@ -47,7 +46,11 @@ struct _AZObjectInterfaceListClass {
 unsigned int az_object_interface_list_get_type (void);
 
 void az_object_interface_list_setup (AZObjectInterfaceList *objifl, unsigned int object_type, unsigned int interface_type);
-void az_object_interface_list_release (AZObjectInterfaceList *objifl);
+static inline void
+az_object_interface_list_release (AZObjectInterfaceList *objifl)
+{
+	az_instance_finalize_by_type (objifl, AZ_TYPE_OBJECT_INTERFACE_LIST);
+}
 
 AZObjectInterfaceList *az_object_interface_list_new (unsigned int object_type, unsigned int interface_type);
 void az_object_interface_list_delete (AZObjectInterfaceList *objifl);
@@ -56,6 +59,7 @@ void az_object_interface_list_append_object (AZObjectInterfaceList *objifl, AZOb
 void az_object_interface_list_remove_object (AZObjectInterfaceList *objifl, AZObject *object);
 void az_object_interface_list_remove_object_by_index (AZObjectInterfaceList *objifl, unsigned int idx);
 void az_object_interface_list_clear (AZObjectInterfaceList *objifl);
+void az_object_interface_list_shutdown (AZObjectInterfaceList *objifl);
 
 unsigned int az_object_interface_list_contains (AZObjectInterfaceList *objifl, AZObject *object);
 

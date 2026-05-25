@@ -12,7 +12,6 @@
 #include <arikkei/arikkei-utils.h>
 
 #include <az/boxed-value.h>
-#include <az/packed-value.h>
 #include <az/private.h>
 #include <az/extend.h>
 
@@ -49,10 +48,10 @@ value_array_class_init (AZValueArrayClass *klass)
 {
 	az_value_array_class = klass;
 	klass->default_size = 4;
-	klass->list_implementation.collection_impl.get_element_type = value_array_get_element_type;
-	klass->list_implementation.collection_impl.get_size = value_array_get_size;
-	klass->list_implementation.collection_impl.contains = value_array_contains;
-	klass->list_implementation.get_element = value_array_get_element;
+	klass->list_impl.collection_impl.get_element_type = value_array_get_element_type;
+	klass->list_impl.collection_impl.get_size = value_array_get_size;
+	klass->list_impl.collection_impl.contains = value_array_contains;
+	klass->list_impl.get_element = value_array_get_element;
 }
 
 static void
@@ -69,8 +68,8 @@ value_array_init (AZValueArrayClass *klass, AZValueArray *varray)
 static unsigned int
 value_array_element_size8 (AZValueArray *varray, unsigned int idx)
 {
-	if (AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(varray->values[idx].impl)) <= 8) return 0;
-	return (AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(varray->values[idx].impl)) + 7) >> 3;
+	if (AZ_IMPL_VALUE_SIZE(varray->values[idx].impl) <= 8) return 0;
+	return (AZ_IMPL_VALUE_SIZE(varray->values[idx].impl) + 7) >> 3;
 }
 
 static AZValue *
@@ -118,11 +117,11 @@ value_array_contains (const AZCollectionImplementation *collection_impl, AZColle
 	for (i = 0; i < varray->length; i++) {
 		if (varray->values[i].impl != impl) continue;
 		if (!impl) return 1;
-		if (!AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(varray->values[i].impl))) return 1;
+		if (!AZ_IMPL_VALUE_SIZE(varray->values[i].impl)) return 1;
 		if (AZ_TYPE_IS_VALUE(AZ_IMPL_TYPE(varray->values[i].impl))) {
-			if (!memcmp (value_array_element_value (varray, i), inst, AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(varray->values[i].impl)))) return 1;
+			if (!memcmp (value_array_element_value (varray, i), inst, AZ_IMPL_VALUE_SIZE(varray->values[i].impl))) return 1;
 		} else {
-			if (!memcmp (value_array_element_value (varray, i), &inst, AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(varray->values[i].impl)))) return 1;
+			if (!memcmp (value_array_element_value (varray, i), &inst, AZ_IMPL_VALUE_SIZE(varray->values[i].impl))) return 1;
 		}
 	}
 	return 0;
@@ -236,10 +235,10 @@ az_value_array_set_element (AZValueArray* varray, unsigned int idx, const AZImpl
 	}
 	varray->values[idx].impl = impl;
 	if (impl) {
-		if (AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(impl)) <= 8) {
+		if (AZ_IMPL_VALUE_SIZE(impl) <= 8) {
 			az_value_copy (impl, (AZValue *) varray->values[idx].value, val);
 		} else {
-			value_array_ensure_room16 (varray, idx, (AZ_TYPE_VALUE_SIZE(AZ_IMPL_TYPE(impl)) + 15) >> 4);
+			value_array_ensure_room16 (varray, idx, (AZ_IMPL_VALUE_SIZE(impl) + 15) >> 4);
 			az_value_copy (impl, varray->data + varray->values[idx].val_idx, val);
 		}
 	}
@@ -253,7 +252,7 @@ az_value_array_transfer_element (AZValueArray* varray, unsigned int idx, const A
 	}
 	varray->values[idx].impl = impl;
 	if (impl) {
-		unsigned int size = AZ_CLASS_VALUE_SIZE(AZ_CLASS_FROM_IMPL(impl));
+		unsigned int size = AZ_IMPL_VALUE_SIZE(impl);
 		if (size <= 8) {
 			az_value_transfer (impl, (AZValue *) varray->values[idx].value, val);
 		} else {
@@ -264,118 +263,5 @@ az_value_array_transfer_element (AZValueArray* varray, unsigned int idx, const A
 }
 
 
-static void packed_value_array_class_init (AZPackedValueArrayClass *klass);
-static void packed_value_array_finalize (AZPackedValueArrayClass *klass, AZPackedValueArray *varray);
 
-/* AZInstance implementation */
-static unsigned int packed_value_array_get_property (const AZImplementation *impl, void *instance, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
-/* AZCollection implementation */
-static unsigned int packed_value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
-static unsigned int packed_value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
-/* AZList implementation */
-static const AZImplementation *packed_value_array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
-enum {
-	PROP_LENGTH,
-	NUM_PROPERTIES
-};
-
-unsigned int
-az_packed_value_array_get_type (void)
-{
-	static unsigned int type = 0;
-	if (!type) {
-		az_register_type (&type, (const unsigned char *) "AZPackedValueArray", AZ_TYPE_REFERENCE, sizeof (AZPackedValueArrayClass), sizeof (AZPackedValueArray), AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY,
-			(void (*) (AZClass *)) packed_value_array_class_init,
-			NULL,
-			(void (*) (const AZImplementation *, void *)) packed_value_array_finalize);
-	}
-	return type;
-}
-
-static void
-packed_value_array_class_init (AZPackedValueArrayClass *klass)
-{
-	klass->reference_klass.klass.alignment = 15;
-	az_class_set_num_interfaces ((AZClass *) klass, 1);
-	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET (AZPackedValueArrayClass, list_implementation), 0);
-	az_class_set_num_properties ((AZClass *) klass, NUM_PROPERTIES);
-	az_class_define_property((AZClass *) klass, PROP_LENGTH, (uint8_t *) "length", AZ_TYPE_UINT32, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
-//	az_class_property_setup ((AZClass *) klass, PROP_LENGTH, (const unsigned char *) "length", AZ_TYPE_UINT32, 0, 1, 0, 1, 0, AZ_TYPE_NONE, NULL);
-	((AZClass *) klass)->get_property = packed_value_array_get_property;
-	klass->list_implementation.collection_impl.get_element_type = packed_value_array_get_element_type;
-	klass->list_implementation.collection_impl.get_size = packed_value_array_get_size;
-	klass->list_implementation.get_element = packed_value_array_get_element;
-}
-
-static void
-packed_value_array_finalize (AZPackedValueArrayClass *klass, AZPackedValueArray *varray)
-{
-	unsigned int i;
-	for (i = 0; i < varray->length; i++) {
-		az_packed_value_clear (&varray->_values[i]);
-	}
-	if (varray->_values) free (varray->_values);
-}
-
-static unsigned int
-packed_value_array_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx)
-{
-	AZPackedValueArray *varray = (AZPackedValueArray *) inst;
-	switch (idx) {
-	case PROP_LENGTH:
-		*prop_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_UINT32);
-		prop_val->uint32_v = varray->length;
-		return 1;
-	default:
-		break;
-	}
-	return 0;
-}
-
-static unsigned int
-packed_value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
-{
-	return AZ_TYPE_ANY;
-}
-
-static unsigned int
-packed_value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
-{
-	AZPackedValueArray *varray = (AZPackedValueArray *) collection_inst;
-	return varray->length;
-}
-
-static const AZImplementation *
-packed_value_array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
-{
-	AZPackedValueArray *varray;
-	arikkei_return_val_if_fail (list_impl != NULL, 0);
-	arikkei_return_val_if_fail (list_inst != NULL, 0);
-	arikkei_return_val_if_fail (val != NULL, 0);
-	varray = (AZPackedValueArray *) list_inst;
-	arikkei_return_val_if_fail (idx < varray->length, 0);
-	if (varray->_values[idx].impl) {
-		return az_value_copy_autobox (varray->_values[idx].impl, val, &varray->_values[idx].v, size);
-	}
-	/* az_packed_value_copy (value, &varray->_values[index]); */
-	return varray->_values[idx].impl;
-}
-
-AZPackedValueArray *
-az_packed_value_array_new (unsigned int length)
-{
-	AZPackedValueArray *varray = (AZPackedValueArray *) az_instance_new (AZ_TYPE_PACKED_VALUE_ARRAY);
-	varray->length = length;
-	varray->_values = (AZPackedValue *) az_instance_new_array (AZ_TYPE_PACKED_VALUE, varray->length);
-	return varray;
-}
-
-void
-az_packed_value_array_set_element (AZPackedValueArray *varray, unsigned int idx, const AZPackedValue *value)
-{
-	arikkei_return_if_fail (varray != NULL);
-	arikkei_return_if_fail (idx < varray->length);
-	arikkei_return_if_fail (value != NULL);
-	az_packed_value_copy (&varray->_values[idx], value);
-}

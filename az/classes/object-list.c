@@ -20,7 +20,6 @@ static void object_list_finalize (AZObjectListClass *klass, AZObjectList *objl);
 
 /* AZCollection implementation */
 static unsigned int object_list_get_element_type (const AZCollectionImplementation *impl, AZCollection *collection_instance);
-static unsigned int object_list_get_size (const AZCollectionImplementation *impl, AZCollection *collection_instance);
 static unsigned int object_list_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
 static const AZImplementation *object_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
@@ -60,10 +59,9 @@ object_list_class_init (AZObjectListClass *klass)
 	/* Properties */
 	az_class_set_num_properties (( AZClass*) klass, NUM_PROPERTIES);
 	az_class_define_method_va ((AZClass *) klass, FUNC_APPEND, (const unsigned char *) "append", object_list_call_Append, AZ_TYPE_NONE, 1, AZ_TYPE_OBJECT );
-	az_class_define_property ((AZClass *) klass, PROP_LENGTH, (const unsigned char *) "length", AZ_TYPE_UINT32, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZObjectList, length), NULL, NULL);
+	az_class_define_property ((AZClass *) klass, PROP_LENGTH, (const unsigned char *) "length", AZ_TYPE_UINT32, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZObjectList,list.collection.size), NULL, NULL);
 	/* Array implementation */
 	klass->list_implementation.collection_impl.get_element_type = object_list_get_element_type;
-	klass->list_implementation.collection_impl.get_size = object_list_get_size;
 	klass->list_implementation.collection_impl.contains = object_list_contains;
 	klass->list_implementation.get_element = object_list_get_element;
 }
@@ -71,19 +69,19 @@ object_list_class_init (AZObjectListClass *klass)
 static void
 object_list_init (AZObjectListClass *klass, AZObjectList *objl)
 {
-	objl->size = 16;
-	objl->objects = (AZObject **) malloc (objl->size * sizeof (AZObject *));
+	objl->allocated_size = 16;
+	objl->objects = (AZObject **) malloc (objl->allocated_size * sizeof (AZObject *));
 }
 
 static void
 object_list_finalize (AZObjectListClass *klass, AZObjectList *objl)
 {
 	if (objl->weak) {
-		for (unsigned int i = 0; i < objl->length; i++) {
+		for (unsigned int i = 0; i < objl->list.collection.size; i++) {
 			az_active_object_remove_listener_by_data (AZ_ACTIVE_OBJECT (objl->objects[i]), objl);
 		}
 	} else {
-		for (unsigned int i = 0; i < objl->length; i++) {
+		for (unsigned int i = 0; i < objl->list.collection.size; i++) {
 			az_object_unref (objl->objects[i]);
 		}
 	}
@@ -98,18 +96,11 @@ object_list_get_element_type (const AZCollectionImplementation *collection_impl,
 }
 
 static unsigned int
-object_list_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
-{
-	AZObjectList *objl = (AZObjectList *) ARIKKEI_BASE_ADDRESS(AZObjectList,list,collection_inst);
-	return objl->length;
-}
-
-static unsigned int
 object_list_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
 	AZObjectList *objl = (AZObjectList *) ARIKKEI_BASE_ADDRESS(AZObjectList,list,collection_inst);
 	unsigned int i;
-	for (i = 0; i < objl->length; i++) {
+	for (i = 0; i < objl->list.collection.size; i++) {
 		if (objl->objects[i] == (AZObject *) inst) return 1;
 	}
 	return 0;
@@ -120,7 +111,7 @@ object_list_get_element (const AZListImplementation *list_impl, void *list_inst,
 {
 	const AZImplementation *impl;
 	AZObjectList *objl = (AZObjectList *) ARIKKEI_BASE_ADDRESS(AZObjectList,list,list_inst);
-	arikkei_return_val_if_fail (idx < objl->length, 0);
+	arikkei_return_val_if_fail (idx < objl->list.collection.size, 0);
 	az_value_set_object (&impl, val, objl->objects[idx]);
 	return impl;
 }
@@ -143,13 +134,6 @@ az_object_list_setup (AZObjectList *objl, unsigned int type, unsigned int weak)
 	objl->type = type;
 	objl->interface = az_type_is_a (type, AZ_TYPE_INTERFACE);
 	objl->weak = weak;
-}
-
-void
-az_object_list_release (AZObjectList *objl)
-{
-	arikkei_return_if_fail (objl != NULL);
-	az_instance_finalize_by_type (objl, AZ_TYPE_OBJECT_LIST);
 }
 
 AZObjectList *
@@ -182,11 +166,11 @@ az_object_list_append_object (AZObjectList *objl, AZObject *obj)
 	arikkei_return_if_fail (objl != NULL);
 	arikkei_return_if_fail ((objl->weak && AZ_IS_ACTIVE_OBJECT (obj)) || AZ_IS_OBJECT (obj));
 	arikkei_return_if_fail ((objl->interface && az_object_implements (obj, objl->type)) || az_object_is_a (obj, objl->type));
-	if (objl->length >= objl->size) {
-		objl->size = objl->size << 1;
-		objl->objects = (AZObject **) realloc (objl->objects, objl->size * sizeof (AZObject *));
+	if (objl->list.collection.size >= objl->allocated_size) {
+		objl->allocated_size = objl->allocated_size << 1;
+		objl->objects = (AZObject **) realloc (objl->objects, objl->allocated_size * sizeof (AZObject *));
 	}
-	objl->objects[objl->length++] = obj;
+	objl->objects[objl->list.collection.size++] = obj;
 	if (objl->weak) {
 		az_active_object_add_listener (AZ_ACTIVE_OBJECT (obj), &object_list_event_vector, sizeof (AZObjectEventVector), objl);
 	} else {
@@ -200,13 +184,13 @@ az_object_list_insert_object (AZObjectList *objl, AZObject *obj, unsigned int po
 	arikkei_return_if_fail (objl != NULL);
 	arikkei_return_if_fail ((objl->weak && AZ_IS_ACTIVE_OBJECT (obj)) || AZ_IS_OBJECT (obj));
 	arikkei_return_if_fail ((objl->interface && az_object_implements (obj, objl->type)) || az_object_is_a (obj, objl->type));
-	arikkei_return_if_fail (pos <= objl->length);
-	if (objl->length >= objl->size) {
-		objl->size = objl->size << 1;
-		objl->objects = (AZObject **) realloc (objl->objects, objl->size * sizeof (AZObject *));
+	arikkei_return_if_fail (pos <= objl->list.collection.size);
+	if (objl->list.collection.size >= objl->allocated_size) {
+		objl->allocated_size = objl->allocated_size << 1;
+		objl->objects = (AZObject **) realloc (objl->objects, objl->allocated_size * sizeof (AZObject *));
 	}
-	if (pos < objl->length) memcpy (&objl->objects[pos + 1], &objl->objects[pos], (objl->length - pos) * sizeof (AZObject *));
-	objl->length += 1;
+	if (pos < objl->list.collection.size) memmove(&objl->objects[pos + 1], &objl->objects[pos], (objl->list.collection.size - pos) * sizeof (AZObject *));
+	objl->list.collection.size += 1;
 	objl->objects[pos] = obj;
 	if (objl->weak) {
 		az_active_object_add_listener (AZ_ACTIVE_OBJECT (obj), &object_list_event_vector, sizeof (AZObjectEventVector), objl);
@@ -235,7 +219,7 @@ az_object_list_remove_object_by_index (AZObjectList *objl, unsigned int idx)
 {
 	AZObject *obj;
 	arikkei_return_if_fail (objl != NULL);
-	arikkei_return_if_fail (idx < objl->length);
+	arikkei_return_if_fail (idx < objl->list.collection.size);
 	obj = objl->objects[idx];
 	if (object_list_remove_object_internal (objl, obj)) {
 		if (objl->weak) {
@@ -251,14 +235,14 @@ az_object_list_clear (AZObjectList *objl)
 {
 	unsigned int i;
 	arikkei_return_if_fail (objl != NULL);
-	for (i = 0; i < objl->length; i++) {
+	for (i = 0; i < objl->list.collection.size; i++) {
 		if (objl->weak) {
 			az_active_object_remove_listener_by_data (AZ_ACTIVE_OBJECT (objl->objects[i]), objl);
 		} else {
 			az_object_unref (objl->objects[i]);
 		}
 	}
-	objl->length = 0;
+	objl->list.collection.size = 0;
 }
 
 unsigned int
@@ -267,7 +251,7 @@ az_object_list_contains (AZObjectList *objl, AZObject *obj)
 	arikkei_return_val_if_fail (objl != NULL, 0);
 	arikkei_return_val_if_fail ((objl->weak && AZ_IS_ACTIVE_OBJECT (obj)) || AZ_IS_OBJECT (obj), 0);
 	arikkei_return_val_if_fail ((objl->interface && az_object_implements (obj, objl->type)) || az_object_is_a (obj, objl->type), 0);
-	for (unsigned int i = 0; i < objl->length; i++) {
+	for (unsigned int i = 0; i < objl->list.collection.size; i++) {
 		if (objl->objects[i] == obj) return 1;
 	}
 	return 0;
@@ -283,12 +267,12 @@ object_list_object_dispose (AZActiveObject *obj, void *data)
 static unsigned int
 object_list_remove_object_internal (AZObjectList *objl, AZObject *obj)
 {
-	for (unsigned int i = 0; i < objl->length; i++) {
+	for (unsigned int i = 0; i < objl->list.collection.size; i++) {
 		if (objl->objects[i] == obj) {
-			if (i < (objl->length - 1)) {
-				memcpy (&objl->objects[i], &objl->objects[i + 1], (objl->length - 1 - i) * sizeof (AZObject *));
+			if (i < (objl->list.collection.size - 1)) {
+				memmove(&objl->objects[i], &objl->objects[i + 1], (objl->list.collection.size - 1 - i) * sizeof (AZObject *));
 			}
-			objl->length -= 1;
+			objl->list.collection.size -= 1;
 			return 1;
 		}
 	}

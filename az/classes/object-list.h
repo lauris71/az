@@ -26,8 +26,7 @@ extern "C" {
 
 struct _AZObjectList {
 	unsigned int type;
-	unsigned int size;
-	unsigned int length;
+	unsigned int allocated_size;
 	unsigned int interface : 1;
 	unsigned int weak : 1;
 	AZList list;
@@ -42,7 +41,10 @@ struct _AZObjectListClass {
 unsigned int az_object_list_get_type (void);
 
 void az_object_list_setup (AZObjectList *objl, unsigned int type, unsigned int weak);
-void az_object_list_release (AZObjectList *objl);
+static inline void az_object_list_release (AZObjectList *objl)
+{
+	az_instance_finalize_by_type (objl, AZ_TYPE_OBJECT_LIST);
+}
 
 AZObjectList *az_object_list_new (unsigned int type, unsigned int weak);
 void az_object_list_delete (AZObjectList *objl);

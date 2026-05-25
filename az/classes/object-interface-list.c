@@ -58,15 +58,15 @@ object_interface_list_class_init (AZObjectInterfaceListClass *klass)
 static void
 object_interface_list_init (AZObjectInterfaceListClass *klass, AZObjectInterfaceList *objifl)
 {
-	objifl->size = 16;
-	objifl->elements = (AZObjectInterfaceListElement *) malloc (objifl->size * sizeof (AZObjectInterfaceListElement));
+	objifl->allocated_size = 16;
+	objifl->elements = (AZObjectInterfaceListElement *) malloc (objifl->allocated_size * sizeof (AZObjectInterfaceListElement));
 }
 
 static void
 object_interface_list_finalize (AZObjectInterfaceListClass *klass, AZObjectInterfaceList *objifl)
 {
-	while (objifl->length) {
-		az_object_unref (objifl->elements[--objifl->length].obj);
+	for (unsigned int i = 0; i < objifl->list.collection.size; i++) {
+		az_object_unref (objifl->elements[i].obj);
 	}
 	free (objifl->elements);
 }
@@ -82,7 +82,7 @@ static unsigned int
 object_interface_list_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
 	AZObjectInterfaceList *objifl = (AZObjectInterfaceList *) ARIKKEI_BASE_ADDRESS(AZObjectInterfaceList,list,collection_inst);
-	return objifl->length;
+	return objifl->list.collection.size;
 }
 
 static unsigned int
@@ -90,7 +90,7 @@ object_interface_list_contains (const AZCollectionImplementation *collection_imp
 {
 	AZObjectInterfaceList *objifl = (AZObjectInterfaceList *) ARIKKEI_BASE_ADDRESS(AZObjectInterfaceList,list,collection_inst);
 	unsigned int i;
-	for (i = 0; i < objifl->length; i++) {
+	for (i = 0; i < objifl->list.collection.size; i++) {
 		if ((objifl->elements[i].impl == impl) && (objifl->elements[i].inst == inst)) return 1;
 	}
 	return 0;
@@ -100,7 +100,7 @@ static const AZImplementation *
 object_interface_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue* val, unsigned int size)
 {
 	AZObjectInterfaceList *objifl = (AZObjectInterfaceList *) ARIKKEI_BASE_ADDRESS(AZObjectInterfaceList,list,list_inst);
-	arikkei_return_val_if_fail (idx < objifl->length, 0);
+	arikkei_return_val_if_fail (idx < objifl->list.collection.size, 0);
 	val->block = objifl->elements[idx].inst;
 	return objifl->elements[idx].impl;
 }
@@ -114,13 +114,6 @@ az_object_interface_list_setup (AZObjectInterfaceList *objifl, unsigned int obje
 	az_instance_init_by_type (objifl, AZ_TYPE_OBJECT_INTERFACE_LIST);
 	objifl->object_type = object_type;
 	objifl->interface_type = interface_type;
-}
-
-void
-az_object_interface_list_release (AZObjectInterfaceList *objifl)
-{
-	arikkei_return_if_fail (objifl != NULL);
-	az_instance_finalize_by_type (objifl, AZ_TYPE_OBJECT_INTERFACE_LIST);
 }
 
 AZObjectInterfaceList *
@@ -148,14 +141,14 @@ az_object_interface_list_append_object (AZObjectInterfaceList *objifl, AZObject 
 	arikkei_return_if_fail (obj != NULL);
 	arikkei_return_if_fail (az_object_is_a (obj, objifl->object_type));
 	arikkei_return_if_fail (az_object_implements (obj, objifl->interface_type));
-	if (objifl->length >= objifl->size) {
-		objifl->size = objifl->size << 1;
-		objifl->elements = (AZObjectInterfaceListElement *) realloc (objifl->elements, objifl->size * sizeof (AZObjectInterfaceListElement));
+	if (objifl->list.collection.size >= objifl->allocated_size) {
+		objifl->allocated_size = objifl->allocated_size << 1;
+		objifl->elements = (AZObjectInterfaceListElement *) realloc (objifl->elements, objifl->allocated_size * sizeof (AZObjectInterfaceListElement));
 	}
-	objifl->elements[objifl->length].impl = az_object_get_interface (obj, objifl->interface_type, &objifl->elements[objifl->length].inst);
-	objifl->elements[objifl->length].obj = obj;
+	objifl->elements[objifl->list.collection.size].impl = az_object_get_interface (obj, objifl->interface_type, &objifl->elements[objifl->list.collection.size].inst);
+	objifl->elements[objifl->list.collection.size].obj = obj;
 	az_object_ref (obj);
-	objifl->length += 1;
+	objifl->list.collection.size += 1;
 }
 
 void
@@ -166,7 +159,7 @@ az_object_interface_list_remove_object (AZObjectInterfaceList *objifl, AZObject 
 	arikkei_return_if_fail (obj != NULL);
 	arikkei_return_if_fail (az_object_is_a (obj, objifl->object_type));
 	arikkei_return_if_fail (az_object_implements (obj, objifl->interface_type));
-	for (i = 0; i < objifl->length; i++) {
+	for (i = 0; i < objifl->list.collection.size; i++) {
 		if (objifl->elements[i].obj == obj) {
 			az_object_interface_list_remove_object_by_index (objifl, i);
 			return;
@@ -180,11 +173,11 @@ az_object_interface_list_remove_object_by_index (AZObjectInterfaceList *objifl, 
 {
 	AZObject *obj;
 	arikkei_return_if_fail (objifl != NULL);
-	arikkei_return_if_fail (idx < objifl->length);
+	arikkei_return_if_fail (idx < objifl->list.collection.size);
 	obj = objifl->elements[idx].obj;
-	objifl->length -= 1;
-	if (idx < objifl->length) {
-		memcpy (&objifl->elements[idx], &objifl->elements[idx + 1], (objifl->length - idx) * sizeof (AZObjectInterfaceListElement));
+	objifl->list.collection.size -= 1;
+	if (idx < objifl->list.collection.size) {
+		memmove(&objifl->elements[idx], &objifl->elements[idx + 1], (objifl->list.collection.size - idx) * sizeof (AZObjectInterfaceListElement));
 	}
 	az_object_unref (obj);
 }
@@ -192,10 +185,19 @@ az_object_interface_list_remove_object_by_index (AZObjectInterfaceList *objifl, 
 void
 az_object_interface_list_clear (AZObjectInterfaceList *objifl)
 {
-	arikkei_return_if_fail (objifl != NULL);
-	while (objifl->length) {
-		az_object_unref (objifl->elements[--objifl->length].obj);
+	for (unsigned int i = 0; i < objifl->list.collection.size; i++) {
+		az_object_unref(objifl->elements[i].obj);
 	}
+	objifl->list.collection.size = 0;
+}
+
+void
+az_object_interface_list_shutdown (AZObjectInterfaceList *objifl)
+{
+	for (unsigned int i = 0; i < objifl->list.collection.size; i++) {
+		az_object_shutdown(objifl->elements[i].obj);
+	}
+	objifl->list.collection.size = 0;
 }
 
 unsigned int
@@ -205,7 +207,7 @@ az_object_interface_list_contains (AZObjectInterfaceList *objifl, AZObject *obj)
 	arikkei_return_val_if_fail (obj != NULL, 0);
 	arikkei_return_val_if_fail (az_object_is_a (obj, objifl->object_type), 0);
 	arikkei_return_val_if_fail (az_object_implements (obj, objifl->interface_type), 0);
-	for (unsigned int i = 0; i < objifl->length; i++) {
+	for (unsigned int i = 0; i < objifl->list.collection.size; i++) {
 		if (objifl->elements[i].obj == obj) return 1;
 	}
 	return 0;
