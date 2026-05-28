@@ -58,6 +58,8 @@ extern AZInterfaceClass AZInterfaceKlass;
  * @param implementation_size the size of the implementation
  * @param instance_size the size of the instance
  * @param flags type flags
+ * @param n_interfaces_self the number of declared interfaces
+ * @param n_properties_self the number of declared properties
  * @param class_init the class constructor
  * @param implementation_init the implementation constructor
  * @param instance_init the instance constructor
@@ -66,6 +68,7 @@ extern AZInterfaceClass AZInterfaceKlass;
  */
 AZInterfaceClass *az_register_interface_type (unsigned int *type, const unsigned char *name, unsigned int parent_type,
 	unsigned int class_size, unsigned int implementation_size, unsigned int instance_size, unsigned int flags,
+	unsigned int n_interfaces_self, unsigned int n_properties_self,
 	void (*class_init) (AZClass *),
 	void (*implementation_init) (AZImplementation *),
 	void (*instance_init) (const AZImplementation *, void *),

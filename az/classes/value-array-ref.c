@@ -34,6 +34,7 @@ az_value_array_ref_get_type (void)
 	static unsigned int type = 0;
 	if (!type) {
 		az_register_type (&type, (const unsigned char *) "AZValueArrayRef", AZ_TYPE_REFERENCE, sizeof (AZValueArrayRefClass), sizeof (AZValueArrayRef), AZ_FLAG_FINAL,
+			1, NUM_PROPERTIES,
 			(void (*) (AZClass*)) value_array_ref_class_init,
 			(void (*) (const AZImplementation *, void *)) value_array_ref_init,
 			(void (*) (const AZImplementation *, void *)) value_array_ref_finalize);
@@ -46,9 +47,7 @@ value_array_ref_class_init (AZValueArrayRefClass* klass)
 {
 	varef_class = klass;
 	klass->reference_klass.klass.alignment = 15;
-	az_class_set_num_interfaces ((AZClass *) klass, 1);
 	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET (AZValueArrayRefClass, list_implementation), ARIKKEI_OFFSET (AZValueArrayRef, list));
-	az_class_set_num_properties (( AZClass*) klass, NUM_PROPERTIES);
 	az_class_define_property ((AZClass*) klass, PROP_LENGTH, (const unsigned char *) "length", AZ_TYPE_UINT32, 0, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0,
 		ARIKKEI_OFFSET(AZValueArrayRef, varray) + ARIKKEI_OFFSET(AZValueArray, length), NULL, NULL);
 	klass->list_implementation.collection_impl.get_element_type = value_array_ref_get_element_type;

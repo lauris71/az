@@ -36,6 +36,7 @@ az_interface_list_get_type (void)
 {
 	if (!interface_list_type) {
 		az_register_type (&interface_list_type, (const unsigned char*) "AZInterfaceList", AZ_TYPE_STRUCT, sizeof (AZInterfaceListClass), sizeof (AZInterfaceList), AZ_FLAG_ZERO_MEMORY,
+			1, 0,
 			(void (*) (AZClass*)) interface_list_class_init,
 			(void (*) (const AZImplementation*, void*)) interface_list_init,
 			(void (*) (const AZImplementation*, void*)) interface_list_finalize);
@@ -46,8 +47,6 @@ az_interface_list_get_type (void)
 static void
 interface_list_class_init (AZInterfaceListClass* klass)
 {
-	/* Interfaces */
-	az_class_set_num_interfaces (( AZClass*) klass, 1);
 	az_class_declare_interface (( AZClass*) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET (AZInterfaceListClass, list_impl), ARIKKEI_OFFSET (AZInterfaceList, list));
 	/* Array implementation */
 	klass->list_impl.collection_impl.get_element_type = interface_list_get_element_type;

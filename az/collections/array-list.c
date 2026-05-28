@@ -35,6 +35,7 @@ az_array_list_get_type (void)
 	static unsigned int type = 0;
 	if (!type) {
 		AZArrayListKlass = (AZArrayListClass *) az_register_type (&type, (const unsigned char *) "AZArrayList", AZ_TYPE_BLOCK, sizeof (AZArrayListClass), sizeof (AZArrayList), 0,
+			1, 0,
 			(void (*) (AZClass *)) array_list_class_init,
 			(void (*) (const AZImplementation *, void *)) array_list_init,
 			(void (*) (const AZImplementation *, void *)) array_list_finalize);
@@ -49,7 +50,6 @@ az_array_list_get_type (void)
 static void
 array_list_class_init (AZArrayListClass *klass)
 {
-	az_class_set_num_interfaces((AZClass *) klass, 1);
 	az_class_declare_interface((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZArrayListClass, list_impl), 0);
 }
 

@@ -36,6 +36,7 @@ az_value_array_get_type (void)
 	static unsigned int type = 0;
 	if (!type) {
 		az_register_type (&type, (const unsigned char *) "AZValueArray", AZ_TYPE_BLOCK, sizeof (AZValueArrayClass), sizeof (AZValueArray), AZ_FLAG_FINAL,
+			0, 0,
 			(void (*) (AZClass *)) value_array_class_init,
 			(void (*) (const AZImplementation *, void *)) value_array_init,
 			(void (*) (const AZImplementation *, void *)) value_array_finalize);

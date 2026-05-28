@@ -24,6 +24,7 @@ az_function_value_get_type (void)
 {
 	if (!function_value_type) {
 		az_register_type (&function_value_type, (const unsigned char *) "FunctionValue", AZ_TYPE_STRUCT, sizeof (AZFunctionValueClass), sizeof (AZFunctionValue), AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY,
+			1, 0,
 			(void (*) (AZClass *)) function_value_class_init,
 			NULL, NULL);
 	}
@@ -33,7 +34,6 @@ az_function_value_get_type (void)
 static void
 function_value_class_init (AZFunctionValueClass *klass)
 {
-	az_class_set_num_interfaces (&klass->klass, 1);
 	az_class_declare_interface (&klass->klass, 0, AZ_TYPE_FUNCTION, ARIKKEI_OFFSET (AZFunctionValueClass, function_impl), 0);
 	klass->function_impl.signature = fval_signature;
 	klass->function_impl.invoke = function_value_invoke;

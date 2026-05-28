@@ -54,6 +54,7 @@ az_active_object_get_type (void)
 	static unsigned int type = 0;
 	if (!type) {
 		az_register_type (&type, (const unsigned char *) "AZActiveObject", AZ_TYPE_OBJECT, sizeof (AZActiveObjectClass), sizeof (AZActiveObject), AZ_FLAG_ABSTRACT,
+			1, NUM_PROPERTIES,
 			(void (*) (AZClass *)) az_active_object_class_init, NULL, NULL);
 	}
 	return type;
@@ -62,10 +63,7 @@ az_active_object_get_type (void)
 static void
 az_active_object_class_init (AZActiveObjectClass *klass)
 {
-	az_class_set_num_interfaces ((AZClass *) klass, 1);
 	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_ATTRIBUTE_DICT, ARIKKEI_OFFSET(AZActiveObjectClass,aa_impl), ARIKKEI_OFFSET(AZActiveObject,adict));
-	/* AZClass implementation */
-	az_class_set_num_properties ((AZClass *) klass, NUM_PROPERTIES);
 	az_class_define_method_va ((AZClass *) klass, FUNC_SETATTRIBUTE, (const unsigned char *) "setAttribute", active_object_call_setAttribute, AZ_TYPE_NONE, 2, AZ_TYPE_STRING, AZ_TYPE_ANY);
 	az_class_define_method_va ((AZClass *) klass, FUNC_GETATTRIBUTE, (const unsigned char *) "getAttribute", active_object_call_getAttribute, AZ_TYPE_ANY, 1, AZ_TYPE_STRING);
 	/* AZObject implementation */

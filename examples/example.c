@@ -153,6 +153,7 @@ main(int argc, const char *argv[])
         sizeof(AZClass), sizeof(Matrix),
         /* Type flags */
         0,
+        0, 0,
         /* Class constructor */
         (void (*) (AZClass *)) matrix_class_init,
         /* Instance constructor */
@@ -181,6 +182,7 @@ main(int argc, const char *argv[])
     unsigned int b_matrix_type;
     AZClass *b_matrix_class = az_register_type(&b_matrix_type, (const uint8_t *) "Matrix block", AZ_TYPE_BLOCK, sizeof(AZClass), sizeof(Matrix),
         0,
+        0, 0,
         (void (*) (AZClass *)) matrix_class_init,
         (void (*) (const AZImplementation *, void *)) matrix_init,
         NULL);

@@ -112,6 +112,7 @@ az_hash_map_get_type (void)
 	if (!hmap_type) {
 		hmap_class = (AZHashMapClass *) az_register_interface_type (&hmap_type, (const unsigned char *) "AZHashMap", AZ_TYPE_MAP,
 			sizeof (AZMapClass), sizeof (AZHashMapImplementation), sizeof(AZHashMap), AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT,
+			0, 0,
 			NULL,
 			(void (*) (AZImplementation *)) hmap_implementation_init,
             (void (*) (const AZImplementation *, void *)) hmap_instance_init,

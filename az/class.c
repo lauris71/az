@@ -197,10 +197,12 @@ az_class_post_init (AZClass *klass)
 	}
 #endif
 #endif
+#if 0
 	if (klass->n_ifaces_self || klass->instance_init || klass->instance_finalize) {
 		klass->impl.flags |= AZ_FLAG_CONSTRUCT;
 		AZ_INFO_FROM_TYPE(klass->impl.type)->flags |= AZ_FLAG_CONSTRUCT;
 	}
+#endif
 	if (klass->n_ifaces_self) {
 		/* Count all interfaces */
 		/* Initially n_ifaces_all has the value from parent class */

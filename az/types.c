@@ -17,6 +17,7 @@
 
 #include <az/base.h>
 #include <az/class.h>
+#include <az/extend.h>
 #include <az/interface.h>
 #include <az/primitives.h>
 #include <az/private.h>
@@ -135,6 +136,7 @@ az_type_is_assignable_to (unsigned int type, unsigned int test)
 
 AZClass *
 az_register_type (unsigned int *type, const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
+	unsigned int n_interfaces_self, unsigned int n_properties_self,
 	void (*class_init) (AZClass *),
 	void (*instance_init) (const AZImplementation *, void *),
 	void (*instance_finalize) (const AZImplementation *, void *))
@@ -144,9 +146,16 @@ az_register_type (unsigned int *type, const unsigned char *name, unsigned int pa
 	assert (!parent_type || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size));
 	assert (!parent_type || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size));
 #endif
+	if ((flags & AZ_FLAG_ZERO_MEMORY) || n_interfaces_self || instance_init || instance_finalize) {
+		flags |= AZ_FLAG_CONSTRUCT;
+	}
 	AZClass *klass = az_class_new (name, parent_type, class_size, instance_size, flags, instance_init, instance_finalize);
 	/* Type has to be registered before class_init so it is accessible in class constructor (ifaces, properties) */
 	*type = klass->impl.type;
+	if (n_interfaces_self) az_class_set_num_interfaces (klass, n_interfaces_self);
+#ifdef AZ_HAS_PROPERTIES
+	if (n_properties_self) az_class_set_num_properties (klass, n_properties_self);
+#endif
 	if (class_init) class_init (klass);
 	az_class_post_init (klass);
 	return klass;
@@ -154,6 +163,7 @@ az_register_type (unsigned int *type, const unsigned char *name, unsigned int pa
 
 AZClass *
 az_register_composite_type (unsigned int *type, const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
+	unsigned int n_interfaces_self, unsigned int n_properties_self,
 	void (*class_init) (AZClass *, void *),
 	void (*instance_init) (const AZImplementation *, void *),
 	void (*instance_finalize) (const AZImplementation *, void *),
@@ -164,7 +174,14 @@ az_register_composite_type (unsigned int *type, const unsigned char *name, unsig
 	assert (!parent_type || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size));
 	assert (!parent_type || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size));
 #endif
+	if ((flags & AZ_FLAG_ZERO_MEMORY) || n_interfaces_self || instance_init || instance_finalize) {
+		flags |= AZ_FLAG_CONSTRUCT;
+	}
 	AZClass *klass = az_class_new (name, parent_type, class_size, instance_size, flags, instance_init, instance_finalize);
+	if (n_interfaces_self) az_class_set_num_interfaces (klass, n_interfaces_self);
+#ifdef AZ_HAS_PROPERTIES
+	if (n_properties_self) az_class_set_num_properties (klass, n_properties_self);
+#endif
 	if (class_init) class_init (klass, data);
 	az_class_post_init (klass);
 	*type = klass->impl.type;

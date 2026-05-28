@@ -17,6 +17,7 @@
 
 AZInterfaceClass *az_register_interface_type (unsigned int *type, const unsigned char *name, unsigned int parent,
 	unsigned int class_size, unsigned int impl_size, unsigned int inst_size, unsigned int flags,
+	unsigned int n_interfaces_self, unsigned int n_properties_self,
 	void (*class_init) (AZClass *),
 	void (*implementation_init) (AZImplementation *),
 	void (*instance_init) (const AZImplementation *, void *),
@@ -26,7 +27,9 @@ AZInterfaceClass *az_register_interface_type (unsigned int *type, const unsigned
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_val_if_fail (az_type_is_a (parent, AZ_TYPE_INTERFACE), NULL);
 #endif
-	az_register_type (type, name, parent, class_size, inst_size, flags, class_init, instance_init, instance_finalize);
+	az_register_type (type, name, parent, class_size, inst_size, flags,
+		n_interfaces_self, n_properties_self,
+		class_init, instance_init, instance_finalize);
 	if_klass = (AZInterfaceClass *) AZ_CLASS_FROM_TYPE(*type);
 	if_klass->implementation_size = impl_size;
 	if_klass->implementation_init = implementation_init;

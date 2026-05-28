@@ -43,6 +43,7 @@ az_object_list_get_type (void)
 {
 	if (!object_list_type) {
 		az_register_type (&object_list_type, (const unsigned char *) "AZObjectList", AZ_TYPE_BLOCK, sizeof (AZObjectListClass), sizeof (AZObjectList), AZ_FLAG_ZERO_MEMORY | AZ_FLAG_FINAL,
+			1, NUM_PROPERTIES,
 			(void (*) (AZClass *)) object_list_class_init,
 			(void (*) (const AZImplementation *, void *)) object_list_init,
 			(void (*) (const AZImplementation *, void *)) object_list_finalize);
@@ -54,10 +55,7 @@ static void
 object_list_class_init (AZObjectListClass *klass)
 {
 	/* Interfaces */
-	az_class_set_num_interfaces ((AZClass *) klass, 1);
 	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZObjectListClass, list_implementation), ARIKKEI_OFFSET(AZObjectList, list));
-	/* Properties */
-	az_class_set_num_properties (( AZClass*) klass, NUM_PROPERTIES);
 	az_class_define_method_va ((AZClass *) klass, FUNC_APPEND, (const unsigned char *) "append", object_list_call_Append, AZ_TYPE_NONE, 1, AZ_TYPE_OBJECT );
 	az_class_define_property ((AZClass *) klass, PROP_LENGTH, (const unsigned char *) "length", AZ_TYPE_UINT32, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZObjectList,list.collection.size), NULL, NULL);
 	/* Array implementation */

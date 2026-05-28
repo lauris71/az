@@ -126,7 +126,7 @@ test_types()
         const AZClass *klass = AZ_CLASS_FROM_TYPE(i);
         TEST_ASSERT(klass);
         fprintf(stderr, "%20s", klass->name);
-        TEST_ASSERT(klass->impl.type == i);
+        TEST_ASSERT(AZ_TYPE_INDEX(klass->impl.type) == i);
         const AZClass *parent = (defs[i].parent) ? AZ_CLASS_FROM_TYPE(defs[i].parent) : NULL;
         TEST_ASSERT(klass->parent == parent);
         TEST_ASSERT(AZ_TYPE_IS_BASE(i) == defs[i].base);
@@ -144,7 +144,7 @@ test_types()
         TEST_ASSERT(val.value.boolean_v == AZ_TYPE_IS_INTEGRAL(i));
         fprintf(stderr, " integral %d", val.value.boolean_v);
         TEST_ASSERT(az_instance_get_property_by_key(&klass->impl, NULL, (const uint8_t *) "isSigned", &impl, &val));
-        TEST_ASSERT(val.value.boolean_v == AZ_TYPE_IS_SIGNED(i));
+        TEST_ASSERT(val.value.boolean_v == AZ_TYPE_IS_SIGNED(AZ_TYPE_FROM_INDEX(i)));
         fprintf(stderr, " signed %d\n", val.value.boolean_v);
     }
 }
@@ -214,7 +214,7 @@ test_array_list()
         unsigned int instance_size = 4 * i;
         uint8_t name[32];
         snprintf((char *) name, 32, "struct_%d", instance_size);
-        AZClass *klass = az_register_type(&types[i], name, AZ_TYPE_STRUCT, sizeof(AZClass), instance_size, AZ_FLAG_FINAL, NULL, NULL, NULL);
+        AZClass *klass = az_register_type(&types[i], name, AZ_TYPE_STRUCT, sizeof(AZClass), instance_size, AZ_FLAG_FINAL, 0, 0, NULL, NULL, NULL);
         TEST_ASSERT(klass->instance_size == instance_size);
     }
     AZArrayList *alist = az_array_list_new(AZ_TYPE_ANY, 8);

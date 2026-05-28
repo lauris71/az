@@ -31,6 +31,7 @@ az_map_get_type (void)
 	if (!map_type) {
 		map_class = (AZMapClass *) az_register_interface_type (&map_type, (const unsigned char *) "AZMap", AZ_TYPE_COLLECTION,
 			sizeof(AZMapClass), sizeof(AZMapImplementation), sizeof(AZMap), AZ_FLAG_ZERO_MEMORY,
+			0, 0,
 			NULL,
 			(void (*) (AZImplementation *)) map_implementation_init,
 			NULL, NULL);

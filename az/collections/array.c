@@ -34,6 +34,7 @@ az_array_get_type ()
 	if (!array_type) {
 		array_class = (AZArrayClass *) az_register_type (&array_type, (const unsigned char *) "AZArray", AZ_TYPE_STRUCT,
 			sizeof(AZArrayClass), sizeof(AZArray), 0,
+			1, 0,
 			(void (*) (AZClass *)) array_class_init,
 			NULL,
 			NULL);
@@ -42,9 +43,8 @@ az_array_get_type ()
 }
 
 static void
-array_class_init (AZArrayClass *klass)
+	array_class_init (AZArrayClass *klass)
 {
-	az_class_set_num_interfaces(&klass->klass, 1);
 	az_class_declare_interface(&klass->klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZArrayClass, list_impl), 0);
 	klass->klass.serialize = array_serialize;
 	klass->klass.deserialize = array_deserialize;
@@ -132,6 +132,7 @@ az_array_object_get_type ()
 	if (!az_array_object_type) {
 		az_array_object_class = (AZArrayObjectClass *) az_register_type (&az_array_object_type, (const unsigned char *) "AZArrayOfObject", AZ_TYPE_OBJECT,
 			sizeof (AZArrayObjectClass), sizeof (AZArrayObject), AZ_FLAG_FINAL,
+			1, 0,
 			(void (*) (AZClass *)) array_object_class_init,
 			(void (*) (const AZImplementation *, void *)) array_object_instance_init,
 			(void (*) (const AZImplementation *, void *)) array_object_instance_finalize);
@@ -142,7 +143,6 @@ az_array_object_get_type ()
 static void
 array_object_class_init(AZArrayObjectClass *klass)
 {
-	az_class_set_num_interfaces((AZClass *) klass, 1);
 	az_class_declare_interface((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZArrayObjectClass, list_impl), 0);
 	klass->list_impl.collection_impl.get_element_type = array_object_element_type;
 	klass->list_impl.collection_impl.get_size = array_object_size;

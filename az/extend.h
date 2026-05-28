@@ -33,6 +33,8 @@ extern "C" {
  * @param class_size the size of the class
  * @param instance_size the size of the instance
  * @param flags type flags
+ * @param n_interfaces_self number of interfaces implemented by this type
+ * @param n_properties_self number of properties defined for this type
  * @param class_init the class constructor
  * @param instance_init the instance constructor
  * @param instance_finalize the instance destructor
@@ -40,6 +42,7 @@ extern "C" {
  */
 
 AZClass *az_register_type (unsigned int *type, const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
+	unsigned int n_interfaces_self, unsigned int n_properties_self,
 	void (*class_init) (AZClass *),
 	void (*instance_init) (const AZImplementation *, void *),
 	void (*instance_finalize) (const AZImplementation *, void *));
@@ -59,6 +62,8 @@ AZClass *az_register_type (unsigned int *type, const unsigned char *name, unsign
  * @param class_size the size of the class
  * @param instance_size  the size of the instance
  * @param flags type flags
+ * @param n_interfaces_self number of interfaces implemented by this type
+ * @param n_properties_self number of properties defined for this type
  * @param class_init the class constructor
  * @param instance_init a the instance constructor
  * @param instance_finalize the instance destructor
@@ -66,6 +71,7 @@ AZClass *az_register_type (unsigned int *type, const unsigned char *name, unsign
  * @return allocated and initialized class
  */
 AZClass *az_register_composite_type (unsigned int *type, const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
+	unsigned int n_interfaces_self, unsigned int n_properties_self,
 	void (*class_init) (AZClass *, void *),
 	void (*instance_init) (const AZImplementation *, void *),
 	void (*instance_finalize) (const AZImplementation *, void *),
