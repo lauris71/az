@@ -21,18 +21,24 @@ az_globals_init (void)
 #endif
 }
 
-unsigned int
-az_reserve_type()
+void
+az_register_class(AZClass *klass)
 {
+	if (!klass->impl.type) {
 #if defined AZ_GLOBALS_FIXED_SIZE
 #else
-	if (az_num_classes >= classes_size) {
-		classes_size += 32;
-		az_classes = (AZClass **) realloc (az_classes, classes_size * sizeof (AZClass *));
-		az_types = (AZTypeInfo *) realloc (az_types, classes_size * sizeof(AZTypeInfo));
-	}
+		if (az_num_classes >= classes_size) {
+			classes_size += 32;
+			az_classes = (AZClass **) realloc (az_classes, classes_size * sizeof (AZClass *));
+			az_types = (AZTypeInfo *) realloc (az_types, classes_size * sizeof(AZTypeInfo));
+		}
 #endif
-	return az_num_types++;
+		klass->impl.type = az_num_types++ | (klass->impl.flags & ~AZ_TYPE_MASK);
+	}
+	az_types[AZ_TYPE_INDEX(klass->impl.type)].klass = klass;
+	/* We have to use class flags here because of parent chaining */
+	az_types[AZ_TYPE_INDEX(klass->impl.type)].flags = klass->impl.flags;
+	az_types[AZ_TYPE_INDEX(klass->impl.type)].pidx = (klass->parent ? AZ_TYPE_INDEX(AZ_CLASS_TYPE(klass->parent)) : AZ_TYPE_NONE);
 }
 
 #ifdef ARIKKEI_MEMCHECK

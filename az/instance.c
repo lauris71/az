@@ -19,6 +19,7 @@
 #include <az/function.h>
 #include <az/instance.h>
 #include <az/object.h>
+#include <az/private.h>
 #include <az/string.h>
 #include <az/types.h>
 
@@ -110,19 +111,17 @@ az_instance_finalize (const AZImplementation *impl, void *inst)
 void *
 az_instance_new (unsigned int type)
 {
-	AZClass *klass;
-	void *inst;
 #ifdef AZ_SAFETY_CHECKS
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) != 0, NULL);
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, NULL);
-	arikkei_return_val_if_fail (!az_type_is_a (type, AZ_TYPE_INTERFACE), NULL);
+	arikkei_return_val_if_fail(az_type_is_valid(type), NULL);
+	arikkei_return_val_if_fail(!AZ_TYPE_IS_INTERFACE(type), NULL);
 #endif
-	klass = AZ_CLASS_FROM_TYPE(type);
+	AZClass *klass = AZ_CLASS_FROM_TYPE(type);
 	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_ABSTRACT), NULL);
+	void *inst;
 	if (klass->allocator && klass->allocator->allocate) {
 		inst = klass->allocator->allocate (klass);
 	} else {
-		inst = malloc (klass->instance_size);
+		inst = malloc(klass->instance_size);
 	}
 	if (klass->impl.flags & AZ_FLAG_ZERO_MEMORY) memset (inst, 0, klass->instance_size);
 	az_instance_init_recursive (klass, &klass->impl, inst, klass->impl.flags & AZ_FLAG_ZERO_MEMORY);
@@ -130,24 +129,21 @@ az_instance_new (unsigned int type)
 }
 
 void *
-az_instance_new_array (unsigned int type, unsigned int nelements)
+az_instance_new_array (unsigned int type, unsigned int n_elements)
 {
-	AZClass *klass;
-	void *elements;
-	unsigned int i;
 #ifdef AZ_SAFETY_CHECKS
-	arikkei_return_val_if_fail (type != 0, NULL);
-	arikkei_return_val_if_fail (type < az_num_types, NULL);
-	arikkei_return_val_if_fail (!az_type_is_a (type, AZ_TYPE_INTERFACE), NULL);
+	arikkei_return_val_if_fail(az_type_is_valid(type), NULL);
+	arikkei_return_val_if_fail(!AZ_TYPE_IS_INTERFACE(type), NULL);
 #endif
-	klass = az_type_get_class (type);
+	AZClass *klass = az_type_get_class (type);
+	void *elements;
 	if (klass->allocator && klass->allocator->allocate_array) {
-		elements = klass->allocator->allocate_array (klass, nelements);
+		elements = klass->allocator->allocate_array (klass, n_elements);
 	} else {
-		elements = malloc (nelements * AZ_CLASS_ELEMENT_SIZE(klass));
+		elements = malloc(n_elements * AZ_CLASS_ELEMENT_SIZE(klass));
 	}
-	if (klass->impl.flags & AZ_FLAG_ZERO_MEMORY) memset (elements, 0, nelements * AZ_CLASS_ELEMENT_SIZE(klass));
-	for (i = 0; i < nelements; i++) {
+	if (klass->impl.flags & AZ_FLAG_ZERO_MEMORY) memset (elements, 0, n_elements * AZ_CLASS_ELEMENT_SIZE(klass));
+	for (unsigned int i = 0; i < n_elements; i++) {
 		void *instance = (char *) elements + i * AZ_CLASS_ELEMENT_SIZE(klass);
 		az_instance_init_recursive (klass, &klass->impl, instance, klass->impl.flags & AZ_FLAG_ZERO_MEMORY);
 	}
@@ -157,13 +153,11 @@ az_instance_new_array (unsigned int type, unsigned int nelements)
 void
 az_instance_delete (unsigned int type, void *instance)
 {
-	AZClass *klass;
 #ifdef AZ_SAFETY_CHECKS
-	arikkei_return_if_fail (type != 0);
-	arikkei_return_if_fail (type < az_num_types);
-	arikkei_return_if_fail (!az_type_is_a (type, AZ_TYPE_INTERFACE));
+	arikkei_return_if_fail(az_type_is_valid(type));
+	arikkei_return_if_fail(!AZ_TYPE_IS_INTERFACE(type));
 #endif
-	klass = az_type_get_class (type);
+	AZClass *klass = az_type_get_class (type);
 	az_instance_finalize_recursive (klass, &klass->impl, instance);
 	if (klass->allocator && klass->allocator->free) {
 		klass->allocator->free (klass, instance);
@@ -175,15 +169,12 @@ az_instance_delete (unsigned int type, void *instance)
 void
 az_instance_delete_array (unsigned int type, void *elements, unsigned int nelements)
 {
-	AZClass *klass;
-	unsigned int i;
 #ifdef AZ_SAFETY_CHECKS
-	arikkei_return_if_fail (type != 0);
-	arikkei_return_if_fail (type < az_num_types);
-	arikkei_return_if_fail (!az_type_is_a (type, AZ_TYPE_INTERFACE));
+	arikkei_return_if_fail(az_type_is_valid(type));
+	arikkei_return_if_fail(!AZ_TYPE_IS_INTERFACE(type));
 #endif
-	klass = az_type_get_class (type);
-	for (i = 0; i < nelements; i++) {
+	AZClass *klass = az_type_get_class (type);
+	for (unsigned int i = 0; i < nelements; i++) {
 		void *instance = (char *) elements + i * AZ_CLASS_ELEMENT_SIZE(klass);
 		az_instance_finalize_recursive (klass, &klass->impl, instance);
 	}

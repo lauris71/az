@@ -24,7 +24,7 @@ extern const unsigned char az_primitive_conversion_table[];
 ARIKKEI_INLINE
 unsigned int az_primitive_can_convert (unsigned int to, unsigned int from)
 {
-	return az_primitive_conversion_table[from * (AZ_TYPE_POINTER + 1) + to];
+	return az_primitive_conversion_table[AZ_TYPE_INDEX(from) * (AZ_TYPE_IDX_POINTER + 1) + AZ_TYPE_INDEX(to)];
 }
 
 /* Conversion results */

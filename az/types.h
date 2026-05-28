@@ -69,7 +69,7 @@ AZTypeInfo az_types[AZ_MAX_TYPES];
 unsigned int az_num_types = 0;
 #endif
 /* No safety checking */
-#define AZ_INFO_FROM_TYPE(t) &az_types[AZ_TYPE_INDEX(t)]
+#define AZ_INFO_FROM_TYPE(t) (&az_types[AZ_TYPE_INDEX(t)])
 #define AZ_CLASS_FROM_TYPE(t) az_types[AZ_TYPE_INDEX(t)].klass
 #define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_types[AZ_TYPE_INDEX(t)].klass)
 #else
@@ -89,28 +89,32 @@ unsigned int az_num_types = 0;
 
 #endif
 
-#define AZ_TYPE_FLAGS(t) az_types[AZ_TYPE_INDEX(t)].flags
+#define AZ_TYPE_FROM_INDEX(i) (AZ_IMPL_FROM_TYPE(i)->type)
+
+#define AZ_TYPE_FLAGS(t) ((t) & ~AZ_TYPE_MASK)
+
 #define AZ_TYPE_IS_BLOCK(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_BLOCK)
 #define AZ_TYPE_IS_VALUE(t) !(AZ_TYPE_FLAGS(t) & AZ_FLAG_BLOCK)
-#define AZ_TYPE_IS_REFERENCE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_REFERENCE)
 #define AZ_TYPE_IS_INTERFACE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_INTERFACE)
+#define AZ_TYPE_IS_REFERENCE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_REFERENCE)
+#define AZ_TYPE_IS_BOXED(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_BOXED)
 #define AZ_TYPE_IS_OBJECT(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_OBJECT)
-
 #define AZ_TYPE_IS_FINAL(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_FINAL)
+#define AZ_TYPE_IS_ABSTRACT(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_ABSTRACT)
 
 #ifdef AZ_SAFETY_CHECKS
 static inline AZTypeInfo *
 az_type_get_info (unsigned int type)
 {
 	if (!az_num_types) az_init ();
-	arikkei_return_val_if_fail (type < az_num_types, NULL);
+	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, NULL);
 	return AZ_INFO_FROM_TYPE(type);
 }
 static inline AZClass *
 az_type_get_class (unsigned int type)
 {
 	if (!az_num_types) az_init ();
-	arikkei_return_val_if_fail (type < az_num_types, NULL);
+	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, NULL);
 	return AZ_CLASS_FROM_TYPE(type);
 }
 #else

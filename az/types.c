@@ -83,8 +83,8 @@ az_type_is_a (unsigned int type, unsigned int test)
 	unsigned int i;
 #ifdef AZ_SAFETY_CHECKS
 	if (!az_num_types) az_init ();
-	arikkei_return_val_if_fail (type < az_num_types, 0);
-	arikkei_return_val_if_fail (test < az_num_types, 0);
+	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, 0);
+	arikkei_return_val_if_fail (AZ_TYPE_INDEX(test) < az_num_types, 0);
 #endif
 	if (!type) return 0;
 	if (type == test) return 1;
@@ -103,8 +103,8 @@ az_type_implements (unsigned int type, unsigned int test)
 	if (!type) return 0;
 #ifdef AZ_SAFETY_CHECKS
 	if (!az_num_types) az_init ();
-	arikkei_return_val_if_fail (type < az_num_types, 0);
-	arikkei_return_val_if_fail (test < az_num_types, 0);
+	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, 0);
+	arikkei_return_val_if_fail (AZ_TYPE_INDEX(test) < az_num_types, 0);
 	arikkei_return_val_if_fail (AZ_TYPE_IS_INTERFACE(test), 0);
 #endif
 	if (!type) return 0;
@@ -144,8 +144,9 @@ az_register_type (unsigned int *type, const unsigned char *name, unsigned int pa
 	assert (!parent_type || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size));
 	assert (!parent_type || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size));
 #endif
-	AZClass *klass = az_class_new (type, name, parent_type, class_size, instance_size, flags, instance_init, instance_finalize);
-	arikkei_return_val_if_fail (*type, NULL);
+	AZClass *klass = az_class_new (name, parent_type, class_size, instance_size, flags, instance_init, instance_finalize);
+	/* Type has to be registered before class_init so it is accessible in class constructor (ifaces, properties) */
+	*type = klass->impl.type;
 	if (class_init) class_init (klass);
 	az_class_post_init (klass);
 	return klass;
@@ -163,10 +164,10 @@ az_register_composite_type (unsigned int *type, const unsigned char *name, unsig
 	assert (!parent_type || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size));
 	assert (!parent_type || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size));
 #endif
-	AZClass *klass = az_class_new (type, name, parent_type, class_size, instance_size, flags, instance_init, instance_finalize);
-	arikkei_return_val_if_fail (*type, NULL);
+	AZClass *klass = az_class_new (name, parent_type, class_size, instance_size, flags, instance_init, instance_finalize);
 	if (class_init) class_init (klass, data);
 	az_class_post_init (klass);
+	*type = klass->impl.type;
 	return klass;
 }
 

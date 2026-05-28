@@ -539,7 +539,7 @@ az_post_init_primitive_classes (void)
 	any_class->props_self[ANY_PROP_INTEGRAL].mask = AZ_FLAG_INTEGRAL;
 	az_class_define_property_value(any_class, ANY_PROP_SIGNED, (const uint8_t *) "isSigned", AZ_TYPE_BOOLEAN, 1, AZ_FIELD_CLASS, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZClass, impl.flags));
 	any_class->props_self[ANY_PROP_SIGNED].mask = AZ_FLAG_SIGNED;
-	for (i = AZ_TYPE_ANY; i <= AZ_TYPE_POINTER; i++) {
+	for (i = AZ_TYPE_INDEX(AZ_TYPE_ANY); i <= AZ_TYPE_INDEX(AZ_TYPE_POINTER); i++) {
 		az_class_post_init (AZ_CLASS_FROM_TYPE(i));
 	}
 }
@@ -1401,7 +1401,7 @@ az_convert_arithmetic_type (unsigned int to_type, AZValue *to_val, unsigned int 
 		/* C, C, C, C, C, C, C, C, C, C, A, A */
 		float r = *((float *) from_val);
 		float i = *((float *) from_val + 1);
-		if (to_type < AZ_TYPE_COMPLEX_FLOAT) {
+		if (AZ_TYPE_INDEX(to_type) < AZ_TYPE_IDX_COMPLEX_FLOAT) {
 			result = convert_float (to_type, to_val, r);
 			if (i != 0) result = AZ_CONVERSION_CLAMPED;
 		} else {
@@ -1413,7 +1413,7 @@ az_convert_arithmetic_type (unsigned int to_type, AZValue *to_val, unsigned int 
 		/* C, C, C, C, C, C, C, C, C, C, C, A */
 		double r = *((double *) from_val);
 		double i = *((double *) from_val + 1);
-		if (to_type < AZ_TYPE_COMPLEX_FLOAT) {
+		if (AZ_TYPE_INDEX(to_type) < AZ_TYPE_IDX_COMPLEX_FLOAT) {
 			result = convert_double (to_type, to_val, r);
 			if (i != 0) result = AZ_CONVERSION_CLAMPED;
 		} else {

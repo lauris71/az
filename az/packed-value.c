@@ -112,7 +112,7 @@ az_packed_value_can_convert (unsigned int to_type, const AZPackedValue *from)
 	/* Anything can be converted to supertype */
 	if (az_type_is_a(AZ_PACKED_VALUE_TYPE(from), to_type)) return 1;
 	/* Primitive table */
-	if ((to_type <= AZ_TYPE_POINTER) && (AZ_PACKED_VALUE_TYPE(from) <= AZ_TYPE_POINTER)) {
+	if ((AZ_TYPE_INDEX(to_type) <= AZ_TYPE_IDX_POINTER) && (AZ_TYPE_INDEX(AZ_PACKED_VALUE_TYPE(from)) <= AZ_TYPE_IDX_POINTER)) {
 		return az_primitive_can_convert (to_type, AZ_PACKED_VALUE_TYPE(from)) <= AZ_CONVERT_CONDITIONAL;
 	}
 	/* No other automatic conversions possible */

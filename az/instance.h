@@ -55,12 +55,12 @@ void az_instance_finalize (const AZImplementation *impl, void *inst);
 static inline void
 az_instance_init_by_type (void *inst, unsigned int type)
 {
-	if (AZ_TYPE_FLAGS(type) & (AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT)) az_instance_init(AZ_IMPL_FROM_TYPE(type), inst);
+	if (AZ_IMPL_FROM_TYPE(type)->flags & (AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT)) az_instance_init(AZ_IMPL_FROM_TYPE(type), inst);
 }
 static inline void
 az_instance_finalize_by_type (void *inst, unsigned int type)
 {
-	if (AZ_TYPE_FLAGS(type) & AZ_FLAG_CONSTRUCT) az_instance_finalize(AZ_IMPL_FROM_TYPE(type), inst);
+	if (AZ_IMPL_FROM_TYPE(type)->flags & AZ_FLAG_CONSTRUCT) az_instance_finalize(AZ_IMPL_FROM_TYPE(type), inst);
 }
 
 void *az_instance_new (unsigned int type);

@@ -15,96 +15,6 @@
 extern "C" {
 #endif
 
-/* Predefined typecodes */
-
-enum AZType {
-	/**
-	 * @brief Invalid or missing type, typecode 0
-	 * 
-	 */
-	AZ_TYPE_NONE,
-	/**
-	 * @brief The abstract base class of all types
-	 * 
-	 */
-	AZ_TYPE_ANY,
-
-	/* Primitives */
-	AZ_TYPE_BOOLEAN,
-	AZ_TYPE_INT8,
-	AZ_TYPE_UINT8,
-	AZ_TYPE_INT16,
-	AZ_TYPE_UINT16,
-	AZ_TYPE_INT32,
-	AZ_TYPE_UINT32,
-	AZ_TYPE_INT64,
-	AZ_TYPE_UINT64,
-	AZ_TYPE_FLOAT,
-	AZ_TYPE_DOUBLE,
-	AZ_TYPE_COMPLEX_FLOAT,
-	AZ_TYPE_COMPLEX_DOUBLE,
-	AZ_TYPE_POINTER,
-
-	/* Fundamental types */
-	/**
-	 * @brief The abstract base class of all composite value types
-	 * 
-	 */
-	AZ_TYPE_STRUCT,
-	/**
-	 * @brief The abstract base class of all block types
-	 * 
-	 */
-	AZ_TYPE_BLOCK,
-	/* Fundamental types have ANY as parent */
-	AZ_NUM_FUNDAMENTAL_TYPES = AZ_TYPE_BLOCK,
-
-	/* Special types */
-	/**
-	 * @brief The abstract base class of the semantics of a type
-	 * 
-	 * An instance of _AZImplementation. Specialized for interface types, _AZClass for standalone types
-	 * 
-	 */
-	AZ_TYPE_IMPLEMENTATION,
-	/**
-	 * @brief The semantics of a type
-	 * 
-	 * An instance of _AZClass, a subclass of _AZImplementation
-	 * 
-	 */
-	AZ_TYPE_CLASS,
-	/**
-	 * @brief An abstract base class of instances of interface types
-	 * 
-	 */
-	AZ_TYPE_INTERFACE,
-#ifdef AZ_HAS_PROPERTIES
-	AZ_TYPE_FIELD,
-#endif
-	AZ_TYPE_FUNCTION_SIGNATURE,
-	AZ_TYPE_FUNCTION,
-	/* Predefined composite types */
-	AZ_TYPE_REFERENCE,
-	AZ_TYPE_STRING,
-	AZ_TYPE_BOXED_VALUE,
-	AZ_TYPE_BOXED_INTERFACE,
-#ifdef AZ_HAS_PACKED_VALUE
-	AZ_TYPE_PACKED_VALUE,
-#endif
-	AZ_TYPE_OBJECT,
-	/* Count */
-	AZ_NUM_BASE_TYPES
-};
-
-#define AZ_TYPE_IS_ARITHMETIC(t) (((t) >= AZ_TYPE_INT8) && ((t) <= AZ_TYPE_COMPLEX_DOUBLE))
-#define AZ_TYPE_IS_INTEGRAL(t) (((t) >= AZ_TYPE_INT8) && ((t) <= AZ_TYPE_UINT64))
-#define AZ_TYPE_IS_SIGNED(t) (((t) == AZ_TYPE_INT8) || ((t) == AZ_TYPE_INT16) || ((t) == AZ_TYPE_INT32) || ((t) == AZ_TYPE_INT64) || ((t) == AZ_TYPE_FLOAT) || ((t) == AZ_TYPE_DOUBLE) || ((t) == AZ_TYPE_COMPLEX_FLOAT) || ((t) == AZ_TYPE_COMPLEX_DOUBLE))
-#define AZ_TYPE_IS_UNSIGNED(t) (((t) == AZ_TYPE_UINT8) || ((t) == AZ_TYPE_UINT16) || ((t) == AZ_TYPE_UINT32) || ((t) == AZ_TYPE_UINT64))
-#define AZ_TYPE_IS_64(t) (((t) == AZ_TYPE_INT64) || ((t) == AZ_TYPE_UINT64))
-#define AZ_TYPE_IS_PRIMITIVE(t) (((t) >= AZ_TYPE_BOOLEAN) && ((t) <= AZ_TYPE_POINTER))
-#define AZ_TYPE_IS_BASE(t) (((t) >= AZ_TYPE_ANY) && ((t) <= AZ_TYPE_OBJECT))
-
 /**
  * @brief Class/implementation/type flags
  * 
@@ -129,19 +39,19 @@ enum AZTypeFlags {
 	 * @brief Type is an interface, implementation is not class
 	 * 
 	 */
-	AZ_FLAG_INTERFACE = 0x01000000,
-	/**
-	 * @brief Type is a block, value is a pointer to the instance (not the instance itself)
-	 * 
-	 */
-	AZ_FLAG_BLOCK = 0x02000000,
+	AZ_FLAG_BLOCK = 0x01000000,
 	/**
 	 * @brief Type is a reference, value creation/destruction involves reference counting
 	 * 
 	 */
+	AZ_FLAG_INTERFACE = 0x02000000,
+	/**
+	 * @brief Type is a block, value is a pointer to the instance (not the instance itself)
+	 * 
+	 */
 	AZ_FLAG_REFERENCE = 0x04000000,
 	/**
-	 * @brief Instance if a container of another value (_AZBoxedValue) or interface (_AZBoxedInterface) type
+	 * @brief Instance is a container of another value (_AZBoxedValue) or interface (_AZBoxedInterface) type
 	 * 
 	 */
 	AZ_FLAG_BOXED = 0x08000000,
@@ -156,11 +66,23 @@ enum AZTypeFlags {
 	 */
 	AZ_FLAG_FINAL = 0x20000000,
 	/**
+	 * @brief Type is abstract, no instancing is allowed
+	 * 
+	 * This flag is NOT propagated to subclasses.
+	 * 
+	 */
+	AZ_FLAG_ABSTRACT = 0x40000000,
+	/**
 	 * @brief The type instances have constructor or destructor
 	 * 
 	 * Subclasses should not clear this flag if set set by parent.
 	 */
-	AZ_FLAG_CONSTRUCT = 0x40000000,
+	AZ_FLAG_CONSTRUCT = 0x80000000,
+
+	/*
+	* Low-order flags, only present in class and type info
+	*/
+
 	/* fixme: Make this dependent on construction */
 	/**
 	 * @brief Instance construction should be preceded by filling memory by zeroes
@@ -168,25 +90,137 @@ enum AZTypeFlags {
 	 * Subclasses should not clear this flag if set set by parent. If set the type can still implement
 	 * constructor - which can then rely on the instance being zero-filled.
 	 */
-	AZ_FLAG_ZERO_MEMORY = 0x80000000,
-
-	/*
-	* Low-order flags, only present in class and type info
-	*/
-
-	/**
-	 * @brief Type is abstract, no instancing is allowed
-	 * 
-	 * This flag is NOT propagated to subclasses.
-	 * 
-	 */
-	AZ_FLAG_ABSTRACT = 0x02,
+	AZ_FLAG_ZERO_MEMORY = 0x04,
 
 	/* Miscellaneous info flags */
 	AZ_FLAG_ARITHMETIC = 0x100,
 	AZ_FLAG_INTEGRAL = 0x200,
 	AZ_FLAG_SIGNED = 0x400
 };
+
+/*
+ * Predefined types (indices)
+ */
+
+enum AZTypeIdx {
+	AZ_TYPE_IDX_NONE,
+	AZ_TYPE_IDX_ANY,
+	AZ_TYPE_IDX_BOOLEAN,
+	AZ_TYPE_IDX_INT8,
+	AZ_TYPE_IDX_UINT8,
+	AZ_TYPE_IDX_INT16,
+	AZ_TYPE_IDX_UINT16,
+	AZ_TYPE_IDX_INT32,
+	AZ_TYPE_IDX_UINT32,
+	AZ_TYPE_IDX_INT64,
+	AZ_TYPE_IDX_UINT64,
+	AZ_TYPE_IDX_FLOAT,
+	AZ_TYPE_IDX_DOUBLE,
+	AZ_TYPE_IDX_COMPLEX_FLOAT,
+	AZ_TYPE_IDX_COMPLEX_DOUBLE,
+	AZ_TYPE_IDX_POINTER,
+	AZ_TYPE_IDX_STRUCT,
+	AZ_TYPE_IDX_BLOCK,
+	AZ_TYPE_IDX_IMPLEMENTATION,
+	AZ_TYPE_IDX_CLASS,
+	AZ_TYPE_IDX_INTERFACE,
+	AZ_TYPE_IDX_FIELD,
+	AZ_TYPE_IDX_FUNCTION_SIGNATURE,
+	AZ_TYPE_IDX_FUNCTION,
+	AZ_TYPE_IDX_REFERENCE,
+	AZ_TYPE_IDX_STRING,
+	AZ_TYPE_IDX_BOXED_VALUE,
+	AZ_TYPE_IDX_BOXED_INTERFACE,
+	AZ_TYPE_IDX_PACKED_VALUE,
+	AZ_TYPE_IDX_OBJECT
+};
+
+/* Fundamental types have ANY as parent */
+#define AZ_NUM_FUNDAMENTAL_TYPES (AZ_TYPE_IDX_BLOCK + 1)
+#define AZ_NUM_BASE_TYPES (AZ_TYPE_IDX_OBJECT + 1)
+
+/*
+ * The actual types (index plus flags)
+ */
+
+enum AZType {
+	/**
+	 * @brief Invalid or missing type, typecode 0
+	 * 
+	 */
+	AZ_TYPE_NONE = AZ_TYPE_IDX_NONE,
+	/**
+	 * @brief The abstract base class of all types
+	 * 
+	 */
+	AZ_TYPE_ANY = AZ_TYPE_IDX_ANY | AZ_FLAG_ABSTRACT,
+
+	/* Primitives */
+	AZ_TYPE_BOOLEAN = AZ_TYPE_IDX_BOOLEAN | AZ_FLAG_FINAL,
+	AZ_TYPE_INT8 = AZ_TYPE_IDX_INT8 | AZ_FLAG_FINAL,
+	AZ_TYPE_UINT8 = AZ_TYPE_IDX_UINT8 | AZ_FLAG_FINAL,
+	AZ_TYPE_INT16 = AZ_TYPE_IDX_INT16 | AZ_FLAG_FINAL,
+	AZ_TYPE_UINT16 = AZ_TYPE_IDX_UINT16 | AZ_FLAG_FINAL,
+	AZ_TYPE_INT32 = AZ_TYPE_IDX_INT32 | AZ_FLAG_FINAL,
+	AZ_TYPE_UINT32 = AZ_TYPE_IDX_UINT32 | AZ_FLAG_FINAL,
+	AZ_TYPE_INT64 = AZ_TYPE_IDX_INT64 | AZ_FLAG_FINAL,
+	AZ_TYPE_UINT64 = AZ_TYPE_IDX_UINT64 | AZ_FLAG_FINAL,
+	AZ_TYPE_FLOAT = AZ_TYPE_IDX_FLOAT | AZ_FLAG_FINAL,
+	AZ_TYPE_DOUBLE = AZ_TYPE_IDX_DOUBLE | AZ_FLAG_FINAL,
+	AZ_TYPE_COMPLEX_FLOAT = AZ_TYPE_IDX_COMPLEX_FLOAT | AZ_FLAG_FINAL,
+	AZ_TYPE_COMPLEX_DOUBLE = AZ_TYPE_IDX_COMPLEX_DOUBLE | AZ_FLAG_FINAL,
+	AZ_TYPE_POINTER = AZ_TYPE_IDX_POINTER | AZ_FLAG_FINAL,
+
+	/* Fundamental types */
+	/**
+	 * @brief The abstract base class of all composite value types
+	 * 
+	 */
+	AZ_TYPE_STRUCT = AZ_TYPE_IDX_STRUCT | AZ_FLAG_ABSTRACT,
+	/**
+	 * @brief The abstract base class of all block types
+	 * 
+	 */
+	AZ_TYPE_BLOCK = AZ_TYPE_IDX_BLOCK | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT,
+
+	/* Special types */
+	/**
+	 * @brief The abstract base class of the semantics of a type
+	 * 
+	 * An instance of _AZImplementation. Specialized for interface types, _AZClass for standalone types
+	 * 
+	 */
+	AZ_TYPE_IMPLEMENTATION = AZ_TYPE_IDX_IMPLEMENTATION | AZ_FLAG_BLOCK,
+	/**
+	 * @brief The semantics of a type
+	 * 
+	 * An instance of _AZClass, a subclass of _AZImplementation
+	 * 
+	 */
+	AZ_TYPE_CLASS = AZ_TYPE_IDX_CLASS | AZ_FLAG_BLOCK | AZ_FLAG_FINAL,
+	/**
+	 * @brief An abstract base class of instances of interface types
+	 * 
+	 */
+	AZ_TYPE_INTERFACE = AZ_TYPE_IDX_INTERFACE | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE,
+	AZ_TYPE_FIELD = AZ_TYPE_IDX_FIELD | AZ_FLAG_BLOCK | AZ_FLAG_FINAL,
+	AZ_TYPE_FUNCTION_SIGNATURE = AZ_TYPE_IDX_FUNCTION_SIGNATURE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL,
+	AZ_TYPE_FUNCTION = AZ_TYPE_IDX_FUNCTION | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE,
+	/* Predefined composite types */
+	AZ_TYPE_REFERENCE = AZ_TYPE_IDX_REFERENCE | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE,
+	AZ_TYPE_STRING = AZ_TYPE_IDX_STRING | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE,
+	AZ_TYPE_BOXED_VALUE = AZ_TYPE_IDX_BOXED_VALUE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED,
+	AZ_TYPE_BOXED_INTERFACE = AZ_TYPE_IDX_BOXED_INTERFACE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED,
+	AZ_TYPE_PACKED_VALUE = AZ_TYPE_IDX_PACKED_VALUE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL,
+	AZ_TYPE_OBJECT = AZ_TYPE_IDX_OBJECT | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE | AZ_FLAG_OBJECT,
+};
+
+#define AZ_TYPE_IS_ARITHMETIC(t) ((AZ_TYPE_INDEX(t) >= AZ_TYPE_IDX_INT8) && (AZ_TYPE_INDEX(t) <= AZ_TYPE_IDX_COMPLEX_DOUBLE))
+#define AZ_TYPE_IS_INTEGRAL(t) ((AZ_TYPE_INDEX(t) >= AZ_TYPE_IDX_INT8) && (AZ_TYPE_INDEX(t) <= AZ_TYPE_IDX_UINT64))
+#define AZ_TYPE_IS_SIGNED(t) (((t) == AZ_TYPE_INT8) || ((t) == AZ_TYPE_INT16) || ((t) == AZ_TYPE_INT32) || ((t) == AZ_TYPE_INT64) || ((t) == AZ_TYPE_FLOAT) || ((t) == AZ_TYPE_DOUBLE) || ((t) == AZ_TYPE_COMPLEX_FLOAT) || ((t) == AZ_TYPE_COMPLEX_DOUBLE))
+#define AZ_TYPE_IS_UNSIGNED(t) (((t) == AZ_TYPE_UINT8) || ((t) == AZ_TYPE_UINT16) || ((t) == AZ_TYPE_UINT32) || ((t) == AZ_TYPE_UINT64))
+#define AZ_TYPE_IS_PRIMITIVE(t) ((AZ_TYPE_INDEX(t) >= AZ_TYPE_IDX_BOOLEAN) && (AZ_TYPE_INDEX(t) <= AZ_TYPE_IDX_POINTER))
+#define AZ_TYPE_IS_BASE(t) ((AZ_TYPE_INDEX(t) >= AZ_TYPE_IDX_ANY) && (AZ_TYPE_INDEX(t) <= AZ_TYPE_IDX_OBJECT))
 
 /*
  * Every entity instance is a collection of bits in memory

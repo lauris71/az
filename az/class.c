@@ -23,8 +23,6 @@
 #endif
 #include <az/string.h>
 
-static void az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsigned int class_size, unsigned int instance_size, unsigned int flags, const uint8_t *name);
-
 static unsigned char zero_val[16] = { 0 };
 
 /* Method implementations */
@@ -92,7 +90,7 @@ az_class_class_post_init (void)
 }
 
 AZClass *
-az_class_new (uint32_t *type, const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
+az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
 	void (*instance_init) (const AZImplementation *, void *),
 	void (*instance_finalize) (const AZImplementation *, void *))
 {
@@ -102,46 +100,15 @@ az_class_new (uint32_t *type, const unsigned char *name, unsigned int parent_typ
 	arikkei_return_val_if_fail ((parent_type == AZ_TYPE_NONE) || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size), 0);
 #endif
 	arikkei_return_val_if_fail (!AZ_TYPE_IS_FINAL(parent_type), 0);
-	unsigned int idx = az_reserve_type();
 
-	AZClass *klass = az_class_new_with_type(idx, parent_type, class_size, instance_size, flags, name);
-	klass->instance_init = instance_init;
-	klass->instance_finalize = instance_finalize;
-	*type = klass->impl.type;
-	return klass;
-}
-
-AZClass *
-az_class_new_with_type (unsigned int type, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags, const uint8_t *name)
-{
 	AZClass *klass = (AZClass *) malloc (class_size);
-	az_class_pre_init (klass, type, parent_type, class_size, instance_size, flags, name);
-	az_types[AZ_TYPE_INDEX(type)].klass = klass;
-	/* We have to use class flags here because of parent chaining */
-	az_types[AZ_TYPE_INDEX(type)].flags = klass->impl.flags;
-	az_types[AZ_TYPE_INDEX(type)].pidx = parent_type;
-	return klass;
-}
-
-void
-az_class_new_with_value (AZClass *klass)
-{
-	unsigned int idx = AZ_TYPE_INDEX(AZ_CLASS_TYPE(klass));
-	az_types[idx].klass = klass;
-	/* We have to use class flags here because of parent chaining */
-	az_types[idx].flags = klass->impl.flags;
-	az_types[idx].pidx = klass->parent ? AZ_CLASS_TYPE(klass->parent) : AZ_TYPE_NONE;
-}
-
-static void
-az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsigned int class_size, unsigned int instance_size, unsigned int flags, const uint8_t *name)
-{
 	memset (klass, 0, class_size);
-	if (parent) {
-		AZClass *parent_class = AZ_CLASS_FROM_TYPE(parent);
+	if (parent_type) {
+		AZClass *parent_class = AZ_CLASS_FROM_TYPE(parent_type);
 		memcpy (klass, parent_class, parent_class->class_size);
 		/* Overwrite values from supertype */
 		klass->impl.flags &= ~AZ_FLAG_ABSTRACT;
+		klass->impl.type = 0;
 		klass->parent = parent_class;
 		klass->n_ifaces_self = 0;
 #ifdef AZ_HAS_PROPERTIES
@@ -150,10 +117,21 @@ az_class_pre_init (AZClass *klass, unsigned int type, unsigned int parent, unsig
 #endif
 	}
 	klass->impl.flags |= flags;
-	klass->impl.type = type;
 	klass->name = name;
 	klass->class_size = class_size;
 	klass->instance_size = instance_size;
+	klass->instance_init = instance_init;
+	klass->instance_finalize = instance_finalize;
+
+	az_register_class(klass);
+
+	return klass;
+}
+
+void
+az_class_new_with_value (AZClass *klass)
+{
+	az_register_class(klass);
 }
 
 void
@@ -221,7 +199,7 @@ az_class_post_init (AZClass *klass)
 #endif
 	if (klass->n_ifaces_self || klass->instance_init || klass->instance_finalize) {
 		klass->impl.flags |= AZ_FLAG_CONSTRUCT;
-		az_types[AZ_TYPE_INDEX(AZ_CLASS_TYPE(klass))].flags |= AZ_FLAG_CONSTRUCT;
+		AZ_INFO_FROM_TYPE(klass->impl.type)->flags |= AZ_FLAG_CONSTRUCT;
 	}
 	if (klass->n_ifaces_self) {
 		/* Count all interfaces */

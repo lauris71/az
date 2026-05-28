@@ -30,10 +30,25 @@ az_type_is_valid(uint32_t type) {
 	return type == impl->type;
 }
 
+#ifdef AZ_SAFETY_CHECKS
+#define AZ_CHECK_TYPE(t) arikkei_return_if_fail(az_type_is_valid(t))
+#define AZ_CHECK_TYPE_RET(t,v) arikkei_return_val_if_fail(az_type_is_valid(t), v)
+#else
+#define AZ_CHECK_TYPE(t)
+#define AZ_CHECK_TYPE_RET(t,v)
+#endif
+
 /* Library internals */
 void az_globals_init (void);
 
-unsigned int az_reserve_type();
+/**
+ * @brief Registers class in type system
+ * 
+ * If impl.type is not set a next available type will be assigned.
+ * 
+ * @param klass A class to register
+ */
+void az_register_class(AZClass *klass);
 
 /* Library internals */
 void az_init_primitive_classes (void);
@@ -54,13 +69,11 @@ void az_init_boxed_interface_class (void);
 void az_init_packed_value_class (void);
 void az_init_object_class(void);
 
-/* Allocates and initializes a new class and type, does NOT call neither class constructor nor post_init */
-AZClass *az_class_new (uint32_t *type, const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
+/* Allocates, initializes and registers a new class, does NOT call neither class constructor nor post_init */
+AZClass *az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
 	void (*instance_init) (const AZImplementation *, void *),
 	void (*instance_finalize) (const AZImplementation *, void *));
-/* Allocates and initializes a new class with pre-defined type, does NOT call neither class constructor nor post_init */
 /* Used internally for fundamental types */
-AZClass *az_class_new_with_type (unsigned int type, unsigned int parent, unsigned int class_size, unsigned int instance_size, unsigned int flags, const uint8_t *name);
 void az_class_new_with_value (AZClass *klass);
 
 /* Called after class constructor has run (builds interface chain etc.) */

@@ -1,5 +1,10 @@
 set(CMAKE_BUILD_TYPE Debug)
 
+include(CMakePrintHelpers)
+
+cmake_print_variables(CMAKE_SOURCE_DIR)
+cmake_print_variables(PROJECT_SOURCE_DIR)
+
 find_library(MATH_LIBRARY m)
 find_library(LIBARIKKEI
     NAMES arikkei arikkeid
@@ -7,6 +12,7 @@ find_library(LIBARIKKEI
         ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei/Release
         ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei/Release
         ${CMAKE_SOURCE_DIR}/../../build/arikkei/arikkei ${CMAKE_SOURCE_DIR}/../../build/arikkei/arikkei/Release
+        ${CMAKE_SOURCE_DIR}/../build/arikkei/arikkei ${CMAKE_SOURCE_DIR}/../build/arikkei/arikkei/Release
         ${PROJECT_SOURCE_DIR}/../build/arikkei/arikkei ${PROJECT_SOURCE_DIR}/../build/arikkei/arikkei/Release
 )
 
