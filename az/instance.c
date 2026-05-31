@@ -282,8 +282,6 @@ az_instance_set_property_by_key (const AZImplementation *impl, void *inst, const
 	return az_instance_set_property_by_id (sub_class, sub_impl, sub_inst, idx, prop_impl, prop_inst, ctx);
 }
 
-#ifdef AZ_HAS_PROPERTIES
-
 unsigned int
 az_instance_set_property_by_id (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx)
 {
@@ -384,6 +382,23 @@ az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, 
 			}
 			break;
 		}
+		case AZ_FIELD_READ_INSTANCE: {
+			/* Embedded instance inside instance/implementation/class */
+			AZValue *src;
+			if (prop->spec == AZ_FIELD_INSTANCE) {
+				arikkei_return_val_if_fail(inst != NULL, 0);
+				src = (AZValue *) ((char *) inst + prop->offset);
+			} else if (prop->spec == AZ_FIELD_IMPLEMENTATION) {
+				arikkei_return_val_if_fail(impl != NULL, 0);
+				src = (AZValue *) ((char *) impl + prop->offset);
+			} else {
+				src = (AZValue *) ((char *) klass + prop->offset);
+			}
+			AZClass *prop_class = AZ_CLASS_FROM_TYPE(prop->type);
+			arikkei_return_val_if_fail (AZ_CLASS_IS_FINAL(prop_class), 0);
+			*prop_impl = az_value_set_from_inst_autobox (&prop_class->impl, prop_val, src, val_size);
+			break;
+		}
 		case AZ_FIELD_READ_PACKED: {
 			/* Packed value inside instance */
 			AZPackedValue *src;
@@ -416,4 +431,3 @@ az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, 
 	}
 	return 1;
 }
-#endif

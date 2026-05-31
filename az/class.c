@@ -16,11 +16,9 @@
 #include <az/base.h>
 #include <az/class.h>
 #include <az/extend.h>
-#ifdef AZ_HAS_PROPERTIES
 #include <az/function-value.h>
 #include <az/packed-value.h>
 #include <az/private.h>
-#endif
 #include <az/string.h>
 
 static unsigned char zero_val[16] = { 0 };
@@ -111,10 +109,8 @@ az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int 
 		klass->impl.type = 0;
 		klass->parent = parent_class;
 		klass->n_ifaces_self = 0;
-#ifdef AZ_HAS_PROPERTIES
 		klass->n_props_self = 0;
 		klass->props_self = NULL;
-#endif
 	}
 	klass->impl.flags |= flags;
 	klass->name = name;
@@ -189,18 +185,10 @@ az_class_post_init (AZClass *klass)
 			fprintf (stderr, "az_class_post_init: Klass %s interface %u is not defined\n", klass->name, i);
 		}
 	}
-#ifdef AZ_HAS_PROPERTIES
 	for (i = 0; i < klass->n_props_self; i++) {
 		if (!klass->props_self[i].key) {
 			fprintf (stderr, "az_class_post_init: Klass %s property %u is not defined\n", klass->name, i);
 		}
-	}
-#endif
-#endif
-#if 0
-	if (klass->n_ifaces_self || klass->instance_init || klass->instance_finalize) {
-		klass->impl.flags |= AZ_FLAG_CONSTRUCT;
-		AZ_INFO_FROM_TYPE(klass->impl.type)->flags |= AZ_FLAG_CONSTRUCT;
 	}
 #endif
 	if (klass->n_ifaces_self) {
@@ -277,7 +265,6 @@ az_class_post_init (AZClass *klass)
 	}
 }
 
-#ifdef AZ_HAS_PROPERTIES
 void
 az_class_set_num_properties (AZClass *klass, unsigned int nproperties)
 {
@@ -324,7 +311,7 @@ void az_class_define_property (AZClass *klass, unsigned int idx, const unsigned 
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
 	arikkei_return_if_fail (!impl || (az_type_is_assignable_to(AZ_IMPL_TYPE(impl), type)));
 #endif
-	if ((read == AZ_FIELD_READ_VALUE) || (read == AZ_FIELD_READ_PACKED)) {
+	if ((read == AZ_FIELD_READ_VALUE) || (read == AZ_FIELD_READ_INSTANCE) || (read == AZ_FIELD_READ_PACKED)) {
 		az_field_setup_value (klass->props_self + idx, key, type, is_final, spec, read, write, offset);
 	} else if (read == AZ_FIELD_READ_METHOD) {
 		az_field_setup_method (klass->props_self + idx, key, type, is_final, spec, read, write);
@@ -486,5 +473,3 @@ az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, vo
 	}
 	return -1;
 }
-
-#endif

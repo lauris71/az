@@ -15,38 +15,27 @@
 extern "C" {
 #endif
 
-/**
- * @brief Class/implementation/type flags
+/** @ingroup types
+ * @brief Type flags
  * 
- * These are various low- and high-level flags that describe the type behaviour. Some of these
- * (like `AZ_FLAG_IMPL_IS_CLASS` and `AZ_FLAG_FINAL`) define the type behavior. Some others
- * (like `AZ_FLAG_REFERENCE` and `AZ_FLAG_OBJECT`) duplicate the type hierarchy information for convenience.
+ * These are high-level flags that describe the most important type/class attributes.
+ * 
+ * They are stored in the typecode (bits 31-24), so they are available directly from typecode without accessing the
+ * class array (saving pointer dereference and potential thread synchronization).
  */
 enum AZTypeFlags {
 	/**
-	 * @brief Marks that an implementation is a standalone class
-	 * 
-	 * It exploits the feature that classes are aligned to 8 bytes, thus if any of the
-	 * lowest bits are set, the AZImplementation union contains flags and type, not a
-	 * pointer to the AZClass
-	 */
-	AZ_FLAG_IMPL_IS_CLASS = 0x01,
-
-	/*
-	* High-order flags, can be put in typecode
-	*/
-	/**
-	 * @brief Type is an interface, implementation is not class
+	 * @brief Type is a block, value is a pointer to the instance (not the instance itself)
 	 * 
 	 */
 	AZ_FLAG_BLOCK = 0x01000000,
 	/**
-	 * @brief Type is a reference, value creation/destruction involves reference counting
+	 * @brief Type is an interface, implementation is not class
 	 * 
 	 */
 	AZ_FLAG_INTERFACE = 0x02000000,
 	/**
-	 * @brief Type is a block, value is a pointer to the instance (not the instance itself)
+	 * @brief Type is a reference, value creation/destruction involves reference counting
 	 * 
 	 */
 	AZ_FLAG_REFERENCE = 0x04000000,
@@ -76,14 +65,33 @@ enum AZTypeFlags {
 	 * @brief The type instances have constructor or destructor
 	 * 
 	 * Subclasses should not clear this flag if set set by parent.
+	 * This flags is automatically set during type registration if:
+	 * - the type has constructor (init) or destructor (finalize)
+	 * - AZ_FLAGS_ZERO_MEMORY is set
+	 * - class implements interfaces or has properties
 	 */
 	AZ_FLAG_CONSTRUCT = 0x80000000,
+};
 
-	/*
-	* Low-order flags, only present in class and type info
-	*/
-
-	/* fixme: Make this dependent on construction */
+/** @ingroup types
+ * @brief Implementation/Class flags
+ * 
+ * These are stored in lower-order bits (bits 23-0) and either describe the implementation behaviour or less-used type
+ * hierarchy information and are stored only in the class (implementation) flags field.
+ * 
+ * The AZ_FLAG_IMPL_IS_CLASS flag is a special case: it is stored in the implementation flags and marks
+ * whether the implementation is a class (containing flags field) or a standalone implementation of an
+ * interface (containing pointer to the class instead).
+ */
+enum AZImplementationFlags {
+	/**
+	 * @brief Marks that an implementation is a standalone class
+	 * 
+	 * It exploits the feature that classes are aligned to 8 bytes. Thus, if any of the 3
+	 * lowest bits is set, the AZImplementation union contains flags and type, not a
+	 * pointer to the AZClass
+	 */
+	AZ_FLAG_IMPL_IS_CLASS = 0x01,
 	/**
 	 * @brief Instance construction should be preceded by filling memory by zeroes
 	 * 
@@ -98,8 +106,11 @@ enum AZTypeFlags {
 	AZ_FLAG_SIGNED = 0x400
 };
 
-/*
- * Predefined types (indices)
+/** @ingroup types
+ * @brief Predefined type indices
+ *
+ * These are stored in the upper-order bits (bits 31-24) of the typecode. The index is used to
+ * access the type information (class) in the single global array.
  */
 
 enum AZTypeIdx {
@@ -139,8 +150,15 @@ enum AZTypeIdx {
 #define AZ_NUM_FUNDAMENTAL_TYPES (AZ_TYPE_IDX_BLOCK + 1)
 #define AZ_NUM_BASE_TYPES (AZ_TYPE_IDX_OBJECT + 1)
 
-/*
- * The actual types (index plus flags)
+/** @ingroup types
+ * @brief Predefined typecodes
+ *
+ * The actual typecodes (index plus flags).
+ * 
+ * These are used througout the api as a more compact type identifier than class pointer.
+ * Semantically they are synonymous to a class, NOT an implementation - the interfaces have to
+ * be accessed through an Implementation/Instance pointer pair because typecode only gives access
+ * to the class of the interface, not to it's actual implementation.
  */
 
 enum AZType {
@@ -199,7 +217,7 @@ enum AZType {
 	 */
 	AZ_TYPE_CLASS = AZ_TYPE_IDX_CLASS | AZ_FLAG_BLOCK | AZ_FLAG_FINAL,
 	/**
-	 * @brief An abstract base class of instances of interface types
+	 * @brief An abstract base class of an instance of interface type
 	 * 
 	 */
 	AZ_TYPE_INTERFACE = AZ_TYPE_IDX_INTERFACE | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE,
@@ -207,11 +225,44 @@ enum AZType {
 	AZ_TYPE_FUNCTION_SIGNATURE = AZ_TYPE_IDX_FUNCTION_SIGNATURE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL,
 	AZ_TYPE_FUNCTION = AZ_TYPE_IDX_FUNCTION | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE,
 	/* Predefined composite types */
+	/**
+	 * @brief A block type that implements reference counting
+	 * 
+	 */
 	AZ_TYPE_REFERENCE = AZ_TYPE_IDX_REFERENCE | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE,
+	/**
+	 * @brief An immutable reference-counted utf8 string type
+	 * 
+	 * The strings having the same textual value are collated using an hash table. Thus string equality
+	 * can be checked by comparing the pointers.
+	 * 
+	 */
 	AZ_TYPE_STRING = AZ_TYPE_IDX_STRING | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE,
+	/**
+	 * @brief A reference that can contain an arbitrary value-type
+	 * 
+	 * These are mostly used to fit any value type into predefined storage space
+	 * 
+	 */
 	AZ_TYPE_BOXED_VALUE = AZ_TYPE_IDX_BOXED_VALUE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED,
+	/**
+	 * @brief A reference that contain a value and resolved interface of it
+	 * 
+	 * These are used to store interfaces by guaranteeing that the containing instance remains alive (and
+	 * in case of value types at the same place) during the interface lifecycle.
+	 */
 	AZ_TYPE_BOXED_INTERFACE = AZ_TYPE_IDX_BOXED_INTERFACE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED,
+	/**
+	 * @brief A convenience container that stores both a value and a pointer to it's implementation
+	 * 
+	 */
 	AZ_TYPE_PACKED_VALUE = AZ_TYPE_IDX_PACKED_VALUE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL,
+	/**
+	 * @brief A special reference type that contains a pointer to it's own class
+	 * 
+	 * Objects can be used without specifying their implementations.
+	 * 
+	 */
 	AZ_TYPE_OBJECT = AZ_TYPE_IDX_OBJECT | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE | AZ_FLAG_OBJECT,
 };
 
@@ -261,10 +312,8 @@ typedef struct _AZReference AZReference;
 typedef struct _AZString AZString;
 typedef struct _AZBoxedValue AZBoxedValue;
 typedef struct _AZBoxedInterface AZBoxedInterface;
-#ifdef AZ_HAS_PACKED_VALUE
 typedef struct _AZPackedValue AZPackedValue;
 typedef struct _AZPackedValue64 AZPackedValue64;
-#endif
 typedef struct _AZObject AZObject;
 
 typedef struct _AZFunctionSignature AZFunctionSignature;

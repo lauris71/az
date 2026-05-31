@@ -22,76 +22,72 @@ extern "C" {
 
 /** @defgroup types AZ types
  *  The basic type access
+ * 
+ * An AZ type ia a 32-bit unsigned integer, composed of two parts:
+ * - 24-bit type index (bits 23-0), used to access type info array
+ * - 8-bit flags (bits 31-24), used to store type flags
+ * 
+ * Types are used throughout the api as a more compact type identifier than class pointer.
+ * 
+ * Semantically types are synonymous to a class, NOT an implementation - the interfaces have to
+ * be accessed through an Implementation/Instance pointer pair because typecode only gives access
+ * to the class of the interface, not to it's actual implementation.
  */
 
+ /**
+  * @brief The mask of index bits of a typecode
+  * 
+  */
 #define AZ_TYPE_MASK 0x00ffffff
+/**
+ * @brief Get a type index from a typecode
+ * 
+ */
 #define AZ_TYPE_INDEX(t) ((t) & AZ_TYPE_MASK)
+/**
+ * @brief Get a type flags from a typecode
+ * 
+ */
+#define AZ_TYPE_FLAGS(t) ((t) & ~AZ_TYPE_MASK)
 
 typedef struct _AZTypeInfo AZTypeInfo;
 
+/**
+ * @brief An internal array element of type info
+ * 
+ * It is used to get a class from typecode (type index) and to determine parent types
+ * without having to traverse the class hierarchy.
+ * 
+ */
 struct _AZTypeInfo {
-	uint32_t flags;
+	AZClass *klass;
 	/* Parent INDEX */
 	uint32_t pidx;
-	AZClass *klass;
 };
-
-/*
- * Three variants of handling global type arrays:
- * AZ_GLOBALS_FIXED_SIZE - use compile-time fixed size arrays (AZ_MAX_TYPES)
- * AZ_GLOBALS_SINGLE_THREAD - completely ignore concurrency 
- * AZ_GLOBALS_MULTI_THREAD - use mutex
- * 
- * The following methods/macros are redefined depending on globals handling:
- * az_init()
- * az_reserve_type()
- * az_type_get_class()
- * az_type_get_info();
- * AZ_CLASS_FROM_TYPE
- * AZ_IMPL_FROM_TYPE
- * AZ_TYPE_FLAGS
- */
-
-#define AZ_GLOBALS_FIXED_SIZE
-#define AZ_MAX_TYPES 256
 
 /*
  * Basic type queries
  */
 
-#if defined AZ_GLOBALS_FIXED_SIZE
-
-#ifndef __AZ_TYPES_C__
-extern AZTypeInfo az_types[];
-extern unsigned int az_num_types;
-#else
-AZTypeInfo az_types[AZ_MAX_TYPES];
-unsigned int az_num_types = 0;
-#endif
-/* No safety checking */
-#define AZ_INFO_FROM_TYPE(t) (&az_types[AZ_TYPE_INDEX(t)])
-#define AZ_CLASS_FROM_TYPE(t) az_types[AZ_TYPE_INDEX(t)].klass
-#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_types[AZ_TYPE_INDEX(t)].klass)
-#else
-
-/* C array of all defined classes */
-#ifndef __AZ_TYPES_C__
-extern AZTypeInfo *az_types;
-extern unsigned int az_num_types;
-#else
-AZTypeInfo *az_types = NULL;
-unsigned int az_num_types = 0;
-#endif
-/* No safety checking */
-#define AZ_INFO_FROM_TYPE(t) &az_types[AZ_TYPE_INDEX(t)]
-#define AZ_CLASS_FROM_TYPE(t) az_types[AZ_TYPE_INDEX(t)].klass
-#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_types[AZ_TYPE_INDEX(t)].klass)
-
+/* Fixed-length static array*/
+#if defined(AZ_GLOBALS_STATIC)
+	extern AZTypeInfo az_types[];
+	extern unsigned int az_num_types;
+	#define AZ_CLASS_FROM_TYPE(t) az_types[AZ_TYPE_INDEX(t)].klass
+	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_types[AZ_TYPE_INDEX(t)].klass)
+#elif defined(AZ_GLOBALS_SINGLE_THREAD)
+	extern AZTypeInfo *az_types;
+	extern unsigned int az_num_types;
+	#define AZ_CLASS_FROM_TYPE(t) az_types[AZ_TYPE_INDEX(t)].klass
+	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_types[AZ_TYPE_INDEX(t)].klass)
+#elif defined(AZ_GLOBALS_MULTI_THREAD)
+	extern AZTypeInfo *az_types;
+	extern unsigned int az_num_types;
+	#define AZ_CLASS_FROM_TYPE(t) az_type_get_class(t)
+	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_type_get_class(t))
 #endif
 
 #define AZ_TYPE_FROM_INDEX(i) (AZ_IMPL_FROM_TYPE(i)->type)
-
-#define AZ_TYPE_FLAGS(t) ((t) & ~AZ_TYPE_MASK)
 
 #define AZ_TYPE_IS_BLOCK(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_BLOCK)
 #define AZ_TYPE_IS_VALUE(t) !(AZ_TYPE_FLAGS(t) & AZ_FLAG_BLOCK)
@@ -102,24 +98,20 @@ unsigned int az_num_types = 0;
 #define AZ_TYPE_IS_FINAL(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_FINAL)
 #define AZ_TYPE_IS_ABSTRACT(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_ABSTRACT)
 
-#ifdef AZ_SAFETY_CHECKS
-static inline AZTypeInfo *
-az_type_get_info (unsigned int type)
-{
-	if (!az_num_types) az_init ();
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, NULL);
-	return AZ_INFO_FROM_TYPE(type);
-}
-static inline AZClass *
-az_type_get_class (unsigned int type)
-{
-	if (!az_num_types) az_init ();
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, NULL);
-	return AZ_CLASS_FROM_TYPE(type);
-}
-#else
-#define az_type_get_info AZ_INFO_FROM_TYPE
-#define az_type_get_class AZ_CLASS_FROM_TYPE
+#if defined(AZ_GLOBALS_STATIC) || defined(AZ_GLOBALS_SINGLE_THREAD)
+	#ifdef AZ_SAFETY_CHECKS
+		static inline AZClass *
+		az_type_get_class (unsigned int type)
+		{
+			if (!az_num_types) az_init ();
+			arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, NULL);
+			return AZ_CLASS_FROM_TYPE(type);
+		}
+	#else
+		#define az_type_get_class AZ_CLASS_FROM_TYPE
+	#endif
+#elif defined(AZ_GLOBALS_MULTI_THREAD)
+	AZClass *az_type_get_class (unsigned int type);
 #endif
 
 #define az_type_get_impl(t) ((AZImplementation *) az_type_get_class(t))

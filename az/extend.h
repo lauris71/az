@@ -81,7 +81,6 @@ AZClass *az_register_composite_type (unsigned int *type, const unsigned char *na
 void az_class_set_num_interfaces (AZClass *klass, unsigned int ninterfaces);
 void az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type, unsigned int impl_offset, unsigned int inst_offset);
 
-#ifdef AZ_HAS_PROPERTIES
 void az_class_set_num_properties (AZClass *klass, unsigned int nproperties);
 /* Define property with AZ_FIELD_READ_VALUE */
 void az_class_define_property_value (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,
@@ -110,7 +109,6 @@ void az_class_define_static_method (AZClass *klass, unsigned int idx, const unsi
 void az_class_define_static_method_va (AZClass *klass, unsigned int idx, const unsigned char *key,
 	unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *),
 	unsigned int ret_type, unsigned int n_args, ...);
-#endif
 
 #ifdef __cplusplus
 };

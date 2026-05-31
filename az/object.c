@@ -137,7 +137,6 @@ az_object_get_interface (AZObject *obj, unsigned int type, void **inst)
 	return az_instance_get_interface (&obj->klass->reference_klass.klass.impl, obj, type, inst);
 }
 
-#ifdef AZ_HAS_PACKED_VALUE
 void
 az_packed_value_set_object (AZPackedValue *val, AZObject *obj)
 {
@@ -157,5 +156,3 @@ az_packed_value_transfer_object (AZPackedValue *val, AZObject *obj)
 		az_packed_value_transfer_reference (val, AZ_OBJECT_TYPE(obj), (AZReference *) obj);
 	}
 }
-
-#endif

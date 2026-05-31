@@ -1132,9 +1132,16 @@ convert_uint64 (unsigned int to_type, void *to_val, uint64_t val)
 	return result;
 }
 
-#define MAX_FLOAT_LT_INT32_MIN -2147483650.0f
 #define MIN_FLOAT_GT_I32_MAX 2147483648.0f
 #define MIN_FLOAT_GT_U32_MAX 4294967296.0f
+
+/* Float has 24-bit mantissa. ULP at 2^63 is 2^40 (1099511627776). */
+#define MIN_FLOAT_GT_I64_MAX 9223372036854775808.0f     /* 2^63, (float)INT64_MAX rounds to this */
+#define MIN_FLOAT_GT_U64_MAX 18446744073709551616.0f    /* 2^64, (float)UINT64_MAX rounds to this */
+
+/* Double has 53-bit mantissa. ULP at 2^63 is 2^11 (2048). */
+#define MIN_DBL_GT_I64_MAX 9223372036854775808.0      /* 2^63, (double)INT64_MAX rounds to this */
+#define MIN_DBL_GT_U64_MAX 18446744073709551616.0     /* 2^64, (double)UINT64_MAX rounds to this */
 
 static unsigned int
 convert_float (unsigned int to_type, AZValue *to_val, float val)
@@ -1186,7 +1193,7 @@ convert_float (unsigned int to_type, AZValue *to_val, float val)
 		}
 		to_val->uint16_v = (uint16_t) val;
 	} else if (to_type == AZ_TYPE_INT32) {
-		if (val <= MAX_FLOAT_LT_INT32_MIN) {
+		if (val < INT32_MIN) {
 			to_val->int32_v = INT32_MIN;
 			result = AZ_CONVERSION_CLAMPED;
 		} else if (val >= MIN_FLOAT_GT_I32_MAX) {
@@ -1213,26 +1220,30 @@ convert_float (unsigned int to_type, AZValue *to_val, float val)
 		}
 	} else if (to_type == AZ_TYPE_INT64) {
 		if (val < INT64_MIN) {
-			val = (float) INT64_MIN;
+			to_val->int64_v = INT64_MIN;
 			result = AZ_CONVERSION_CLAMPED;
-		} else if (val > INT64_MAX) {
-			val = (float) INT64_MAX;
+		} else if (val >= MIN_FLOAT_GT_I64_MAX) {
+			to_val->int64_v = INT64_MAX;
 			result = AZ_CONVERSION_CLAMPED;
 		} else if (floorf (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
+			to_val->int64_v = (int64_t) val;
+		} else {
+			to_val->int64_v = (int64_t) val;
 		}
-		to_val->int64_v = (int64_t) val;
 	} else if (to_type == AZ_TYPE_UINT64) {
 		if (val < 0) {
-			val = 0;
+			to_val->uint64_v = 0;
 			result = AZ_CONVERSION_CLAMPED;
-		} else if (val > UINT64_MAX) {
-			val = (float) UINT64_MAX;
+		} else if (val >= MIN_FLOAT_GT_U64_MAX) {
+			to_val->uint64_v = UINT64_MAX;
 			result = AZ_CONVERSION_CLAMPED;
 		} else if (floorf (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
+			to_val->uint64_v = (uint64_t) val;
+		} else {
+			to_val->uint64_v = (uint64_t) val;
 		}
-		to_val->uint64_v = (uint64_t) val;
 	} else if (to_type == AZ_TYPE_DOUBLE) {
 		to_val->double_v = val;
 	} else if (to_type == AZ_TYPE_COMPLEX_FLOAT) {
@@ -1244,7 +1255,7 @@ convert_float (unsigned int to_type, AZValue *to_val, float val)
 }
 
 static unsigned int
-convert_double (unsigned int to_type, void *to_val, double val)
+convert_double (unsigned int to_type, AZValue *to_val, double val)
 {
 	unsigned int result = 0;
 	/* C, C, C, C, C, C, C, C, C, A, C, A */
@@ -1258,7 +1269,7 @@ convert_double (unsigned int to_type, void *to_val, double val)
 		} else if (floor (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
 		}
-		*((char *) to_val) = (char) val;
+		to_val->int8_v = (int8_t) val;
 	} else if (to_type == AZ_TYPE_UINT8) {
 		if (val < 0) {
 			val = 0;
@@ -1269,7 +1280,7 @@ convert_double (unsigned int to_type, void *to_val, double val)
 		} else if (floor (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
 		}
-		*((unsigned char *) to_val) = (unsigned char) val;
+		to_val->uint8_v = (uint8_t) val;
 	} if (to_type == AZ_TYPE_INT16) {
 		if (val < INT16_MIN) {
 			val = INT16_MIN;
@@ -1280,7 +1291,7 @@ convert_double (unsigned int to_type, void *to_val, double val)
 		} else if (floor (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
 		}
-		*((short *) to_val) = (short) val;
+		to_val->int16_v = (int16_t) val;
 	} else if (to_type == AZ_TYPE_UINT16) {
 		if (val < 0) {
 			val = 0;
@@ -1291,7 +1302,7 @@ convert_double (unsigned int to_type, void *to_val, double val)
 		} else if (floor (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
 		}
-		*((unsigned short *) to_val) = (unsigned short) val;
+		to_val->uint16_v = (uint16_t) val;
 	} else if (to_type == AZ_TYPE_INT32) {
 		if (val < INT32_MIN) {
 			val = INT32_MIN;
@@ -1302,7 +1313,7 @@ convert_double (unsigned int to_type, void *to_val, double val)
 		} else if (floor (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
 		}
-		*((int *) to_val) = (int) val;
+		to_val->int32_v = (int32_t) val;
 	} else if (to_type == AZ_TYPE_UINT32) {
 		if (val < 0) {
 			val = 0;
@@ -1313,41 +1324,47 @@ convert_double (unsigned int to_type, void *to_val, double val)
 		} else if (floor (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
 		}
-		*((unsigned int *) to_val) = (unsigned int) val;
+		to_val->uint32_v = (uint32_t) val;
 	} else if (to_type == AZ_TYPE_INT64) {
 		if (val < INT64_MIN) {
-			val = (double) INT64_MIN;
+			to_val->int64_v = INT64_MIN;
 			result = AZ_CONVERSION_CLAMPED;
-		} else if (val > INT64_MAX) {
-			val = (double) INT64_MAX;
+		} else if (val >= MIN_DBL_GT_I64_MAX) {
+			to_val->int64_v = INT64_MAX;
 			result = AZ_CONVERSION_CLAMPED;
 		} else if (floor (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
+			to_val->int64_v = (int64_t) val;
+		} else {
+			to_val->int64_v = (int64_t) val;
 		}
-		*((int *) to_val) = (int) val;
 	} else if (to_type == AZ_TYPE_UINT64) {
 		if (val < 0) {
-			val = 0;
+			to_val->uint64_v = 0;
 			result = AZ_CONVERSION_CLAMPED;
-		} else if (val > UINT64_MAX) {
-			val = (double) UINT64_MAX;
+		} else if (val >= MIN_DBL_GT_U64_MAX) {
+			to_val->uint64_v = UINT64_MAX;
 			result = AZ_CONVERSION_CLAMPED;
 		} else if (floor (val) != val) {
 			result = AZ_CONVERSION_ROUNDED;
+			to_val->uint64_v = (uint64_t) val;
+		} else {
+			to_val->uint64_v = (uint64_t) val;
 		}
-		*((unsigned long long *) to_val) = (unsigned long long) val;
 	} else if (to_type == AZ_TYPE_FLOAT) {
-		/* fixme: Check ranges and precision */
-		*((float *) to_val) = (float) val;
+		float fval = (float) val;
+		if (isfinite (val) && (!isfinite (fval) || val != (double) fval)) result = AZ_CONVERSION_ROUNDED;
+		to_val->float_v = fval;
 	} else if (to_type == AZ_TYPE_DOUBLE) {
-		*((double *) to_val) = (double) val;
+		to_val->double_v = val;
 	} else if (to_type == AZ_TYPE_COMPLEX_FLOAT) {
-		/* fixme: Check ranges and precision */
-		*((float *) to_val) = (float) val;
-		*((float *) to_val + 1) = 0;
+		float fval = (float) val;
+		if (isfinite (val) && (!isfinite (fval) || val != (double) fval)) result = AZ_CONVERSION_ROUNDED;
+		to_val->cfloat_v.r = fval;
+		to_val->cfloat_v.i = 0;
 	} else if (to_type == AZ_TYPE_COMPLEX_DOUBLE) {
-		*((double *) to_val) = (double) val;
-		*((double *) to_val + 1) = 0;
+		to_val->cdouble_v.r = val;
+		to_val->cdouble_v.i = 0;
 	}
 	return result;
 }

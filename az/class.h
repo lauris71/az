@@ -139,9 +139,7 @@ struct _AZClass {
 		};
 	};
 
-#ifdef AZ_HAS_PROPERTIES
 	AZField *props_self;
-#endif
 
 	/**
 	 * @brief The name of this class for convenience (not used by the library)
@@ -186,7 +184,7 @@ struct _AZClass {
 	unsigned int (*deserialize) (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
 
 	unsigned int (*to_string) (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen);
-#ifdef AZ_HAS_PROPERTIES
+
 	/**
 	* @brief Get property value
 	* @param impl An implementation of query instance
@@ -205,7 +203,6 @@ struct _AZClass {
 	/* Property is set by instance */
 	/* Returns 1 on success, 0 if property cannot be set */
 	unsigned int (*set_property) (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
-#endif
 };
 
 /*

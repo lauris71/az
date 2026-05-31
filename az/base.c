@@ -12,6 +12,31 @@
 #include <az/class.h>
 #include <az/private.h>
 
+void
+az_init (void)
+{
+	static unsigned int initialized = 0;
+	if (initialized) return;
+	initialized = 1;
+	az_num_types = AZ_NUM_BASE_TYPES;
+	az_globals_init();
+	az_init_primitive_classes();
+	az_init_base_classes();
+
+	az_init_interface_class();
+	az_init_field_class();
+	az_init_function_classes();
+	az_init_reference_class();
+	az_init_string_class();
+	az_init_boxed_value_class();
+	az_init_boxed_interface_class();
+	az_init_packed_value_class();
+	az_init_object_class();
+
+	az_post_init_primitive_classes();
+	az_post_init_base_classes();
+}
+
 static unsigned int
 impl_to_string (const AZImplementation* impl, void *inst, unsigned char *buf, unsigned int len)
 {

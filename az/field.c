@@ -43,7 +43,7 @@ void az_field_setup_value (AZField *prop, const unsigned char *key, unsigned int
 	arikkei_return_if_fail (key != NULL);
 	arikkei_return_if_fail (type != AZ_TYPE_NONE);
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
-	arikkei_return_if_fail ((read == AZ_FIELD_READ_VALUE) || (read == AZ_FIELD_READ_PACKED));
+	arikkei_return_if_fail ((read == AZ_FIELD_READ_VALUE) || (read == AZ_FIELD_READ_INSTANCE) || (read == AZ_FIELD_READ_PACKED));
 	arikkei_return_if_fail ((write == read) || (write == AZ_FIELD_WRITE_NONE) || (write == AZ_FIELD_WRITE_METHOD));
 #endif
 	prop->key = az_string_new (key);

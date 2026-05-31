@@ -108,7 +108,6 @@ unsigned int az_instance_get_property_by_key (const AZImplementation *impl, void
 unsigned int az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val);
 unsigned int az_instance_set_property_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
 
-#ifdef AZ_HAS_PROPERTIES
 /**
  * @brief Get property value by defining class and property index
  * 
@@ -132,7 +131,6 @@ unsigned int az_instance_set_property_by_key (const AZImplementation *impl, void
  */
 unsigned int az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation **prop_impl, AZValue *prop_val, unsigned int val_size, AZContext *ctx);
 unsigned int az_instance_set_property_by_id (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
-#endif
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 Class (AZClass) contains all the semantic (what this type IS) and some behavioral (how this type BEHAVES) information of a type.
 For standalone types this is everything there is, but for interface types some parts of behavior are separated into implementation.
 
-Class itself is an implementation, but this is purely semantic connection to maske all types accessible by implementation/instance
+Class itself is an implementation, but this is purely semantic connection to make all types accessible by implementation/instance
 combo. Tehnically the layouts of Class and Implementation are different:
 
 ```c

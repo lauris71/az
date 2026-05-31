@@ -7,7 +7,12 @@
 * Copyright (C) Lauris Kaplinski 2019
 */
 
-/*
+/**
+ * @brief Weak reference to an active object
+ * 
+ * Stores a pointer to an AZActivbeObject without claiming reference. The pointer is cleared
+ * when the object is destroyed (in dispose handler).
+ * 
  * Zero reference can be safely used and destroyed without init/finalize cascade
  */
 

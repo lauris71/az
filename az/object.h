@@ -17,9 +17,7 @@ typedef struct _AZObjectClass AZObjectClass;
 #include <stdlib.h>
 
 #include <az/reference.h>
-#ifdef AZ_HAS_PACKED_VALUE
 #include <az/packed-value.h>
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -104,9 +102,9 @@ az_object_is_alive (AZObject *obj) {
 	return obj->flags & AZ_OBJECT_ALIVE;
 }
 
-#ifdef AZ_HAS_PACKED_VALUE
 void az_packed_value_set_object (AZPackedValue *val, AZObject *obj);
 void az_packed_value_transfer_object (AZPackedValue *val, AZObject *obj);
+
 /* Convenience method for setting value to given object */
 ARIKKEI_INLINE void
 az_value_set_object (const AZImplementation **impl, AZValue *val, AZObject *obj)
@@ -129,7 +127,6 @@ az_value_transfer_object (const AZImplementation **impl, AZValue *val, AZObject 
 		*impl = NULL;
 	}
 }
-#endif
 
 #ifdef __cplusplus
 };

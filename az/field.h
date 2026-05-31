@@ -23,12 +23,14 @@ extern "C" {
 #define AZ_FIELD_READ_NONE 0
 /* Directly read member value (final type or object) */
 #define AZ_FIELD_READ_VALUE 1
+/* Directly read instance of block type */
+#define AZ_FIELD_READ_INSTANCE 2
 /* Read from packed member value */
-#define AZ_FIELD_READ_PACKED 2
+#define AZ_FIELD_READ_PACKED 3
 /* Read via get_property method */
-#define AZ_FIELD_READ_METHOD 3
+#define AZ_FIELD_READ_METHOD 4
 /* Read static final value stored in field */
-#define AZ_FIELD_READ_STORED_STATIC 4
+#define AZ_FIELD_READ_STORED_STATIC 5
 
 /* Not writeable */
 #define AZ_FIELD_WRITE_NONE 0

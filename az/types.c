@@ -21,45 +21,11 @@
 #include <az/interface.h>
 #include <az/primitives.h>
 #include <az/private.h>
-#include <az/reference.h>
-#include <az/string.h>
 #include <az/boxed-interface.h>
-#ifdef AZ_HAS_PACKED_VALUE
 #include <az/packed-value.h>
-#endif
-#ifdef AZ_HAS_PROPERTIES
 #include <az/field.h>
-#endif
 
 #include <az/types.h>
-
-void
-az_init (void)
-{
-	static unsigned int initialized = 0;
-	if (initialized) return;
-	initialized = 1;
-	az_num_types = AZ_NUM_BASE_TYPES;
-	az_globals_init();
-	az_init_primitive_classes();
-	az_init_base_classes();
-
-	az_init_interface_class();
-#ifdef AZ_HAS_PROPERTIES
-	az_init_field_class();
-#endif
-	az_init_function_classes();
-	az_init_reference_class();
-	az_init_string_class();
-	az_init_boxed_value_class();
-	az_init_boxed_interface_class();
-#ifdef AZ_HAS_PACKED_VALUE
-	az_init_packed_value_class();
-#endif
-	az_init_object_class();
-
-	az_post_init_primitive_classes();
-}
 
 unsigned int
 az_type_get_parent_primitive (unsigned int type)
@@ -153,9 +119,7 @@ az_register_type (unsigned int *type, const unsigned char *name, unsigned int pa
 	/* Type has to be registered before class_init so it is accessible in class constructor (ifaces, properties) */
 	*type = klass->impl.type;
 	if (n_interfaces_self) az_class_set_num_interfaces (klass, n_interfaces_self);
-#ifdef AZ_HAS_PROPERTIES
 	if (n_properties_self) az_class_set_num_properties (klass, n_properties_self);
-#endif
 	if (class_init) class_init (klass);
 	az_class_post_init (klass);
 	return klass;
@@ -179,9 +143,7 @@ az_register_composite_type (unsigned int *type, const unsigned char *name, unsig
 	}
 	AZClass *klass = az_class_new (name, parent_type, class_size, instance_size, flags, instance_init, instance_finalize);
 	if (n_interfaces_self) az_class_set_num_interfaces (klass, n_interfaces_self);
-#ifdef AZ_HAS_PROPERTIES
 	if (n_properties_self) az_class_set_num_properties (klass, n_properties_self);
-#endif
 	if (class_init) class_init (klass, data);
 	az_class_post_init (klass);
 	*type = klass->impl.type;

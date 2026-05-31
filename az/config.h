@@ -21,20 +21,25 @@ extern "C" {
 #endif
 
 /*
- * Disable specific parts of library
+ * Three variants of handling global type arrays:
+ * AZ_GLOBALS_STATIC - use compile-time fixed size arrays (AZ_MAX_TYPES)
+ * AZ_GLOBALS_SINGLE_THREAD - completely ignore concurrency 
+ * AZ_GLOBALS_MULTI_THREAD - use mutex
+ * 
+ * The following macros are redefined depending on globals handling:
+ * - AZ_CLASS_FROM_TYPE
+ * - AZ_IMPL_FROM_TYPE
  */
 
-#define _AZ_NO_STRING
-#define _AZ_NO_BOXED_INTERFACE
-#define _AZ_NO_VALUE
-#define _AZ_NO_PROPERTIES
+#define AZ_GLOBALS_STATIC
 
-#ifndef AZ_NO_PACKED_VALUE
-#define AZ_HAS_PACKED_VALUE
+/*
+ * Use fixed-size static array
+ */
+#ifdef AZ_GLOBALS_STATIC
+#ifndef AZ_MAX_TYPES
+#define AZ_MAX_TYPES 256
 #endif
-
-#ifndef AZ_NO_PROPERTIES
-#define AZ_HAS_PROPERTIES
 #endif
 
 #ifdef __cplusplus
