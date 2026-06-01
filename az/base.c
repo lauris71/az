@@ -18,7 +18,6 @@ az_init (void)
 	static unsigned int initialized = 0;
 	if (initialized) return;
 	initialized = 1;
-	az_num_types = AZ_NUM_BASE_TYPES;
 	az_globals_init();
 	az_init_primitive_classes();
 	az_init_base_classes();

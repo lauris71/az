@@ -93,7 +93,7 @@ az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int 
 	void (*instance_finalize) (const AZImplementation *, void *))
 {
 #ifdef AZ_SAFETY_CHECKS
-	if (!az_num_types) az_init ();
+	ENSURE_INITIALIZED();
 	arikkei_return_val_if_fail ((parent_type == AZ_TYPE_NONE) || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size), 0);
 	arikkei_return_val_if_fail ((parent_type == AZ_TYPE_NONE) || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size), 0);
 #endif

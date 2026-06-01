@@ -32,8 +32,8 @@ az_type_get_parent_primitive (unsigned int type)
 {
 	AZClass *klass;
 #ifdef AZ_SAFETY_CHECKS
-	if (!az_num_types) az_init ();
-	arikkei_return_val_if_fail (type < az_num_types, 0);
+	ENSURE_INITIALIZED();
+	arikkei_return_val_if_fail (az_type_is_valid(type), 0);
 #endif
 	if (AZ_TYPE_INDEX(type) < AZ_NUM_FUNDAMENTAL_TYPES) return type;
 	klass = AZ_CLASS_FROM_TYPE(type)->parent;
@@ -49,18 +49,27 @@ az_type_is_a (unsigned int type, unsigned int test)
 	AZClass *klass;
 	unsigned int i;
 #ifdef AZ_SAFETY_CHECKS
-	if (!az_num_types) az_init ();
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, 0);
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(test) < az_num_types, 0);
+	ENSURE_INITIALIZED();
+	arikkei_return_val_if_fail (az_type_is_valid(type), 0);
+	arikkei_return_val_if_fail (az_type_is_valid(test), 0);
 #endif
 	if (!type) return 0;
 	if (type == test) return 1;
+
+#if defined(AZ_GLOBALS_STATIC) || defined(AZ_GLOBALS_SINGLE_THREAD)
 	test = AZ_TYPE_INDEX(test);
 	uint32_t idx = az_types[AZ_TYPE_INDEX(type)].pidx;
 	while (idx) {
 		if (idx == test) return 1;
 		idx = az_types[idx].pidx;
 	}
+#else
+	klass = AZ_CLASS_FROM_TYPE(type);
+	while (klass->parent) {
+		if (klass->parent->impl.type == test) return 1;
+		klass = klass->parent;
+	}
+#endif
 	return 0;
 }
 
@@ -69,9 +78,9 @@ az_type_implements (unsigned int type, unsigned int test)
 {
 	if (!type) return 0;
 #ifdef AZ_SAFETY_CHECKS
-	if (!az_num_types) az_init ();
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, 0);
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(test) < az_num_types, 0);
+	ENSURE_INITIALIZED();
+	arikkei_return_val_if_fail (az_type_is_valid(type), 0);
+	arikkei_return_val_if_fail (az_type_is_valid(test), 0);
 	arikkei_return_val_if_fail (AZ_TYPE_IS_INTERFACE(test), 0);
 #endif
 	if (!type) return 0;
@@ -82,10 +91,9 @@ unsigned int
 az_type_is_assignable_to (unsigned int type, unsigned int test)
 {
 #ifdef AZ_SAFETY_CHECKS
-	if (!az_num_types) az_init ();
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, 0);
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(test) != 0, 0);
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(test) < az_num_types, 0);
+	ENSURE_INITIALIZED();
+	arikkei_return_val_if_fail (!type || az_type_is_valid(type), 0);
+	arikkei_return_val_if_fail (az_type_is_valid(test), 0);
 #endif
 	if (!type) {
 		/* None can be assigned to any */
@@ -108,7 +116,7 @@ az_register_type (unsigned int *type, const unsigned char *name, unsigned int pa
 	void (*instance_finalize) (const AZImplementation *, void *))
 {
 #ifdef AZ_SAFETY_CHECKS
-	if (!az_num_types) az_init ();
+	ENSURE_INITIALIZED();
 	assert (!parent_type || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size));
 	assert (!parent_type || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size));
 #endif
@@ -134,7 +142,7 @@ az_register_composite_type (unsigned int *type, const unsigned char *name, unsig
 	void *data)
 {
 #ifdef AZ_SAFETY_CHECKS
-	if (!az_num_types) az_init ();
+	ENSURE_INITIALIZED();
 	assert (!parent_type || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size));
 	assert (!parent_type || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size));
 #endif

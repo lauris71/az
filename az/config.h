@@ -31,15 +31,19 @@ extern "C" {
  * - AZ_IMPL_FROM_TYPE
  */
 
-#define AZ_GLOBALS_STATIC
+#if !defined(AZ_GLOBALS_STATIC) && !defined(AZ_GLOBALS_SINGLE_THREAD) && !defined(AZ_GLOBALS_MULTI_THREAD)
+    //#define AZ_GLOBALS_STATIC
+    //#define AZ_GLOBALS_SINGLE_THREAD
+    #define AZ_GLOBALS_MULTI_THREAD
+#endif
 
 /*
  * Use fixed-size static array
  */
 #ifdef AZ_GLOBALS_STATIC
-#ifndef AZ_MAX_TYPES
-#define AZ_MAX_TYPES 256
-#endif
+    #ifndef AZ_MAX_TYPES
+        #define AZ_MAX_TYPES 256
+    #endif
 #endif
 
 #ifdef __cplusplus

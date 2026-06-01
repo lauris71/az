@@ -69,20 +69,19 @@ struct _AZTypeInfo {
  * Basic type queries
  */
 
-/* Fixed-length static array*/
 #if defined(AZ_GLOBALS_STATIC)
+	/* Fixed-length static array */
 	extern AZTypeInfo az_types[];
 	extern unsigned int az_num_types;
 	#define AZ_CLASS_FROM_TYPE(t) az_types[AZ_TYPE_INDEX(t)].klass
 	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_types[AZ_TYPE_INDEX(t)].klass)
 #elif defined(AZ_GLOBALS_SINGLE_THREAD)
+	/* Dynamically allocated array*/
 	extern AZTypeInfo *az_types;
 	extern unsigned int az_num_types;
 	#define AZ_CLASS_FROM_TYPE(t) az_types[AZ_TYPE_INDEX(t)].klass
 	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_types[AZ_TYPE_INDEX(t)].klass)
 #elif defined(AZ_GLOBALS_MULTI_THREAD)
-	extern AZTypeInfo *az_types;
-	extern unsigned int az_num_types;
 	#define AZ_CLASS_FROM_TYPE(t) az_type_get_class(t)
 	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_type_get_class(t))
 #endif

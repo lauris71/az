@@ -81,7 +81,7 @@ az_implementation_init_by_type (AZImplementation *impl, unsigned int type)
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (impl != NULL);
 	arikkei_return_if_fail (type != 0);
-	arikkei_return_if_fail (AZ_TYPE_INDEX(type) < az_num_types);
+	arikkei_return_if_fail (az_type_is_valid(type));
 	arikkei_return_if_fail (AZ_TYPE_IS_INTERFACE(type));
 #endif
 	AZInterfaceClass *ifclass = (AZInterfaceClass *) AZ_CLASS_FROM_TYPE(type);

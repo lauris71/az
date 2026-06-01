@@ -22,13 +22,21 @@ void arikkei_check_integrity (void);
 #define ARIKKEI_CHECK_INTEGRITY()
 #endif
 
-ARIKKEI_INLINE unsigned int
-az_type_is_valid(uint32_t type) {
-	if (AZ_TYPE_INDEX(type) == 0) return 0;
-	if (AZ_TYPE_INDEX(type) >= az_num_types) return 0;
-	AZImplementation *impl = AZ_IMPL_FROM_TYPE(type);
-	return type == impl->type;
-}
+#if defined(AZ_GLOBALS_STATIC) || defined(AZ_GLOBALS_SINGLE_THREAD)
+	static inline unsigned int
+	az_type_is_valid(uint32_t type)
+	{
+		if (AZ_TYPE_INDEX(type) == 0) return 0;
+		if (AZ_TYPE_INDEX(type) >= az_num_types) return 0;
+		AZImplementation *impl = AZ_IMPL_FROM_TYPE(type);
+		return type == impl->type;
+	}
+	#define ENSURE_INITIALIZED() if (!az_num_types) az_init()
+#elif defined(AZ_GLOBALS_MULTI_THREAD)
+	unsigned int az_type_is_valid(uint32_t type);
+	/* fixme: Think if we can do multi-threaded initialization */
+	#define ENSURE_INITIALIZED()
+#endif
 
 #ifdef AZ_SAFETY_CHECKS
 #define AZ_CHECK_TYPE(t) arikkei_return_if_fail(az_type_is_valid(t))

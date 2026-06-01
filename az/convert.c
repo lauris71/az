@@ -13,16 +13,17 @@
 #include <az/class.h>
 #include <az/convert.h>
 #include <az/primitives.h>
+#include <az/private.h>
 #include <az/types.h>
 
 unsigned int
 az_type_is_convertible_to (unsigned int type, unsigned int test)
 {
 #ifdef AZ_SAFETY_CHECKS
-	if (!az_num_types) az_init ();
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, 0);
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(test) != 0, 0);
-	arikkei_return_val_if_fail (AZ_TYPE_INDEX(test) < az_num_types, 0);
+	ENSURE_INITIALIZED();
+	// fixme: Disallowing 0 breaks azo
+	arikkei_return_val_if_fail (!type || az_type_is_valid(type), 0);
+	arikkei_return_val_if_fail (az_type_is_valid(test), 0);
 #endif
 	if (az_type_is_assignable_to (type, test)) return 1;
 	/* Only arithmetic types have autoconversion */
