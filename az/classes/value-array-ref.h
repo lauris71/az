@@ -21,13 +21,12 @@ extern "C" {
 
 struct _AZValueArrayRef {
 	AZReference reference;
-	AZList list;
 	AZValueArray varray;
 };
 
 struct _AZValueArrayRefClass {
 	AZReferenceClass reference_klass;
-	AZListImplementation list_implementation;
+	AZListImplementation list_impl;
 };
 
 unsigned int az_value_array_ref_get_type (void);

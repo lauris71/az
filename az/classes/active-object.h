@@ -35,7 +35,7 @@ struct _AZObjectAttribute {
 
 struct _AZObjectAttributeArray {
 	unsigned int size;
-	unsigned int length;
+	unsigned int _length;
 	AZObjectAttribute attribs[1];
 };
 

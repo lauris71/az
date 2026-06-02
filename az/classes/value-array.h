@@ -33,7 +33,7 @@ struct _AZValueArray {
 	unsigned int type;
 	unsigned int size;
 	unsigned int data_size;
-	unsigned int length;
+	AZList list;
 	AZValueArrayEntry *values;
 	AZValue *data;
 };

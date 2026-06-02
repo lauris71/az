@@ -16,7 +16,6 @@ static void value_array_ref_finalize (AZValueArrayRefClass* klass, AZValueArrayR
 
 /* AZCollection implementation */
 static unsigned int value_array_ref_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
-static unsigned int value_array_ref_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
 static unsigned int value_array_ref_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
 static const AZImplementation* value_array_ref_get_element (const AZListImplementation* list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
@@ -47,13 +46,12 @@ value_array_ref_class_init (AZValueArrayRefClass* klass)
 {
 	varef_class = klass;
 	klass->reference_klass.klass.alignment = 15;
-	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET (AZValueArrayRefClass, list_implementation), ARIKKEI_OFFSET (AZValueArrayRef, list));
+	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET (AZValueArrayRefClass, list_impl), ARIKKEI_OFFSET (AZValueArrayRef, varray.list));
 	az_class_define_property ((AZClass*) klass, PROP_LENGTH, (const unsigned char *) "length", AZ_TYPE_UINT32, 0, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0,
-		ARIKKEI_OFFSET(AZValueArrayRef, varray) + ARIKKEI_OFFSET(AZValueArray, length), NULL, NULL);
-	klass->list_implementation.collection_impl.get_element_type = value_array_ref_get_element_type;
-	klass->list_implementation.collection_impl.get_size = value_array_ref_get_size;
-	klass->list_implementation.collection_impl.contains = value_array_ref_contains;
-	klass->list_implementation.get_element = value_array_ref_get_element;
+		ARIKKEI_OFFSET(AZValueArrayRef, varray) + ARIKKEI_OFFSET(AZValueArray, list.collection.size), NULL, NULL);
+	klass->list_impl.collection_impl.get_element_type = value_array_ref_get_element_type;
+	klass->list_impl.collection_impl.contains = value_array_ref_contains;
+	klass->list_impl.get_element = value_array_ref_get_element;
 }
 
 static void
@@ -71,29 +69,22 @@ value_array_ref_finalize (AZValueArrayRefClass *klass, AZValueArrayRef *varef)
 static unsigned int
 value_array_ref_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
-	AZValueArrayRef *varef = (AZValueArrayRef *) ARIKKEI_BASE_ADDRESS(AZValueArrayRef,list,collection_inst);
+	AZValueArrayRef *varef = (AZValueArrayRef *) ARIKKEI_BASE_ADDRESS(AZValueArrayRef,varray.list,collection_inst);
 	return varef->varray.type;
-}
-
-static unsigned int
-value_array_ref_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
-{
-	AZValueArrayRef *varef = (AZValueArrayRef *) ARIKKEI_BASE_ADDRESS(AZValueArrayRef,list,collection_inst);
-	return varef->varray.length;
 }
 
 static unsigned int
 value_array_ref_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
-	AZValueArrayRef *varef = (AZValueArrayRef *) ARIKKEI_BASE_ADDRESS(AZValueArrayRef,list,collection_inst);
-	return az_collection_contains (&az_value_array_class->list_impl.collection_impl, &varef->varray, impl, inst);
+	AZValueArrayRef *varef = (AZValueArrayRef *) ARIKKEI_BASE_ADDRESS(AZValueArrayRef,varray.list,collection_inst);
+	return az_collection_contains(&az_value_array_class->list_impl.collection_impl, &varef->varray.list.collection, impl, inst);
 }
 
 static const AZImplementation *
 value_array_ref_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
 {
-	AZValueArrayRef *varef = (AZValueArrayRef *) ARIKKEI_BASE_ADDRESS(AZValueArrayRef,list,list_inst);
-	return az_list_get_element (&az_value_array_class->list_impl, &varef->varray, idx, val, size);
+	AZValueArrayRef *varef = (AZValueArrayRef *) ARIKKEI_BASE_ADDRESS(AZValueArrayRef,varray.list,list_inst);
+	return az_list_get_element(&az_value_array_class->list_impl, &varef->varray.list, idx, val, size);
 }
 
 AZValueArrayRef *

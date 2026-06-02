@@ -26,7 +26,6 @@ struct _AZCollection {
 struct _AZCollectionImplementation {
 	AZImplementation impl;
 	unsigned int (*get_element_type) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
-	unsigned int (*get_size) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 	unsigned int (*contains) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *val_impl, const void *val_inst);
 	const AZImplementation *(*get_iterator) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
 	const AZImplementation *(*iterator_next) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
@@ -49,7 +48,6 @@ az_collection_get_element_type (const AZCollectionImplementation *coll_impl, AZC
 static inline unsigned int
 az_collection_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
-	if (coll_impl->get_size) return coll_impl->get_size (coll_impl, coll_inst);
 	return coll_inst->size;
 }
 

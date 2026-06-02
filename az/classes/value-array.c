@@ -23,7 +23,6 @@ static void value_array_finalize (AZValueArrayClass *klass, AZValueArray *varray
 
 /* AZCollection implementation */
 static unsigned int value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
-static unsigned int value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
 static unsigned int value_array_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
 static const AZImplementation *value_array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
@@ -36,7 +35,7 @@ az_value_array_get_type (void)
 	static unsigned int type = 0;
 	if (!type) {
 		az_register_type (&type, (const unsigned char *) "AZValueArray", AZ_TYPE_BLOCK, sizeof (AZValueArrayClass), sizeof (AZValueArray), AZ_FLAG_FINAL,
-			0, 0,
+			1, 0,
 			(void (*) (AZClass *)) value_array_class_init,
 			(void (*) (const AZImplementation *, void *)) value_array_init,
 			(void (*) (const AZImplementation *, void *)) value_array_finalize);
@@ -49,8 +48,8 @@ value_array_class_init (AZValueArrayClass *klass)
 {
 	az_value_array_class = klass;
 	klass->default_size = 4;
+	az_class_declare_interface ((AZClass*) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZValueArrayClass, list_impl), ARIKKEI_OFFSET(AZValueArray, list));
 	klass->list_impl.collection_impl.get_element_type = value_array_get_element_type;
-	klass->list_impl.collection_impl.get_size = value_array_get_size;
 	klass->list_impl.collection_impl.contains = value_array_contains;
 	klass->list_impl.get_element = value_array_get_element;
 }
@@ -61,7 +60,6 @@ value_array_init (AZValueArrayClass *klass, AZValueArray *varray)
 	varray->type = AZ_TYPE_ANY;
 	varray->size = klass->default_size;
 	varray->data_size = 0;
-	varray->length = 0;
 	varray->values = (AZValueArrayEntry *) malloc (varray->size * sizeof (AZValueArrayEntry));
 	varray->data = NULL;
 }
@@ -87,7 +85,7 @@ static void
 value_array_finalize (AZValueArrayClass *klass, AZValueArray *varray)
 {
 	unsigned int i;
-	for (i = 0; i < varray->length; i++) {
+	for (i = 0; i < varray->list.collection.size; i++) {
 		if (varray->values[i].impl) {
 			az_value_clear (varray->values[i].impl, value_array_element_value (varray, i));
 		}
@@ -99,23 +97,23 @@ value_array_finalize (AZValueArrayClass *klass, AZValueArray *varray)
 static unsigned int
 value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
-	AZValueArray *varray = (AZValueArray *) collection_inst;
+	AZValueArray *varray = (AZValueArray *) ARIKKEI_BASE_ADDRESS(AZValueArray, list.collection, collection_inst);
 	return varray->type;
 }
 
 static unsigned int
 value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
-	AZValueArray *varray = (AZValueArray *) collection_inst;
-	return varray->length;
+	AZValueArray *varray = (AZValueArray *) ARIKKEI_BASE_ADDRESS(AZValueArray, list.collection, collection_inst);
+	return varray->list.collection.size;
 }
 
 static unsigned int
 value_array_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
-	AZValueArray *varray = (AZValueArray *) collection_inst;
+	AZValueArray *varray = (AZValueArray *) ARIKKEI_BASE_ADDRESS(AZValueArray, list.collection, collection_inst);
 	unsigned int i;
-	for (i = 0; i < varray->length; i++) {
+	for (i = 0; i < varray->list.collection.size; i++) {
 		if (varray->values[i].impl != impl) continue;
 		if (!impl) return 1;
 		if (!AZ_IMPL_VALUE_SIZE(varray->values[i].impl)) return 1;
@@ -131,7 +129,7 @@ value_array_contains (const AZCollectionImplementation *collection_impl, AZColle
 static const AZImplementation *
 value_array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
 {
-	AZValueArray *varray = (AZValueArray *) list_inst;
+	AZValueArray *varray = (AZValueArray *) ARIKKEI_BASE_ADDRESS(AZValueArray, list, list_inst);
 	if (varray->values[idx].impl) {
 		return az_value_copy_autobox (varray->values[idx].impl, val, value_array_element_value (varray, idx), size);
 	}
@@ -142,22 +140,22 @@ void
 az_value_array_set_length (AZValueArray* varray, unsigned int length)
 {
 	unsigned int i;
-	if (length < varray->length) {
-		for (i = length; i < varray->length; i++) {
+	if (length < varray->list.collection.size) {
+		for (i = length; i < varray->list.collection.size; i++) {
 			if (varray->values[i].impl) {
 				az_value_clear (varray->values[i].impl, value_array_element_value (varray, i));
 			}
 		}
-		varray->length = length;
-	} else if (length > varray->length) {
+		varray->list.collection.size = length;
+	} else if (length > varray->list.collection.size) {
 		if (length > varray->size) {
 			varray->size = length;
 			varray->values = (AZValueArrayEntry *) realloc (varray->values, varray->size * sizeof (AZValueArrayEntry));
 		}
-		for (i = varray->length; i < length; i++) {
+		for (i = varray->list.collection.size; i < length; i++) {
 			varray->values[i].impl = NULL;
 		}
-		varray->length = length;
+		varray->list.collection.size = length;
 	}
 }
 
@@ -184,7 +182,7 @@ value_array_ensure_room16 (AZValueArray* varray, unsigned int idx, unsigned int 
 	}
 	/* fixme: Compact during scan? (Lauris) */
 	right_start = right_end = 0;
-	for (i = idx + 1; i < varray->length; i++) {
+	for (i = idx + 1; i < varray->list.collection.size; i++) {
 		if (varray->values[i].impl) {
 			unsigned int size8 = value_array_element_size8 (varray, i);
 			if (size8) {
@@ -213,7 +211,7 @@ value_array_ensure_room16 (AZValueArray* varray, unsigned int idx, unsigned int 
 				varray->data = ( AZValue*) realloc (varray->data, varray->size * sizeof (AZValue));
 			}
 			right_start += delta16;
-			for (i = idx + 1; i < varray->length; i++) {
+			for (i = idx + 1; i < varray->list.collection.size; i++) {
 				if (varray->values[i].impl) {
 					unsigned int size8 = value_array_element_size8 (varray, i);
 					if (size8) {

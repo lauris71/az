@@ -24,7 +24,6 @@ static void packed_value_array_finalize (AZPackedValueArrayClass *klass, AZPacke
 static unsigned int packed_value_array_get_property (const AZImplementation *impl, void *instance, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
 /* AZCollection implementation */
 static unsigned int packed_value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
-static unsigned int packed_value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
 /* AZList implementation */
 static const AZImplementation *packed_value_array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
@@ -55,7 +54,6 @@ packed_value_array_class_init (AZPackedValueArrayClass *klass)
 	az_class_define_property((AZClass *) klass, PROP_LENGTH, (uint8_t *) "length", AZ_TYPE_UINT32, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZPackedValueArray,list.collection.size), NULL, NULL);
 	((AZClass *) klass)->get_property = packed_value_array_get_property;
 	klass->list_impl.collection_impl.get_element_type = packed_value_array_get_element_type;
-	klass->list_impl.collection_impl.get_size = packed_value_array_get_size;
 	klass->list_impl.get_element = packed_value_array_get_element;
 }
 
@@ -88,13 +86,6 @@ static unsigned int
 packed_value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
 	return AZ_TYPE_ANY;
-}
-
-static unsigned int
-packed_value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
-{
-	AZPackedValueArray *varray = (AZPackedValueArray *) ARIKKEI_BASE_ADDRESS(AZPackedValueArray,list,collection_inst);
-	return varray->list.collection.size;
 }
 
 static const AZImplementation *
