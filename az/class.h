@@ -263,6 +263,12 @@ az_class_value_size(const AZClass *klass)
 	return (klass->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : klass->instance_size;
 }
 
+static inline unsigned int
+az_class_element_size(const AZClass *klass)
+{
+	return (az_class_value_size(klass) + klass->alignment) & ~klass->alignment;
+}
+
 static inline AZClass *
 az_class_parent(const AZClass *klass) {
 	return klass->parent;

@@ -213,7 +213,7 @@ test_hash_set(void)
 {
     az_init();
 
-    AZHashSetImplementation impl;
+    AZHashSetImplementation impl = {};
     hash_set_impl_setup(&impl, 31);
 
     int32_t elems[NUM_ENTRIES];

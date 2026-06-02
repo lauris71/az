@@ -327,7 +327,7 @@ typedef struct _AZContext AZContext;
  * @brief Initialize type system
  * 
  * If AZ_SAFETY_CHECKS is set during the compilation of the library, it is called automatically
- * whenever any method involving types is called.
+ * in AZ_GLOBALS_STATIC and AZ_GLOBALS_SINGLE_THREAD modes whenever any method involving types is called.
  * 
  * It is safe to call it more than once
  */

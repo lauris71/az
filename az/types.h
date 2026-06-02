@@ -109,8 +109,19 @@ struct _AZTypeInfo {
 	#else
 		#define az_type_get_class AZ_CLASS_FROM_TYPE
 	#endif
+	#define AZ_TYPES_LOCK()
+	#define AZ_TYPES_UNLOCK()
 #elif defined(AZ_GLOBALS_MULTI_THREAD)
 	AZClass *az_type_get_class (unsigned int type);
+	/**
+	 * @brief Lock the type system mutex
+	 * 
+	 * The mutex is recursive, so subclasses can use it in get_type() etc. methods.
+	 */
+	void az_types_lock();
+	void az_types_unlock();
+	#define AZ_TYPES_LOCK() az_types_lock()
+	#define AZ_TYPES_UNLOCK() az_types_unlock()
 #endif
 
 #define az_type_get_impl(t) ((AZImplementation *) az_type_get_class(t))

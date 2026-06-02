@@ -22,12 +22,12 @@
 extern "C" {
 #endif
 
-#define AZ_PACKED_VALUE_MAX_SIZE 16
+#define AZ_VALUE_MAX_SIZE 16
 
 /**
  * @brief A convenience union of most common values
  * 
- * Allows easy access the most common value and block types in values. The maximum size of an
+ * Allows an easy access to the most common value and block types in values. The maximum size of an
  * value is 16 bytes - thus complex doubles and 4-component float vectors fit into it.
  */
 struct _AZValue {
@@ -71,7 +71,7 @@ struct _AZValue64 {
  * For value types it calls the constructor, for block types sets pointer to null.
  * 
  * @param impl the type implementation
- * @param val the value (uninitialized)
+ * @param val the destination value (uninitialized)
  */
 static inline void
 az_value_init (const AZImplementation *impl, AZValue *val)
@@ -83,7 +83,47 @@ az_value_init (const AZImplementation *impl, AZValue *val)
 	}
 }
 
+/**
+ * @brief initialize a value location
+ * 
+ * For value types it calls the constructor, for block types sets pointer to null.
+ * 
+ * @param val the destination value (uninitialized)
+ * @param type the type of value
+ */
+static inline void
+az_value_init_by_type (AZValue *val, unsigned int type)
+{
+	if (AZ_TYPE_IS_VALUE(type)) {
+		az_instance_init_by_type(val, type);
+	} else if (AZ_TYPE_IS_BLOCK(type)) {
+		val->block = NULL;
+	}
+}
+
+/**
+ * @brief Initialize a value location, boxing if needed
+ * 
+ * @param impl the type implementation
+ * @param dst the destination value (uninitialized)
+ * @param size the size of the destination value
+ * @return the actual implementation used for the value (@c impl if the value fits into @c size bytes, otherwise @c AZ_BOXED_VALUE_IMPL)
+ */
 const AZImplementation *az_value_init_autobox(const AZImplementation *impl, AZValue *dst, unsigned int size);
+
+/**
+ * @brief Initialize a value location, boxing if needed 
+ * 
+ * @param dst the destination value (uninitialized)
+ * @param size the size of the destination value
+ * @param type the type of value
+ * @return the actual implementation used for the value (@c impl if the value fits into @c size bytes, otherwise @c AZ_BOXED_VALUE_IMPL)
+ */
+static inline const AZImplementation *
+az_value_init_by_type_autobox(AZValue *dst, unsigned int size, unsigned int type)
+{
+	return az_value_init_autobox(AZ_IMPL_FROM_TYPE(type), dst, size);
+}
 
 /**
  * @brief clear an value location
@@ -156,7 +196,7 @@ az_value_copy (const AZImplementation *impl, AZValue *dst, const AZValue *src)
 }
 
 /**
- * @brief copy a value from one handle to another, boxing/unboxing if needed
+ * @brief copy a value to a new location, boxing/unboxing if needed
  * 
  * Copy data from initialized src to uninitialized dst. After the operation src will reamin intact.
  * If the source does not fit into size bytes AZBoxedValue is created in dst. If src
@@ -180,6 +220,19 @@ const AZImplementation *az_value_copy_autobox(const AZImplementation *impl, AZVa
 void az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *inst);
 
 /**
+ * @brief set value from instance
+ * 
+ * @param dst the destination (uninitialized)
+ * @param inst the source instance
+ * @param type the type of the instance
+ */
+static inline void
+az_value_set_from_inst_by_type (AZValue *dst, void *inst, unsigned int type)
+{
+	az_value_set_from_inst (AZ_IMPL_FROM_TYPE(type), dst, inst);
+}
+
+/**
  * @brief set value from instance, boxing if needed
  * 
  * If the value does not fit into size bytes, AZBoxedValue is created at dst.
@@ -187,11 +240,29 @@ void az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *i
  * 
  * @param impl the type implemntation
  * @param dst the destination (uninitialized)
- * @param inst the source instance
  * @param size the size of the destination value
+ * @param inst the source instance
  * @return the dst implementation (may be changed by boxing)
  */
-const AZImplementation *az_value_set_from_inst_autobox(const AZImplementation *impl, AZValue *dst, void *inst, unsigned int size);
+const AZImplementation *az_value_set_from_inst_autobox(const AZImplementation *impl, AZValue *dst, unsigned int size, void *inst);
+
+/**
+ * @brief  set value from instance, boxing if needed
+ * 
+ * If the value does not fit into size bytes, AZBoxedValue is created at dst.
+ * It does not unbox automatically.
+ * 
+ * @param dst the destination (uninitialized)
+ * @param size the size of the destination value
+ * @param inst the source instance
+ * @param type the type of the instance
+ * @return the dst implementation (may be changed by boxing)
+ */
+static inline const AZImplementation *
+az_value_set_from_inst_autobox_by_type(AZValue *dst, unsigned int size, void *inst, unsigned int type)
+{
+	return az_value_set_from_inst_autobox(AZ_IMPL_FROM_TYPE(type), dst, size, inst);
+}
 
 /**
  * @brief dereference instance from value
@@ -213,7 +284,7 @@ az_value_get_inst (const AZImplementation *impl, const AZValue *val)
 }
 
 /**
- * @brief ereference instance from value, unboxing if needed
+ * @brief dereference instance from value, unboxing if needed
  * 
  * If the value is AZBoxedValue, return the actual implementation and instance inside it.
  * 
@@ -253,23 +324,55 @@ unsigned int az_value_equals_instance (const AZImplementation *impl, const AZVal
 unsigned int az_value_equals_instance_autobox (const AZImplementation *lhs_impl, const AZValue *lhs, const AZImplementation *rhs_impl, const void *rhs);
 
 /* Transfer reference instance to destination */
-
-ARIKKEI_INLINE void
+/**
+ * @brief transfer reference instance to destination
+ * 
+ * Does not increase reference count.
+ * 
+ * @param dst_val destination value
+ * @param inst reference instance
+ */
+static inline void
 az_value_transfer_reference (AZValue *dst_val, AZReference *inst)
 {
 	dst_val->reference = inst;
 }
 
 /* Copy reference instance to destination */
-
-ARIKKEI_INLINE void
+/**
+ * @brief copy reference instance to destination
+ * 
+ * Increases reference count.
+ * 
+ * @param dst_val destination value
+ * @param inst reference instance
+ */
+static inline void
 az_value_set_reference (AZValue *dst_val, AZReference *inst)
 {
 	dst_val->reference = inst;
 	if (inst) az_reference_ref (inst);
 }
 
+/**
+ * @brief creates and initializes an array of values
+ * 
+ * Allocates an array of values according to class alignment and element size.
+ * Initializes the values according to @c az_value_init rules.
+ * The array has to be freed with arikkei_aligned_free or @c az_value_delete_array.
+ *
+ * @param impl the type implementation
+ * @param length the number of elements
+ * @return pointer to the array
+ */
 void *az_value_new_array(const AZImplementation *impl, unsigned int length);
+
+/**
+ * @brief deletes an array of values
+ * 
+ * Clears the values according to @c az_value_clear rules.
+ * Frees the array with arikkei_aligned_free.
+ */
 void az_value_delete_array(const AZImplementation *impl, void *data, unsigned int length);
 
 unsigned int az_value_convert_auto (const AZImplementation **dst_impl, AZValue *dst_val, const AZImplementation **src_impl, const AZValue *src_val, unsigned int to_type);

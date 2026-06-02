@@ -294,7 +294,7 @@ test_hash_map(void)
 {
     az_init();
 
-    AZHashMapImplementation impl;
+    AZHashMapImplementation impl = {};
     hash_map_impl_setup(&impl, 31);
 
     int32_t keys[NUM_ENTRIES];

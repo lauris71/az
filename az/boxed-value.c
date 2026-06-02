@@ -174,7 +174,7 @@ az_value_copy_autobox(const AZImplementation *impl, AZValue *dst, const AZValue 
 }
 
 const AZImplementation *
-az_value_set_from_inst_autobox(const AZImplementation *impl, AZValue *dst, void *inst, unsigned int size)
+az_value_set_from_inst_autobox(const AZImplementation *impl, AZValue *dst, unsigned int size, void *inst)
 {
 	if (impl) {
 		AZClass *klass = AZ_CLASS_FROM_IMPL(impl);

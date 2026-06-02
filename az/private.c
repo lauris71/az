@@ -46,7 +46,7 @@ az_globals_init (void)
 	az_num_types_allocated = AZ_NUM_BASE_TYPES + 32;
 	az_types = (AZTypeInfo *) malloc (az_num_types_allocated * sizeof(AZTypeInfo));
 #elif defined(AZ_GLOBALS_MULTI_THREAD)
-	mtx_init(&mutex, mtx_plain);
+	mtx_init(&mutex, mtx_plain | mtx_recursive);
 	az_num_types_allocated = AZ_NUM_BASE_TYPES + 32;
 	az_types = (AZTypeInfo *) malloc (az_num_types_allocated * sizeof(AZTypeInfo));
 #endif
@@ -90,6 +90,18 @@ az_register_class(AZClass *klass)
 		unsigned int valid = (AZ_TYPE_INDEX(type) != 0) && (AZ_TYPE_INDEX(type) < az_num_types)  && (az_types[AZ_TYPE_INDEX(type)].klass->impl.type == type);
 		mtx_unlock(&mutex);
 		return valid;
+	}
+
+	void
+	az_types_lock()
+	{
+		mtx_lock(&mutex);
+	}
+
+	void
+	az_types_unlock()
+	{
+		mtx_unlock(&mutex);
 	}
 #endif
 

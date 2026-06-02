@@ -396,7 +396,7 @@ az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, 
 			}
 			AZClass *prop_class = AZ_CLASS_FROM_TYPE(prop->type);
 			arikkei_return_val_if_fail (AZ_CLASS_IS_FINAL(prop_class), 0);
-			*prop_impl = az_value_set_from_inst_autobox (&prop_class->impl, prop_val, src, val_size);
+			*prop_impl = az_value_set_from_inst_autobox (&prop_class->impl, prop_val, val_size, src);
 			break;
 		}
 		case AZ_FIELD_READ_PACKED: {

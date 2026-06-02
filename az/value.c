@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <arikkei/arikkei-iolib.h>
+
 #include <az/boxed-interface.h>
 #include <az/boxed-value.h>
 #include <az/class.h>
@@ -85,9 +87,11 @@ void *
 az_value_new_array(const AZImplementation *impl, unsigned int length)
 {
 	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
-	void *data = malloc(length * az_class_value_size(klass));
-	for (unsigned int i = 0; i < length; i++) {
-		az_value_init(impl, (AZValue *) ((char *) data + i * az_class_value_size(klass)));
+	void *data = arikkei_aligned_alloc(length * az_class_element_size(klass), klass->alignment + 1);
+	if (impl) {
+		for (unsigned int i = 0; i < length; i++) {
+			az_value_init(impl, (AZValue *) ((char *) data + i * az_class_element_size(klass)));
+		}
 	}
 	return data;
 }
@@ -96,11 +100,10 @@ void az_value_delete_array(const AZImplementation *impl, void *data, unsigned in
 {
 	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 	for (unsigned int i = 0; i < length; i++) {
-		az_value_clear(impl, (AZValue *) ((char *) data + i * az_class_value_size(klass)));
+		az_value_clear(impl, (AZValue *) ((char *) data + i * az_class_element_size(klass)));
 	}
-	free(data);
+	arikkei_aligned_free(data);
 }
-
 
 unsigned int
 az_value_convert_auto (const AZImplementation **dst_impl, AZValue *dst_val, const AZImplementation **src_impl, const AZValue *src_val, unsigned int to_type)

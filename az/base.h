@@ -36,6 +36,17 @@ extern AZClass AZBlockKlass;
 extern AZClass AZImplKlass;
 extern AZClass AZClassKlass;
 
+/**
+ * @brief Fallback to_string method
+ * 
+ * Prints "Any" for pure Any, or "Instance of <class name> (<instance pointer>)" for subclasses
+ * 
+ * @param impl an implementation
+ * @param inst an instance
+ * @param d the destination buffer
+ * @param d_len the destination buffer length
+ * @return the number of bytes needed/written (including the terminating '\0')
+ */
 unsigned int az_any_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int d_len);
 
 #ifdef __cplusplus

@@ -121,7 +121,7 @@ az_array_list_set_element (AZArrayList *alist, unsigned int idx, const AZImpleme
 	arikkei_return_val_if_fail(idx < alist->list.collection.size, 0);
 	AZArrayListEntry *entry = az_array_list_get_entry(alist, idx);
 	az_value_clear(entry->impl, (AZValue *) entry->val);
-	entry->impl = az_value_set_from_inst_autobox(impl, (AZValue *) entry->val, inst, alist->val_size);
+	entry->impl = az_value_set_from_inst_autobox(impl, (AZValue *) entry->val, alist->val_size, inst);
 	return 1;
 }
 
@@ -134,7 +134,7 @@ az_array_list_append(AZArrayList *alist, const AZImplementation *impl, void *ins
 		alist->data = (AZArrayListEntry *) realloc(alist->data, alist->data_size * az_array_list_entry_size(alist));
 	}
 	AZArrayListEntry *entry = az_array_list_get_entry(alist, alist->list.collection.size);
-	entry->impl = az_value_set_from_inst_autobox(impl, (AZValue *) entry->val, inst, alist->val_size);
+	entry->impl = az_value_set_from_inst_autobox(impl, (AZValue *) entry->val, alist->val_size, inst);
 	alist->list.collection.size += 1;
 	return 1;
 }
@@ -150,7 +150,7 @@ az_array_list_insert(AZArrayList *alist, unsigned int idx, const AZImplementatio
 	}
 	AZArrayListEntry *entry = az_array_list_get_entry(alist, idx);
 	memmove((char *) entry + az_array_list_entry_size(alist), (char *) entry, (alist->list.collection.size - idx) * az_array_list_entry_size(alist));
-	entry->impl = az_value_set_from_inst_autobox(impl, (AZValue *) entry->val, inst, alist->val_size);
+	entry->impl = az_value_set_from_inst_autobox(impl, (AZValue *) entry->val, alist->val_size, inst);
 	alist->list.collection.size += 1;
 	return 1;
 }

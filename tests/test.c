@@ -210,6 +210,7 @@ static void
 test_array_list()
 {
     unsigned int types[10];
+    az_init();
     for (unsigned int i = 0; i < 10; i++) {
         unsigned int instance_size = 4 * i;
         uint8_t name[32];
@@ -238,7 +239,7 @@ test_array_list()
             memset(buf, (char) i, 256);
             TEST_ASSERT(az_array_list_append(alist, AZ_IMPL_FROM_TYPE(types[i]), &buf));
         }
-        print_list(alist, stdout);
+        //print_list(alist, stdout);
         /* Verify */
         unsigned int *idx = (unsigned int[]) {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         verify_list(alist, idx, types);
@@ -247,7 +248,7 @@ test_array_list()
             memset(buf, (char) i, 256);
             TEST_ASSERT(az_array_list_insert(alist, 5, AZ_IMPL_FROM_TYPE(types[i]), &buf));
         }
-        print_list(alist, stdout);
+        //print_list(alist, stdout);
         /* Verify */
         idx = (unsigned int[]) {0, 1, 2, 3, 4, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 5, 6, 7, 8, 9};
         verify_list(alist, idx, types);
@@ -255,7 +256,7 @@ test_array_list()
         for (unsigned int i = 0; i < 10; i++) {
             az_array_list_remove(alist, i + 1);
         }
-        print_list(alist, stdout);
+        //print_list(alist, stdout);
         idx = (unsigned int[]) {0, 2, 4, 8, 6, 4, 2, 0, 6, 8};
         verify_list(alist, idx, types);
         /* Replace */
@@ -263,7 +264,7 @@ test_array_list()
             memset(buf, (char) (9 - i), 256);
             az_array_list_set_element(alist, i, AZ_IMPL_FROM_TYPE(types[9 - i]), &buf);
         }
-        print_list(alist, stdout);
+        //print_list(alist, stdout);
         idx = (unsigned int[]) {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
         verify_list(alist, idx, types);
         az_array_list_delete(alist);

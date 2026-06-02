@@ -69,7 +69,7 @@ az_packed_value_set_autobox(AZPackedValue *dst, const AZImplementation *impl, vo
 		az_reference_unref ((AZReferenceClass *) dst->impl, dst->v.reference);
 	}
 	if (impl) {
-		impl = az_value_set_from_inst_autobox(impl, &dst->v, inst, AZ_PACKED_VALUE_MAX_SIZE);
+		impl = az_value_set_from_inst_autobox(impl, &dst->v, AZ_PACKED_VALUE_MAX_SIZE, inst);
 	}
 	dst->impl = impl;
 }
@@ -81,7 +81,7 @@ az_packed_value_64_set_autobox(AZPackedValue64 *dst, const AZImplementation *imp
 		az_reference_unref ((AZReferenceClass *) dst->impl, dst->v.value.reference);
 	}
 	if (impl) {
-		impl = az_value_set_from_inst_autobox(impl, &dst->v.value, inst, 64);
+		impl = az_value_set_from_inst_autobox(impl, &dst->v.value, 64, inst);
 	}
 	dst->impl = impl;
 }

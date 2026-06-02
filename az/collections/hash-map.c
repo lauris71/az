@@ -276,7 +276,7 @@ hmap_map_lookup (const AZMapImplementation *map_impl, AZMap *map_inst, const AZI
 	AZHashMap *hmap = (AZHashMap *) map_inst;
 	const void *result = az_hash_map_lookup(impl, hmap, key_inst);
 	if (!result) return NULL;
-	return az_value_set_from_inst_autobox(impl->val_impl, val, (void *) result, size);
+	return az_value_set_from_inst_autobox(impl->val_impl, val, size, (void *) result);
 }
 
 static unsigned int
