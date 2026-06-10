@@ -76,6 +76,8 @@ void az_init_boxed_value_class (void);
 void az_init_boxed_interface_class (void);
 void az_init_packed_value_class (void);
 void az_init_object_class(void);
+void az_init_output_stream_class(void);
+void az_init_input_stream_class(void);
 
 /* Allocates, initializes and registers a new class, does NOT call neither class constructor nor post_init */
 AZClass *az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,

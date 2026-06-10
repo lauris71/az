@@ -15,6 +15,32 @@
 extern "C" {
 #endif
 
+/**
+ * @brief Error codes
+ */
+enum AZErrorCode {
+	/**
+	 * @brief Success
+	 * 
+	 */
+	AZ_OK = 0,
+	/**
+	 * @brief Function is not supported by given class
+	 * 
+	 */
+	AZ_NOT_IMPLEMENTED = -1,
+	/**
+	 * @brief Memory allocation returned NULL
+	 * 
+	 */
+	AZ_OUT_OF_MEMORY = -2,
+	/**
+	 * @brief Generic IO error
+	 * 
+	 */
+	AZ_IO_ERROR = -3
+};
+
 /** @ingroup types
  * @brief Type flags
  * 
@@ -143,7 +169,9 @@ enum AZTypeIdx {
 	AZ_TYPE_IDX_BOXED_VALUE,
 	AZ_TYPE_IDX_BOXED_INTERFACE,
 	AZ_TYPE_IDX_PACKED_VALUE,
-	AZ_TYPE_IDX_OBJECT
+	AZ_TYPE_IDX_OBJECT,
+	AZ_TYPE_IDX_INPUT_STREAM,
+	AZ_TYPE_IDX_OUTPUT_STREAM
 };
 
 /* Fundamental types have ANY as parent */
@@ -264,6 +292,16 @@ enum AZType {
 	 * 
 	 */
 	AZ_TYPE_OBJECT = AZ_TYPE_IDX_OBJECT | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE | AZ_FLAG_OBJECT,
+	/**
+	 * @brief An abstract interface for reading serialized data
+	 * 
+	 */
+	AZ_TYPE_INPUT_STREAM = AZ_TYPE_IDX_INPUT_STREAM | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE,
+	/**
+	 * @brief An abstract interface for writing serialized data
+	 * 
+	 */
+	AZ_TYPE_OUTPUT_STREAM = AZ_TYPE_IDX_OUTPUT_STREAM | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE
 };
 
 #define AZ_TYPE_IS_ARITHMETIC(t) ((AZ_TYPE_INDEX(t) >= AZ_TYPE_IDX_INT8) && (AZ_TYPE_INDEX(t) <= AZ_TYPE_IDX_COMPLEX_DOUBLE))
@@ -319,6 +357,10 @@ typedef struct _AZObject AZObject;
 typedef struct _AZFunctionSignature AZFunctionSignature;
 typedef struct _AZFunctionImplementation AZFunctionImplementation;
 typedef struct _AZFunctionInstance AZFunctionInstance;
+
+/* IO */
+typedef struct _AZOutputStream AZOutputStream;
+typedef struct _AZInputStream AZInputStream;
 
 /* Execution context */
 typedef struct _AZContext AZContext;

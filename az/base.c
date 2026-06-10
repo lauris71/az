@@ -31,6 +31,8 @@ az_init (void)
 	az_init_boxed_interface_class();
 	az_init_packed_value_class();
 	az_init_object_class();
+	az_init_output_stream_class();
+	az_init_input_stream_class();
 
 	az_post_init_primitive_classes();
 	az_post_init_base_classes();
