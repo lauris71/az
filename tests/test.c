@@ -11,6 +11,7 @@
 #include <az/value.h>
 #include <az/collections/array-list.h>
 #include <az/collections/array.h>
+#include <az/classes/array-object.h>
 #include <az/collections/hash-map.h>
 #include <az/collections/hash-set.h>
 

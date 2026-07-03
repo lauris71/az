@@ -1,5 +1,6 @@
 SET(SOURCES
     active-object.c active-object.h
+    array-object.c array-object.h
     attrib-dict.c attrib-dict.h
     interface-list.c interface-list.h
     object-interface-list.c object-interface-list.h
