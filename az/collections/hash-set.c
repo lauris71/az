@@ -111,9 +111,9 @@ static void
 hset_instance_init (const AZHashSetImplementation *impl, AZHashSet *hset)
 {
     hset->root_size = impl->root_size;
-    hset->size = 3 * impl->root_size;
+    hset->allocated_size = 3 * impl->root_size;
     hset->free = hset->root_size;
-    hset->entries = allocate_entries(impl, hset->size, hset->root_size);
+    hset->entries = allocate_entries(impl, hset->allocated_size, hset->root_size);
 }
 
 static void
@@ -282,11 +282,11 @@ az_hash_set_clear(const AZHashSetImplementation *impl, AZHashSet *hset)
 			pos = entry->next;
 		}
 	}
-	for (unsigned int pos = hset->root_size; pos < (hset->size - 1); pos++) {
+	for (unsigned int pos = hset->root_size; pos < (hset->allocated_size - 1); pos++) {
 		AZHashSetEntry *entry = entry_ptr(impl, hset->entries, pos);
 		entry->next = pos + 1;
 	}
-	AZHashSetEntry *entry = entry_ptr(impl, hset->entries, hset->size - 1);
+	AZHashSetEntry *entry = entry_ptr(impl, hset->entries, hset->allocated_size - 1);
 	entry->next = END;
 	hset->free = hset->root_size;
 	hset->set.collection.size = 0;
@@ -409,7 +409,7 @@ reallocate (const AZHashSetImplementation *impl, AZHashSet *hset, unsigned int n
 	}
 	aligned_free (hset->entries);
 	hset->root_size = new_root_size;
-	hset->size = new_size;
+	hset->allocated_size = new_size;
 	hset->free = new_free;
 	hset->entries = new_entries;
 }

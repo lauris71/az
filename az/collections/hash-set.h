@@ -31,8 +31,8 @@ extern "C" {
  */
 struct _AZHashSet {
     AZSet set;
+    unsigned int allocated_size;
     unsigned int root_size;
-    unsigned int size;
     unsigned int free;
     AZHashSetEntry *entries;
 };

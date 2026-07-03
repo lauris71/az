@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
 struct _AZCollection {
-	uint32_t size;
+	uint64_t size;
 };
 
 struct _AZCollectionImplementation {
@@ -45,7 +45,7 @@ az_collection_get_element_type (const AZCollectionImplementation *coll_impl, AZC
 	return coll_impl->get_element_type (coll_impl, coll_inst);
 }
 
-static inline unsigned int
+static inline uint64_t
 az_collection_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
 	return coll_inst->size;

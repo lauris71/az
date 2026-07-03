@@ -153,9 +153,9 @@ static void
 hmap_instance_init (const AZHashMapImplementation *impl, AZHashMap *hmap)
 {
     hmap->root_size = impl->root_size;
-    hmap->size = 3 * impl->root_size;
+    hmap->allocated_size = 3 * impl->root_size;
     hmap->free = hmap->root_size;
-    hmap->entries = allocate_entries(impl, hmap->size, hmap->root_size);
+    hmap->entries = allocate_entries(impl, hmap->allocated_size, hmap->root_size);
 }
 
 static void
@@ -389,11 +389,11 @@ az_hash_map_clear(const AZHashMapImplementation *impl, AZHashMap *hmap)
 			pos = entry->next;
 		}
 	}
-	for (unsigned int pos = hmap->root_size; pos < (hmap->size - 1); pos++) {
+	for (unsigned int pos = hmap->root_size; pos < (hmap->allocated_size - 1); pos++) {
 		AZHashMapEntry *entry = entry_ptr(impl, hmap->entries, pos);
 		entry->next = pos + 1;
 	}
-	AZHashMapEntry *entry = entry_ptr(impl, hmap->entries, hmap->size - 1);
+	AZHashMapEntry *entry = entry_ptr(impl, hmap->entries, hmap->allocated_size - 1);
 	entry->next = END;
 	hmap->free = hmap->root_size;
 	hmap->map.collection.size = 0;
@@ -539,7 +539,7 @@ reallocate (const AZHashMapImplementation *impl, AZHashMap *hmap, unsigned int n
 	}
 	aligned_free (hmap->entries);
 	hmap->root_size = new_root_size;
-	hmap->size = new_size;
+	hmap->allocated_size = new_size;
 	hmap->free = new_free;
 	hmap->entries = new_entries;
 }

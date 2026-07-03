@@ -198,7 +198,7 @@ verify_list(AZArrayList *alist, const unsigned int idx[], const unsigned int typ
 static void
 print_list(AZArrayList *alist, FILE *ofs)
 {
-    fprintf(stdout, "List [val_size=%d length=%d]:", alist->val_size, alist->list.collection.size);
+    fprintf(stdout, "List [val_size=%d length=%llu]:", alist->val_size, alist->list.collection.size);
     for (unsigned int i = 0; i < alist->list.collection.size; i++) {
         AZArrayListEntry *entry = az_array_list_get_entry(alist, i);
         fprintf (stdout, " %d", (entry->impl) ? AZ_IMPL_TYPE(entry->impl) : 0);
