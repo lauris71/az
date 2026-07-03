@@ -12,6 +12,7 @@ typedef struct _AZArrayObjectClass AZArrayObjectClass;
 
 #define AZ_TYPE_ARRAY_OBJECT az_array_object_get_type()
 
+#include <az/object.h>
 #include <az/collections/array.h>
 
 #ifdef __cplusplus
@@ -25,7 +26,7 @@ struct _AZArrayObject {
 
 struct _AZArrayObjectClass {
 	AZObjectClass object_class;
-	AZListImplementation list_impl;
+	AZArrayImplementation array_impl;
 };
 
 #define AZ_ARRAY_OBJ_FLAG_OWNED 0x2
@@ -40,7 +41,8 @@ const AZListImplementation *az_array_object_get_list(AZArrayObject *obj, void **
 static inline AZValue *
 az_array_object_value_at (AZArrayObject *aobj, unsigned int idx)
 {
-	return (AZValue *) ((char *) aobj->array.values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(aobj->array.element_type)));
+	const AZArrayObjectClass *klass = (const AZArrayObjectClass *) ((AZObject *) aobj)->klass;
+	return (AZValue *) ((char *) aobj->array.values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_IMPL(klass->array_impl.elem_impl)));
 }
 
 #ifdef __cplusplus
