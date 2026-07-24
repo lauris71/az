@@ -183,6 +183,17 @@ struct _AZClass {
 	/* Returns the number of bytes consumed (0 on error) */
 	unsigned int (*deserialize) (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
 
+	/**
+	 * @brief Convert instance to string
+	 * @param impl an implementation
+	 * @param instance an instance
+	 * @param d the destination buffer (may be NULL, nothing is written then)
+	 * @param dlen the destination buffer size
+	 * @return the required length of the string (excluding the terminating '\0', may be bigger than dlen)
+	 *
+	 * Writes at most dlen bytes. If there is extra room (the required length is
+	 * smaller than dlen) the string is terminated with '\0'.
+	 */
 	unsigned int (*to_string) (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen);
 
 	/**

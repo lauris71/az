@@ -43,16 +43,26 @@ impl_to_string (const AZImplementation* impl, void *inst, unsigned char *buf, un
 {
 	AZImplementation *inst_impl = (AZImplementation *) inst;
 	AZClass *inst_class = AZ_CLASS_FROM_IMPL(inst_impl);
-	unsigned int pos = arikkei_memcpy_str (buf, len, inst_class->name);
-	return pos + arikkei_strncpy (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) " implementation");
+	unsigned int pos;
+	/* Nothing is written when destination is NULL */
+	if (!buf) len = 0;
+	pos = arikkei_memcpy_str (buf, len, inst_class->name);
+	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) " implementation");
+	if (buf && (pos < len)) buf[pos] = 0;
+	return pos;
 }
 
 static unsigned int
 class_to_string (const AZImplementation* impl, void *inst, unsigned char *buf, unsigned int len)
 {
 	AZClass *inst_class = (AZClass *) inst;
-	unsigned int pos = arikkei_memcpy_str (buf, len, inst_class->name);
-	return pos + arikkei_strncpy (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) " class");
+	unsigned int pos;
+	/* Nothing is written when destination is NULL */
+	if (!buf) len = 0;
+	pos = arikkei_memcpy_str (buf, len, inst_class->name);
+	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) " class");
+	if (buf && (pos < len)) buf[pos] = 0;
+	return pos;
 }
 
 AZClass AZStructKlass = {

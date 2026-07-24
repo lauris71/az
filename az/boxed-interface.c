@@ -34,11 +34,13 @@ boxed_interface_to_string (const AZImplementation *impl, void *inst, unsigned ch
 	AZClass *klass = AZ_CLASS_FROM_IMPL(boxed->val.impl);
 	AZClass *iface_class = AZ_CLASS_FROM_IMPL(boxed->impl);
 	unsigned int pos;
+	/* Nothing is written when destination is NULL */
+	if (!buf) len = 0;
 	pos = arikkei_memcpy_str (buf, len, (const unsigned char *) "Boxed ");
 	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, iface_class->name);
 	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) " in ");
 	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, klass->name);
-	if (pos < len) buf[pos] = 0;
+	if (buf && (pos < len)) buf[pos] = 0;
 	return pos;
 }
 

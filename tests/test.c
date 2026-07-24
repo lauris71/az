@@ -1,12 +1,16 @@
 #define __TEST_C__
 
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 
 #include <az/az.h>
 #include <az/base.h>
 #include <az/boxed-value.h>
 #include <az/extend.h>
+#include <az/packed-value.h>
+#include <az/reference-of.h>
+#include <az/string.h>
 #include <az/types.h>
 #include <az/value.h>
 #include <az/collections/array-list.h>
@@ -18,6 +22,7 @@
 #include "unity/unity.h"
 
 static void test_types();
+static void test_to_string();
 static void test_boxed_value();
 static void test_array_list();
 static void test_array();
@@ -40,6 +45,8 @@ main(int argc, const char *argv[])
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "types")) {
             RUN_TEST(test_types);
+        } else if (!strcmp(argv[i], "to-string")) {
+            RUN_TEST(test_to_string);
         } else if (!strcmp(argv[i], "boxed-value")) {
             RUN_TEST(test_boxed_value);
         } else if (!strcmp(argv[i], "array-list")) {
@@ -148,6 +155,110 @@ test_types()
         TEST_ASSERT(val.value.boolean_v == AZ_TYPE_IS_SIGNED(AZ_TYPE_FROM_INDEX(i)));
         fprintf(stderr, " signed %d\n", val.value.boolean_v);
     }
+}
+
+/*
+ * Verify the to_string contract:
+ * - NULL destination is accepted (nothing written, required length returned)
+ * - at most dlen bytes are written
+ * - the required string length (excluding the terminating 0) is returned
+ * - the string is terminated with 0 only if there is extra room
+ */
+static void
+check_to_string(const AZImplementation *impl, void *inst, const char *expected)
+{
+    unsigned int expected_len = (unsigned int) strlen(expected);
+    uint8_t buf[256];
+    /* NULL destination - returns the required length, writes nothing (any dlen) */
+    TEST_ASSERT_EQUAL_UINT(expected_len, az_instance_to_string(impl, inst, NULL, 0));
+    TEST_ASSERT_EQUAL_UINT(expected_len, az_instance_to_string(impl, inst, NULL, 128));
+    /* Big buffer - full string, terminated, nothing past the terminator */
+    memset(buf, 0xAA, sizeof(buf));
+    TEST_ASSERT_EQUAL_UINT(expected_len, az_instance_to_string(impl, inst, buf, sizeof(buf)));
+    TEST_ASSERT_EQUAL_STRING(expected, (const char *) buf);
+    TEST_ASSERT_EQUAL_UINT8(0xAA, buf[expected_len + 1]);
+    /* Exact length - full string, no terminator, nothing past the buffer end */
+    memset(buf, 0xAA, sizeof(buf));
+    TEST_ASSERT_EQUAL_UINT(expected_len, az_instance_to_string(impl, inst, buf, expected_len));
+    TEST_ASSERT_EQUAL_MEMORY(expected, buf, expected_len);
+    TEST_ASSERT_EQUAL_UINT8(0xAA, buf[expected_len]);
+    /* Exactly room for the terminator */
+    memset(buf, 0xAA, sizeof(buf));
+    TEST_ASSERT_EQUAL_UINT(expected_len, az_instance_to_string(impl, inst, buf, expected_len + 1));
+    TEST_ASSERT_EQUAL_STRING(expected, (const char *) buf);
+    TEST_ASSERT_EQUAL_UINT8(0xAA, buf[expected_len + 1]);
+    /* Truncated - required length returned, only dlen bytes written, no terminator */
+    if (expected_len > 0) {
+        memset(buf, 0xAA, sizeof(buf));
+        TEST_ASSERT_EQUAL_UINT(expected_len, az_instance_to_string(impl, inst, buf, expected_len - 1));
+        TEST_ASSERT_EQUAL_MEMORY(expected, buf, expected_len - 1);
+        TEST_ASSERT_EQUAL_UINT8(0xAA, buf[expected_len - 1]);
+    }
+}
+
+static void
+test_to_string()
+{
+    az_init();
+    unsigned int b = 1;
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_BOOLEAN), &b, "True");
+    b = 0;
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_BOOLEAN), &b, "False");
+    int8_t i8 = -128;
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_INT8), &i8, "-128");
+    uint8_t u8 = 255;
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_UINT8), &u8, "255");
+    int32_t i32 = -123456;
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_INT32), &i32, "-123456");
+    uint32_t u32 = 123456;
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_UINT32), &u32, "123456");
+    int64_t i64 = INT64_MIN;
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_INT64), &i64, "-9223372036854775808");
+    uint64_t u64 = UINT64_MAX;
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_UINT64), &u64, "18446744073709551615");
+    float f = 1.5f;
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_FLOAT), &f, "1.5000");
+    double dbl = 1.5;
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_DOUBLE), &dbl, "1.5000000");
+    AZComplexFloat cf = {1.5f, -2.5f};
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_COMPLEX_FLOAT), &cf, "1.5000-2.5000i");
+    AZComplexDouble cd = {1.2, 3.4};
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_COMPLEX_DOUBLE), &cd, "1.2000000+3.4000000i");
+    AZString *str = az_string_new((const unsigned char *) "Hello, world!");
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_STRING), str, "Hello, world!");
+    az_string_unref(str);
+    /* NULL string instance is an empty string */
+    AZClass *str_klass = AZ_CLASS_FROM_TYPE(AZ_TYPE_STRING);
+    uint8_t buf[16];
+    memset(buf, 0xAA, sizeof(buf));
+    TEST_ASSERT_EQUAL_UINT(0, str_klass->to_string(&str_klass->impl, NULL, buf, sizeof(buf)));
+    TEST_ASSERT_EQUAL_UINT8(0, buf[0]);
+    /* Fallback methods */
+    check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_CLASS), (void *) &AZUint32Klass, "uint32 class");
+    uint8_t any_buf[16];
+    memset(any_buf, 0xAA, sizeof(any_buf));
+    TEST_ASSERT_EQUAL_UINT(3, az_any_to_string(&AZAnyKlass.impl, NULL, NULL, 0));
+    TEST_ASSERT_EQUAL_UINT(3, az_any_to_string(&AZAnyKlass.impl, NULL, any_buf, sizeof(any_buf)));
+    TEST_ASSERT_EQUAL_STRING("Any", (const char *) any_buf);
+    memset(any_buf, 0xAA, sizeof(any_buf));
+    TEST_ASSERT_EQUAL_UINT(4, AZPointerKlass.to_string(&AZPointerKlass.impl, NULL, any_buf, sizeof(any_buf)));
+    TEST_ASSERT_EQUAL_STRING("null", (const char *) any_buf);
+    /* Multi-part builders must not write for NULL destination even with non-zero dlen */
+    unsigned int any_len = az_any_to_string(&AZUint32Klass.impl, &u32, any_buf, sizeof(any_buf));
+    TEST_ASSERT_EQUAL_UINT(any_len, az_any_to_string(&AZUint32Klass.impl, &u32, NULL, 128));
+    unsigned int impl_len = AZImplKlass.to_string(&AZImplKlass.impl, &AZUint32Klass.impl, any_buf, sizeof(any_buf));
+    TEST_ASSERT_EQUAL_UINT(impl_len, AZImplKlass.to_string(&AZImplKlass.impl, &AZUint32Klass.impl, NULL, 128));
+    AZPackedValue pv = {0};
+    az_packed_value_set_from_type(&pv, AZ_TYPE_UINT32, &u32);
+    AZClass *pv_klass = AZ_CLASS_FROM_TYPE(AZ_TYPE_PACKED_VALUE);
+    unsigned int pv_len = pv_klass->to_string(&pv_klass->impl, &pv, any_buf, sizeof(any_buf));
+    TEST_ASSERT_EQUAL_UINT(pv_len, pv_klass->to_string(&pv_klass->impl, &pv, NULL, 128));
+    unsigned int refof_type = az_reference_of_get_type(AZ_TYPE_UINT32);
+    AZReferenceOf *ref = az_reference_of_new(AZ_TYPE_UINT32);
+    AZClass *refof_klass = AZ_CLASS_FROM_TYPE(refof_type);
+    unsigned int ref_len = refof_klass->to_string(&refof_klass->impl, ref, any_buf, sizeof(any_buf));
+    TEST_ASSERT_EQUAL_UINT(ref_len, refof_klass->to_string(&refof_klass->impl, ref, NULL, 128));
+    az_instance_delete(refof_type, ref);
 }
 
 static void

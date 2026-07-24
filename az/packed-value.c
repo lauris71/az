@@ -26,9 +26,11 @@ packed_value_to_string (const AZImplementation *impl, void *inst, unsigned char 
 {
 	AZPackedValue *pval = (AZPackedValue *) inst;
 	unsigned int pos;
+	/* Nothing is written when destination is NULL */
+	if (!buf) len = 0;
 	pos = arikkei_memcpy_str (buf, len, (const unsigned char *) "Packed ");
 	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0,AZ_CLASS_FROM_IMPL(pval->impl)->name);
-	if (pos < len) buf[pos] = 0;
+	if (buf && (pos < len)) buf[pos] = 0;
 	return pos;
 }
 

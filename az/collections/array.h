@@ -22,9 +22,10 @@ extern "C" {
 /**
  * @brief A lightweight interface for interacting with C arrays
  *
- * An array can only contain final types or objects because we do not have any method to keep track of derived types.
- * As it does not manage it's memory it can be used as a value type.
- *
+ * An array can only contain final types or objects because we do not have any method to keep
+ * track of the actual implementation of a type.
+ * It is an interface because it does not own the data and thus cannot be stored in general case
+ * without providing the data owning instance together with it.
  */
 
 struct _AZArray {

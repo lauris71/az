@@ -77,9 +77,12 @@ unsigned int az_instance_serialize (const AZImplementation *impl, void *inst, un
  * 
  * @param impl type implementation
  * @param inst type instance
- * @param d destination buffer
+ * @param d destination buffer (may be NULL, nothing is written then)
  * @param dlen destination buffer size
- * @return the content length (can be > dlen, not counting terminating 0)
+ * @return the required length of the string (excluding the terminating '\0', may be bigger than dlen)
+ *
+ * Writes at most dlen bytes. If there is extra room (the required length is
+ * smaller than dlen) the string is terminated with '\0'.
  */
 unsigned int az_instance_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
 

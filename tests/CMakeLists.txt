@@ -34,6 +34,7 @@ if(MATH_LIBRARY)
 endif()
 
 add_test(NAME types COMMAND az_test types)
+add_test(NAME to-string COMMAND az_test to-string)
 add_test(NAME boxed-value COMMAND az_test boxed-value)
 add_test(NAME array-list COMMAND az_test array-list)
 add_test(NAME hash-map COMMAND az_test hash-map)

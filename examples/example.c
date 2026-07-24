@@ -52,14 +52,19 @@ matrix_to_string (const AZImplementation* impl, void *inst, unsigned char *d, un
 {
     const Matrix *mat = (const Matrix *) inst;
 	unsigned int pos = 0, i;
-	if (pos < d_len) d[pos++] = '(';
+	/* Nothing is written when destination is NULL */
+	if (!d) d_len = 0;
+	if (d && (pos < d_len)) d[pos] = '(';
+	pos++;
 	for (i = 0; i < 8; i++) {
 		pos += arikkei_dtoa_exp (d + pos, (d_len > pos) ? d_len - pos : 0, mat->c[i], 6, -5, 5);
-		if (pos < d_len) d[pos++] = ',';
+		if (d && (pos < d_len)) d[pos] = ',';
+		pos++;
 	}
 	pos += arikkei_dtoa_exp (d + pos, (d_len > pos) ? d_len - pos : 0, mat->c[8], 6, -5, 5);
-	if (pos < d_len) d[pos++] = ')';
-	if (pos < d_len) d[pos] = 0;
+	if (d && (pos < d_len)) d[pos] = ')';
+	pos++;
+	if (d && (pos < d_len)) d[pos] = 0;
 	return pos;
 }
 

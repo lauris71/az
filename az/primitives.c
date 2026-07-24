@@ -32,9 +32,13 @@
 unsigned int
 az_any_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int d_len)
 {
+	/* Nothing is written when destination is NULL */
+	if (!d) d_len = 0;
 	if (AZ_IMPL_TYPE(impl) == AZ_TYPE_ANY) {
 		/* Pure Any */
-		return arikkei_strncpy (d, d_len, (const unsigned char *) "Any");
+		unsigned int pos = arikkei_memcpy_str (d, d_len, (const unsigned char *) "Any");
+		if (d && (pos < d_len)) d[pos] = 0;
+		return pos;
 	} else {
 		/* Subclass that does not implement to_string */
 		char c[32];
@@ -45,7 +49,8 @@ az_any_to_string (const AZImplementation* impl, void *inst, unsigned char *d, un
 		pos += arikkei_memcpy_str (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) " (");
 		snprintf (c, 32, "%p", inst);
 		pos += arikkei_memcpy_str (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) c);
-		pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) ")");
+		pos += arikkei_memcpy_str (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) ")");
+		if (d && (pos < d_len)) d[pos] = 0;
 		return pos;
 	}
 }
@@ -70,7 +75,10 @@ deserialize_boolean (const AZImplementation *impl, AZValue *value, const unsigne
 static unsigned int
 boolean_to_string (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen)
 {
-	return arikkei_strncpy(d, dlen, (*((unsigned int *) instance)) ? (const unsigned char *) "True" : (const unsigned char *) "False");
+	const unsigned char *s = (*((unsigned int *) instance)) ? (const unsigned char *) "True" : (const unsigned char *) "False";
+	unsigned int slen = arikkei_memcpy_str (d, dlen, s);
+	if (d && (slen < dlen)) d[slen] = 0;
+	return slen;
 }
 
 /* 3 Int8 */
@@ -101,16 +109,18 @@ copy_int_to_buffer (unsigned char *d, unsigned int dlen, unsigned long long valu
 		value /= 10;
 	}
 	if (sign) {
-		if (d && (len < dlen)) d[len++] = '-';
+		if (d && (len < dlen)) d[len] = '-';
+		len++;
 	}
-	if (d) {
+	{
 		unsigned int i;
 		for (i = 0; i < clen; i++) {
-			if (len < dlen) d[len++] = c[clen - 1 - i];
+			if (d && (len < dlen)) d[len] = c[clen - 1 - i];
+			len++;
 		}
-		if (len < dlen) d[len++] = 0;
 	}
-	return clen + sign + 1;
+	if (d && (len < dlen)) d[len] = 0;
+	return clen + sign;
 }
 
 static unsigned int
@@ -130,7 +140,8 @@ int_to_string_any (const AZImplementation* impl, void *instance, unsigned char *
 	if (is_signed) {
 		if (value & (1ULL << ((8 * size) - 1))) {
 			sign = 1;
-			value = (1ULL << (8 * size)) - value;
+			/* Avoid the UB 64-bit shift for 8-byte values */
+			value = (size < 8) ? ((1ULL << (8 * size)) - value) : (0 - value);
 		}
 	}
 	return copy_int_to_buffer(d, dlen, value, sign);
@@ -161,7 +172,7 @@ float_to_string (const AZImplementation* impl, void *instance, unsigned char *d,
 		memcpy (d, c, (clen <= dlen) ? clen : dlen);
 		if (clen < dlen) d[clen] = 0;
 	}
-	return clen + 1;
+	return clen;
 }
 
 /* 12 Double */
@@ -175,7 +186,7 @@ double_to_string (const AZImplementation* impl, void *instance, unsigned char *d
 		memcpy (d, c, (clen <= dlen) ? clen : dlen);
 		if (clen < dlen) d[clen] = 0;
 	}
-	return clen + 1;
+	return clen;
 }
 
 /* 13 Complex float */
@@ -187,13 +198,13 @@ complex_float_to_string (const AZImplementation* impl, void *inst, unsigned char
 	unsigned char c[64];
 	unsigned int clen = arikkei_dtoa_exp (c, 32, v[0], 5, -5, 5);
 	if (v[1] >= 0) c[clen++] = '+';
-	clen += arikkei_dtoa_exp (c, 32, v[1], 5, -5, 5);
+	clen += arikkei_dtoa_exp (&c[clen], 32, v[1], 5, -5, 5);
 	c[clen++] = 'i';
 	if (buf) {
-		memcpy (buf, c, clen);
+		memcpy (buf, c, (clen <= len) ? clen : len);
 		if (clen < len) buf[clen] = 0;
 	}
-	return clen + 1;
+	return clen;
 }
 
 static unsigned int
@@ -227,10 +238,10 @@ complex_double_to_string (const AZImplementation* impl, void *inst, unsigned cha
 	clen += arikkei_dtoa_exp (&c[clen], 32, v[1], 8, -5, 5);
 	c[clen++] = 'i';
 	if (buf) {
-		memcpy (buf, c, clen);
+		memcpy (buf, c, (clen <= len) ? clen : len);
 		if (clen < len) buf[clen] = 0;
 	}
-	return clen + 1;
+	return clen;
 }
 
 static unsigned int
@@ -273,7 +284,11 @@ pointer_to_string (const AZImplementation* impl, void *instance, unsigned char *
 	} else {
 		t = "null";
 	}
-	return arikkei_strncpy (buf, len, (const unsigned char *) t);
+	{
+		unsigned int slen = arikkei_memcpy_str (buf, len, (const unsigned char *) t);
+		if (buf && (slen < len)) buf[slen] = 0;
+		return slen;
+	}
 }
 
 enum {

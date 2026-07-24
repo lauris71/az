@@ -59,15 +59,17 @@ string_data_equal (const void *l, const void *r)
 static unsigned int
 string_to_string (const AZImplementation *impl, void *instance, unsigned char *buf, unsigned int len)
 {
-	unsigned int pos = 0;
 	if (instance) {
 		AZString *str = (AZString *) instance;
-		unsigned int slen = (str->length > len) ? len : str->length;
-		memcpy (buf + pos, str->str, slen);
-		pos += slen;
+		if (buf) {
+			unsigned int slen = (str->length > len) ? len : str->length;
+			memcpy (buf, str->str, slen);
+			if (str->length < len) buf[str->length] = 0;
+		}
+		return str->length;
 	}
-	if (pos < len) buf[pos] = 0;
-	return pos;
+	if (buf && len) buf[0] = 0;
+	return 0;
 }
 
 static unsigned int
