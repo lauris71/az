@@ -28,6 +28,9 @@ static AZMapClass *map_class;
 unsigned int
 az_map_get_type (void)
 {
+	unsigned int t = AZ_TYPE_READ(map_type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!map_type) {
 		map_class = (AZMapClass *) az_register_interface_type (&map_type, (const unsigned char *) "AZMap", AZ_TYPE_COLLECTION,
 			sizeof(AZMapClass), sizeof(AZMapImplementation), sizeof(AZMap), AZ_FLAG_ZERO_MEMORY,
@@ -36,7 +39,9 @@ az_map_get_type (void)
 			(void (*) (AZImplementation *)) map_implementation_init,
 			NULL, NULL);
 	}
-	return map_type;
+	t = map_type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

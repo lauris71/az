@@ -35,6 +35,9 @@ enum {
 unsigned int
 az_list_get_type (void)
 {
+	unsigned int t = AZ_TYPE_READ(list_type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!list_type) {
 		list_class = (AZListClass *) az_register_interface_type (&list_type, (const unsigned char *) "AZList", AZ_TYPE_COLLECTION,
 			sizeof(AZListClass), sizeof(AZListImplementation), sizeof(AZList), AZ_FLAG_ZERO_MEMORY,
@@ -43,7 +46,9 @@ az_list_get_type (void)
 			(void (*) (AZImplementation *)) list_implementation_init,
 			NULL, NULL);
 	}
-	return list_type;
+	t = list_type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

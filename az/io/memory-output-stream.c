@@ -26,17 +26,18 @@ AZMemoryOutputStreamClass *mostream_class = NULL;
 unsigned int
 az_memory_output_stream_get_type (void)
 {
-	if (mostream_type) return mostream_type;
+	unsigned int t = AZ_TYPE_READ(mostream_type);
+	if (t) return t;
 	AZ_TYPES_LOCK();
-	/* Just in case someone else registered the type while we were waiting for the lock */
 	if (!mostream_type) {
 		mostream_class = (AZMemoryOutputStreamClass *) az_register_type (&mostream_type, (const unsigned char *) "AZMemoryOutputStream", AZ_TYPE_STRUCT,
 			sizeof (AZMemoryOutputStreamClass), sizeof (AZMemoryOutputStream), AZ_FLAG_FINAL, 0, 0,
 			(void (*) (AZClass *)) mostream_class_init,
 			NULL, NULL);
 	}
+	t = mostream_type;
 	AZ_TYPES_UNLOCK();
-	return mostream_type;
+	return t;
 }
 
 static void

@@ -51,16 +51,17 @@ unsigned int
 az_active_object_get_type (void)
 {
 	static unsigned int type = 0;
-	if (type) return type;
+	unsigned int t = AZ_TYPE_READ(type);
+	if (t) return t;
 	AZ_TYPES_LOCK();
-	/* Just in case someone else registered the type while we were waiting for the lock */
 	if (!type) {
 		az_register_type (&type, (const unsigned char *) "AZActiveObject", AZ_TYPE_OBJECT, sizeof (AZActiveObjectClass), sizeof (AZActiveObject), AZ_FLAG_ABSTRACT,
 			1, NUM_PROPERTIES,
 			(void (*) (AZClass *)) az_active_object_class_init, NULL, NULL);
 	}
+	t = type;
 	AZ_TYPES_UNLOCK();
-	return type;
+	return t;
 }
 
 static void

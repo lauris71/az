@@ -196,8 +196,6 @@ az_instance_serialize (const AZImplementation *impl, void *inst, unsigned char *
 	return (klass->serialize) ? klass->serialize (impl, inst, d, dlen, ctx) : 0;
 }
 
-/* fixme: Make signature correct */
-
 unsigned int
 az_instance_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int dlen)
 {
@@ -206,7 +204,7 @@ az_instance_to_string (const AZImplementation* impl, void *inst, unsigned char *
 	arikkei_return_val_if_fail (inst != NULL, 0);
 #endif
 	AZClass* klass = AZ_CLASS_FROM_IMPL(impl);
-	return klass->to_string (&klass->impl, inst, d, dlen);
+	return klass->to_string (impl, inst, d, dlen);
 }
 
 const AZImplementation *

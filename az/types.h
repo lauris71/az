@@ -111,17 +111,41 @@ struct _AZTypeInfo {
 	#endif
 	#define AZ_TYPES_LOCK()
 	#define AZ_TYPES_UNLOCK()
+	#define AZ_TYPE_READ(t) (t)
 #elif defined(AZ_GLOBALS_MULTI_THREAD)
 	AZClass *az_type_get_class (unsigned int type);
 	/**
 	 * @brief Lock the type system mutex
-	 * 
-	 * The mutex is recursive, so subclasses can use it in get_type() etc. methods.
+	 *
+	 * The mutex is recursive, so it can be taken recursively from class/implementation
+	 * constructors and nested get_type() calls.
+	 *
+	 * Lazy type registration (get_type methods) uses double-checked locking: a fast-path
+	 * acquire-read of the static type variable, followed by the locked check-and-register
+	 * sequence. The lock is held through the entire registration (including class_init and
+	 * post_init), so the fully constructed class is published to other threads via the
+	 * mutex release-acquire pair. The acquire-load on the fast path synchronizes with the
+	 * release semantics of the mutex unlock:
+	 *
+	 * unsigned int t = AZ_TYPE_READ(type);
+	 * if (t) return t;
+	 * AZ_TYPES_LOCK();
+	 * if (!type) {
+	 *     az_register_type (&type, ...);
+	 * }
+	 * t = type;
+	 * AZ_TYPES_UNLOCK();
+	 * return t;
+	 *
+	 * For types with dynamically-grown subtype arrays (e.g. az_reference_of_get_type),
+	 * the fast-path is not safe because the array itself may be reallocated; these must
+	 * use the always-lock pattern (AZ_TYPES_LOCK before any read).
 	 */
 	void az_types_lock();
 	void az_types_unlock();
 	#define AZ_TYPES_LOCK() az_types_lock()
 	#define AZ_TYPES_UNLOCK() az_types_unlock()
+	#define AZ_TYPE_READ(t) __atomic_load_n(&(t), __ATOMIC_ACQUIRE)
 #endif
 
 #define az_type_get_impl(t) ((AZImplementation *) az_type_get_class(t))

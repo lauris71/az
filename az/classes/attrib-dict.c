@@ -30,7 +30,8 @@ static AZAttribDictClass *attrib_dict_class;
 unsigned int
 az_attrib_dict_get_type (void)
 {
-	if (attrib_dict_type) return attrib_dict_type;
+	unsigned int t = AZ_TYPE_READ(attrib_dict_type);
+	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!attrib_dict_type) {
 		attrib_dict_class = (AZAttribDictClass *) az_register_interface_type (&attrib_dict_type, (const unsigned char *) "AZAttributeArray", AZ_TYPE_LIST,
@@ -40,8 +41,9 @@ az_attrib_dict_get_type (void)
 			(void (*) (AZImplementation *)) attrib_dict_impl_init,
 			NULL, NULL);
 	}
+	t = attrib_dict_type;
 	AZ_TYPES_UNLOCK();
-	return attrib_dict_type;
+	return t;
 }
 
 static void

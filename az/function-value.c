@@ -22,13 +22,18 @@ static unsigned int function_value_type = 0;
 unsigned int
 az_function_value_get_type (void)
 {
+	unsigned int t = AZ_TYPE_READ(function_value_type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!function_value_type) {
 		az_register_type (&function_value_type, (const unsigned char *) "FunctionValue", AZ_TYPE_STRUCT, sizeof (AZFunctionValueClass), sizeof (AZFunctionValue), AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY,
 			1, 0,
 			(void (*) (AZClass *)) function_value_class_init,
 			NULL, NULL);
 	}
-	return function_value_type;
+	t = function_value_type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

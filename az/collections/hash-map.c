@@ -109,6 +109,9 @@ static AZHashMapClass *hmap_class;
 unsigned int
 az_hash_map_get_type (void)
 {
+	unsigned int t = AZ_TYPE_READ(hmap_type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!hmap_type) {
 		hmap_class = (AZHashMapClass *) az_register_interface_type (&hmap_type, (const unsigned char *) "AZHashMap", AZ_TYPE_MAP,
 			sizeof (AZMapClass), sizeof (AZHashMapImplementation), sizeof(AZHashMap), AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT,
@@ -118,7 +121,9 @@ az_hash_map_get_type (void)
             (void (*) (const AZImplementation *, void *)) hmap_instance_init,
             (void (*) (const AZImplementation *, void *)) hmap_instance_finalize);
 	}
-	return hmap_type;
+	t = hmap_type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

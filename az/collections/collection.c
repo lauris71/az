@@ -33,6 +33,9 @@ static AZCollectionClass *collection_class;
 unsigned int
 az_collection_get_type (void)
 {
+	unsigned int t = AZ_TYPE_READ(collection_type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!collection_type) {
 		collection_class = (AZCollectionClass *) az_register_interface_type (&collection_type, (const unsigned char *) "AZCollection", AZ_TYPE_INTERFACE,
 			sizeof(AZCollectionClass), sizeof(AZCollectionImplementation), sizeof(AZCollection), AZ_FLAG_ABSTRACT,
@@ -41,7 +44,9 @@ az_collection_get_type (void)
 			NULL,
 			NULL, NULL);
 	}
-	return collection_type;
+	t = collection_type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <arikkei/arikkei-threads.h>
+
 #include <az/az.h>
 #include <az/base.h>
 #include <az/boxed-value.h>
@@ -13,6 +15,7 @@
 #include <az/string.h>
 #include <az/types.h>
 #include <az/value.h>
+#include <az/classes/active-object.h>
 #include <az/collections/array-list.h>
 #include <az/collections/array.h>
 #include <az/classes/array-object.h>
@@ -22,6 +25,7 @@
 #include "unity/unity.h"
 
 static void test_types();
+static void test_types_mt();
 static void test_to_string();
 static void test_boxed_value();
 static void test_array_list();
@@ -45,6 +49,8 @@ main(int argc, const char *argv[])
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "types")) {
             RUN_TEST(test_types);
+        } else if (!strcmp(argv[i], "types-mt")) {
+            RUN_TEST(test_types_mt);
         } else if (!strcmp(argv[i], "to-string")) {
             RUN_TEST(test_to_string);
         } else if (!strcmp(argv[i], "boxed-value")) {
@@ -154,6 +160,60 @@ test_types()
         TEST_ASSERT(az_instance_get_property_by_key(&klass->impl, NULL, (const uint8_t *) "isSigned", &impl, &val));
         TEST_ASSERT(val.value.boolean_v == AZ_TYPE_IS_SIGNED(AZ_TYPE_FROM_INDEX(i)));
         fprintf(stderr, " signed %d\n", val.value.boolean_v);
+    }
+}
+
+/*
+ * Race lazy type registration from multiple threads.
+ *
+ * Every get_type call has to return the same typecode in all threads, whether the
+ * type was registered by this or another thread. The reference-of calls force the
+ * subtype array to grow (realloc) while other threads are registering.
+ */
+#define MT_NUM_THREADS 8
+#define MT_NUM_RESULTS 8
+
+typedef struct {
+    unsigned int seed;
+    unsigned int results[MT_NUM_RESULTS];
+} MTData;
+
+static int
+get_type_thread (void *arg)
+{
+    MTData *d = (MTData *) arg;
+    static const unsigned int vtypes[4] = {AZ_TYPE_INT32, AZ_TYPE_UINT64, AZ_TYPE_FLOAT, AZ_TYPE_DOUBLE};
+    d->results[0] = az_array_get_type();
+    d->results[1] = az_hash_map_get_type();
+    d->results[2] = az_active_object_get_type();
+    d->results[3] = az_array_object_get_type();
+    /* Register all subtypes in thread-dependent order, store indexed by element type */
+    for (unsigned int k = 0; k < 4; k++) {
+        unsigned int idx = (k + d->seed) % 4;
+        d->results[4 + idx] = az_reference_of_get_type(vtypes[idx]);
+    }
+    return 0;
+}
+
+static void
+test_types_mt()
+{
+    az_init();
+    thrd_t threads[MT_NUM_THREADS];
+    MTData data[MT_NUM_THREADS];
+    for (int i = 0; i < MT_NUM_THREADS; i++) {
+        data[i].seed = (unsigned int) i;
+        TEST_ASSERT(thrd_create(&threads[i], get_type_thread, &data[i]) == thrd_success);
+    }
+    for (int i = 0; i < MT_NUM_THREADS; i++) {
+        TEST_ASSERT(thrd_join(threads[i], NULL) == thrd_success);
+    }
+    /* All threads have to agree on every typecode */
+    for (int r = 0; r < MT_NUM_RESULTS; r++) {
+        TEST_ASSERT(data[0].results[r] != 0);
+        for (int i = 1; i < MT_NUM_THREADS; i++) {
+            TEST_ASSERT_EQUAL_UINT(data[0].results[r], data[i].results[r]);
+        }
     }
 }
 
@@ -398,4 +458,13 @@ test_array()
         TEST_ASSERT(el_impl == &AZUint32Klass.impl);
         TEST_ASSERT(val.int32_v == b32[i]);
     }
+    /* AZArray interface to_string prints [element,element...] */
+    uint32_t av[3] = {1, 22, 333};
+    AZArray arr = {0};
+    arr.list.collection.size = 3;
+    arr.values = av;
+    check_to_string((const AZImplementation *) impl, &arr, "[1,22,333]");
+    /* Empty array */
+    AZArray empty = {0};
+    check_to_string((const AZImplementation *) impl, &empty, "[]");
 }

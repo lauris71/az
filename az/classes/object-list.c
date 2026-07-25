@@ -41,6 +41,9 @@ static unsigned int object_list_type = 0;
 unsigned int
 az_object_list_get_type (void)
 {
+	unsigned int t = AZ_TYPE_READ(object_list_type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!object_list_type) {
 		az_register_type (&object_list_type, (const unsigned char *) "AZObjectList", AZ_TYPE_BLOCK, sizeof (AZObjectListClass), sizeof (AZObjectList), AZ_FLAG_ZERO_MEMORY | AZ_FLAG_FINAL,
 			1, NUM_PROPERTIES,
@@ -48,7 +51,9 @@ az_object_list_get_type (void)
 			(void (*) (const AZImplementation *, void *)) object_list_init,
 			(void (*) (const AZImplementation *, void *)) object_list_finalize);
 	}
-	return object_list_type;
+	t = object_list_type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

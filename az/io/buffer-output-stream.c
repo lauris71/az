@@ -23,17 +23,18 @@ AZBufferOutputStreamClass *bostream_class = NULL;
 unsigned int
 az_buffer_output_stream_get_type (void)
 {
-	if (bostream_type) return bostream_type;
+	unsigned int t = AZ_TYPE_READ(bostream_type);
+	if (t) return t;
 	AZ_TYPES_LOCK();
-	/* Just in case someone else registered the type while we were waiting for the lock */
 	if (!bostream_type) {
 		bostream_class = (AZBufferOutputStreamClass *) az_register_type(&bostream_type, (const unsigned char *) "AZBufferOutputStream", AZ_TYPE_STRUCT,
             sizeof (AZBufferOutputStreamClass), sizeof (AZBufferOutputStream), AZ_FLAG_FINAL, 0, 0,
             (void (*) (AZClass *)) bostream_class_init,
             NULL, NULL);
 	}
+	t = bostream_type;
 	AZ_TYPES_UNLOCK();
-	return bostream_type;
+	return t;
 }
 
 static void

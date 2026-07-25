@@ -36,6 +36,9 @@ unsigned int
 az_packed_value_array_get_type (void)
 {
 	static unsigned int type = 0;
+	unsigned int t = AZ_TYPE_READ(type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!type) {
 		az_register_type (&type, (const unsigned char *) "AZPackedValueArray", AZ_TYPE_REFERENCE, sizeof (AZPackedValueArrayClass), sizeof (AZPackedValueArray), AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY,
 			1, NUM_PROPERTIES,
@@ -43,7 +46,9 @@ az_packed_value_array_get_type (void)
 			NULL,
 			(void (*) (const AZImplementation *, void *)) packed_value_array_finalize);
 	}
-	return type;
+	t = type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

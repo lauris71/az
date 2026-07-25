@@ -30,6 +30,9 @@ static AZArrayObjectClass *az_array_object_class = NULL;
 unsigned int
 az_array_object_get_type ()
 {
+	unsigned int t = AZ_TYPE_READ(az_array_object_type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!az_array_object_type) {
 		az_array_object_class = (AZArrayObjectClass *) az_register_type (&az_array_object_type, (const unsigned char *) "AZArrayOfObject", AZ_TYPE_OBJECT,
 			sizeof (AZArrayObjectClass), sizeof (AZArrayObject), AZ_FLAG_FINAL,
@@ -38,7 +41,9 @@ az_array_object_get_type ()
 			(void (*) (const AZImplementation *, void *)) array_object_instance_init,
 			(void (*) (const AZImplementation *, void *)) array_object_instance_finalize);
 	}
-	return az_array_object_type;
+	t = az_array_object_type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

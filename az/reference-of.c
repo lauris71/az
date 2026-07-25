@@ -22,12 +22,17 @@ static unsigned int abstract_reference_of_type = 0;
 unsigned int
 az_abstract_reference_of_get_type (void)
 {
+	unsigned int t = AZ_TYPE_READ(abstract_reference_of_type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!abstract_reference_of_type) {
 		az_register_type (&abstract_reference_of_type, (const unsigned char *) "AbstractReferenceOf", AZ_TYPE_REFERENCE, sizeof (AZReferenceOfClass), sizeof (AZReferenceOf), AZ_FLAG_ABSTRACT,
 			0, 0,
 			NULL, NULL, NULL);
 	}
-	return abstract_reference_of_type;
+	t = abstract_reference_of_type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void reference_of_class_init (AZReferenceOfClass *klass, AZClass *inst_class);
@@ -42,6 +47,7 @@ az_reference_of_get_type (unsigned int instance_type)
 	static unsigned int num_subtypes = 0;
 	static unsigned int *subtypes = NULL;
 	arikkei_return_val_if_fail (AZ_TYPE_IS_VALUE(instance_type), 0);
+	AZ_TYPES_LOCK();
 	if (AZ_TYPE_INDEX(instance_type) >= num_subtypes) {
 		unsigned int new_size = (AZ_TYPE_INDEX(instance_type) + 1 + 255) & 0xffffff00;
 		subtypes = realloc (subtypes, new_size * sizeof (unsigned int));
@@ -62,7 +68,9 @@ az_reference_of_get_type (unsigned int instance_type)
 			(void (*) (const AZImplementation *, void *)) reference_of_instance_finalize,
 			inst_class);
 	}
-	return subtypes[AZ_TYPE_INDEX(instance_type)];
+	unsigned int type = subtypes[AZ_TYPE_INDEX(instance_type)];
+	AZ_TYPES_UNLOCK();
+	return type;
 }
 
 static void

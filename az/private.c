@@ -77,9 +77,13 @@ az_register_class(AZClass *klass)
 	AZClass *
 	az_type_get_class (unsigned int type)
 	{
+		AZClass *ret = NULL;
 		mtx_lock(&mutex);
-		AZClass *ret = az_types[AZ_TYPE_INDEX(type)].klass;
+		if (AZ_TYPE_INDEX(type) < az_num_types) ret = az_types[AZ_TYPE_INDEX(type)].klass;
 		mtx_unlock(&mutex);
+#ifdef AZ_SAFETY_CHECKS
+		arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, NULL);
+#endif
 		return ret;
 	}
 

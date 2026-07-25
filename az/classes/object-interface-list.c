@@ -32,6 +32,9 @@ static unsigned int object_interface_list_type = 0;
 unsigned int
 az_object_interface_list_get_type (void)
 {
+	unsigned int t = AZ_TYPE_READ(object_interface_list_type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!object_interface_list_type) {
 		az_register_type (&object_interface_list_type, (const unsigned char *) "AZObjectInterfaceList", AZ_TYPE_STRUCT, sizeof (AZObjectInterfaceListClass), sizeof (AZObjectInterfaceList), AZ_FLAG_ZERO_MEMORY,
 			1, 0,
@@ -39,7 +42,9 @@ az_object_interface_list_get_type (void)
 			(void (*) (const AZImplementation *, void *)) object_interface_list_init,
 			(void (*) (const AZImplementation *, void *)) object_interface_list_finalize);
 	}
-	return object_interface_list_type;
+	t = object_interface_list_type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

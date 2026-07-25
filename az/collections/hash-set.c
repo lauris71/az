@@ -80,6 +80,9 @@ static AZHashSetClass *hset_class;
 unsigned int
 az_hash_set_get_type (void)
 {
+	unsigned int t = AZ_TYPE_READ(hset_type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!hset_type) {
 		hset_class = (AZHashSetClass *) az_register_interface_type (&hset_type, (const unsigned char *) "AZHashSet", AZ_TYPE_SET,
 			sizeof(AZHashSetClass), sizeof(AZHashSetImplementation), sizeof(AZHashSet), AZ_FLAG_ZERO_MEMORY | AZ_FLAG_CONSTRUCT,
@@ -89,7 +92,9 @@ az_hash_set_get_type (void)
             (void (*) (const AZImplementation *, void *)) hset_instance_init,
             (void (*) (const AZImplementation *, void *)) hset_instance_finalize);
 	}
-	return hset_type;
+	t = hset_type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

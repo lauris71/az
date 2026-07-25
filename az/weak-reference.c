@@ -25,6 +25,9 @@ static unsigned int weak_reference_type = 0;
 unsigned int
 az_weak_reference_get_type (void)
 {
+	unsigned int t = AZ_TYPE_READ(weak_reference_type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!weak_reference_type) {
 		az_register_type (&weak_reference_type, (const unsigned char *) "WeakReference", AZ_TYPE_BLOCK, sizeof (AZWeakReferenceClass), sizeof (AZWeakReference), AZ_FLAG_ZERO_MEMORY | AZ_FLAG_FINAL,
 			0, 0,
@@ -32,7 +35,9 @@ az_weak_reference_get_type (void)
 			NULL,
 			(void (*) (const AZImplementation *, void *)) weak_reference_finalize);
 	}
-	return weak_reference_type;
+	t = weak_reference_type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

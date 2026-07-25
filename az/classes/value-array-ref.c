@@ -31,6 +31,9 @@ unsigned int
 az_value_array_ref_get_type (void)
 {
 	static unsigned int type = 0;
+	unsigned int t = AZ_TYPE_READ(type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!type) {
 		az_register_type (&type, (const unsigned char *) "AZValueArrayRef", AZ_TYPE_REFERENCE, sizeof (AZValueArrayRefClass), sizeof (AZValueArrayRef), AZ_FLAG_FINAL,
 			1, NUM_PROPERTIES,
@@ -38,7 +41,9 @@ az_value_array_ref_get_type (void)
 			(void (*) (const AZImplementation *, void *)) value_array_ref_init,
 			(void (*) (const AZImplementation *, void *)) value_array_ref_finalize);
 	}
-	return type;
+	t = type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

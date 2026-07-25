@@ -231,11 +231,11 @@ deserialize_complex_float (const AZImplementation *impl, AZValue *value, const u
 static unsigned int
 complex_double_to_string (const AZImplementation* impl, void *inst, unsigned char *buf, unsigned int len)
 {
-	double *v = (double *) inst;
+	AZComplexDouble *v = (AZComplexDouble *) inst;
 	unsigned char c[64];
-	unsigned int clen = arikkei_dtoa_exp (c, 32, v[0], 8, -5, 5);
-	if (v[1] >= 0) c[clen++] = '+';
-	clen += arikkei_dtoa_exp (&c[clen], 32, v[1], 8, -5, 5);
+	unsigned int clen = arikkei_dtoa_exp (c, 32, v->r, 8, -5, 5);
+	if (v->i >= 0) c[clen++] = '+';
+	clen += arikkei_dtoa_exp (&c[clen], 32, v->i, 8, -5, 5);
 	c[clen++] = 'i';
 	if (buf) {
 		memcpy (buf, c, (clen <= len) ? clen : len);

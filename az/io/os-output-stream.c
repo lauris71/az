@@ -23,7 +23,8 @@ AZOSOutputStreamClass *osostream_class = NULL;
 unsigned int
 az_os_output_stream_get_type (void)
 {
-	if (osostream_type) return osostream_type;
+	unsigned int t = AZ_TYPE_READ(osostream_type);
+	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!osostream_type) {
 		osostream_class = (AZOSOutputStreamClass *) az_register_type (&osostream_type, (const unsigned char *) "AZOSOutputStream", AZ_TYPE_STRUCT,
@@ -31,8 +32,9 @@ az_os_output_stream_get_type (void)
 			(void (*) (AZClass *)) osostream_class_init,
 			NULL, NULL);
 	}
+	t = osostream_type;
 	AZ_TYPES_UNLOCK();
-	return osostream_type;
+	return t;
 }
 
 static void

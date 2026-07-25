@@ -33,6 +33,9 @@ unsigned int
 az_value_array_get_type (void)
 {
 	static unsigned int type = 0;
+	unsigned int t = AZ_TYPE_READ(type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!type) {
 		az_register_type (&type, (const unsigned char *) "AZValueArray", AZ_TYPE_BLOCK, sizeof (AZValueArrayClass), sizeof (AZValueArray), AZ_FLAG_FINAL,
 			1, 0,
@@ -40,7 +43,9 @@ az_value_array_get_type (void)
 			(void (*) (const AZImplementation *, void *)) value_array_init,
 			(void (*) (const AZImplementation *, void *)) value_array_finalize);
 	}
-	return type;
+	t = type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void

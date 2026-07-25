@@ -33,6 +33,9 @@ unsigned int
 az_array_list_get_type (void)
 {
 	static unsigned int type = 0;
+	unsigned int t = AZ_TYPE_READ(type);
+	if (t) return t;
+	AZ_TYPES_LOCK();
 	if (!type) {
 		AZArrayListKlass = (AZArrayListClass *) az_register_type (&type, (const unsigned char *) "AZArrayList", AZ_TYPE_BLOCK, sizeof (AZArrayListClass), sizeof (AZArrayList), 0,
 			1, 0,
@@ -44,7 +47,9 @@ az_array_list_get_type (void)
 		AZArrayListKlass->list_impl.get_element = array_list_get_element;
 		AZArrayListKlass->default_size = 4;
 	}
-	return type;
+	t = type;
+	AZ_TYPES_UNLOCK();
+	return t;
 }
 
 static void
