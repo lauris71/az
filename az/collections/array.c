@@ -53,7 +53,7 @@ array_class_init (AZArrayClass *klass)
 {
 	((AZClass *) klass)->serialize = array_serialize;
 	((AZClass *) klass)->deserialize = array_deserialize;
-	((AZClass *) klass)->to_string = array_to_string;
+	((AZClass *) klass)->to_string = az_array_to_string;
 }
 
 static void
@@ -96,6 +96,19 @@ array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned 
 	return len;
 }
 
+unsigned int
+az_array_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
+{
+	return array_serialize (impl, inst, d, dlen, ctx);
+}
+
+unsigned int
+az_array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx)
+{
+	return array_deserialize (impl, value, s, slen, ctx);
+}
+
+
 static unsigned int
 array_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
@@ -103,8 +116,8 @@ array_get_element_type (const AZCollectionImplementation *coll_impl, AZCollectio
 	return AZ_IMPL_TYPE(array_impl->elem_impl);
 }
 
-static unsigned int
-array_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen)
+unsigned int
+az_array_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen)
 {
 	AZArrayImplementation *array_impl = (AZArrayImplementation *) impl;
 	AZArray *array = (AZArray *) inst;

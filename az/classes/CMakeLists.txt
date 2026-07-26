@@ -6,6 +6,7 @@ SET(SOURCES
     object-interface-list.c object-interface-list.h
     object-list.c object-list.h
     packed-value-array.c packed-value-array.h
+    static-array-of.c static-array-of.h
     value-array.c value-array.h
     value-array-ref.c value-array-ref.h)
 

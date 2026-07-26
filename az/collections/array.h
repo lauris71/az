@@ -43,6 +43,10 @@ struct _AZArrayClass {
 };
 
 unsigned int az_array_get_type (void);
+unsigned int az_array_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
+unsigned int az_array_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx);
+unsigned int az_array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
+
 
 static inline AZValue *
 az_array_value_at (const AZArrayImplementation *array_impl, const AZArray *array, unsigned int idx)
