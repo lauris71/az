@@ -37,12 +37,12 @@ az_abstract_static_array_of_get_type (void)
 
 static void static_array_of_class_init (AZStaticArrayOfClass *klass, AZClass *elem_class);
 static void static_array_of_instance_init (AZStaticArrayOfClass *klass, AZStaticArrayOf *sarr);
+static unsigned int array_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx);
+static unsigned int array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
+static unsigned int array_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
 static unsigned int static_array_of_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 static unsigned int static_array_of_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
 static const AZImplementation *static_array_of_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
-
-
-
 
 unsigned int
 az_static_array_of_get_type (unsigned int element_type)
@@ -84,14 +84,14 @@ static_array_of_class_init (AZStaticArrayOfClass *klass, AZClass *elem_class)
 	klass->array_impl.list_impl.collection_impl.contains = static_array_of_contains;
 	klass->array_impl.list_impl.get_element = static_array_of_get_element;
 	klass->array_impl.elem_impl = &elem_class->impl;
-	((AZClass *) klass)->serialize = az_array_serialize;
+	((AZClass *) klass)->serialize = array_serialize;
 	/*
 	 * WARNING: deserialize allocates memory for the values array. Since AZStaticArrayOf
 	 * is a value type with externally-managed storage, the caller is responsible for
 	 * freeing this memory after deserialization.
 	 */
-	((AZClass *) klass)->deserialize = az_array_deserialize;
-	((AZClass *) klass)->to_string = az_array_to_string;
+	((AZClass *) klass)->deserialize = array_deserialize;
+	((AZClass *) klass)->to_string = array_to_string;
 }
 
 static void
@@ -99,6 +99,30 @@ static_array_of_instance_init (AZStaticArrayOfClass *klass, AZStaticArrayOf *sar
 {
 	sarr->array.values = NULL;
 	sarr->array.list.collection.size = 0;
+}
+
+static unsigned int
+array_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
+{
+	AZStaticArrayOfClass *array_klass = (AZStaticArrayOfClass *) impl;
+	AZStaticArrayOf *array = (AZStaticArrayOf *) inst;
+	return az_instance_serialize((const AZImplementation *) &array_klass->array_impl, &array->array, d, dlen, ctx);
+}
+
+static unsigned int
+array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx)
+{
+	AZStaticArrayOfClass *array_klass = (AZStaticArrayOfClass *) impl;
+	AZStaticArrayOf *array = (AZStaticArrayOf *) value;
+	return az_array_deserialize(&array_klass->array_impl, &array->array, s, slen, ctx);
+}
+
+static unsigned int
+array_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen)
+{
+	AZStaticArrayOfClass *array_klass = (AZStaticArrayOfClass *) impl;
+	AZStaticArrayOf *array = (AZStaticArrayOf *) inst;
+	return az_instance_to_string((const AZImplementation *) &array_klass->array_impl, &array->array, d, dlen);
 }
 
 static unsigned int

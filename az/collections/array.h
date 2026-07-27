@@ -43,16 +43,26 @@ struct _AZArrayClass {
 };
 
 unsigned int az_array_get_type (void);
-unsigned int az_array_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
-unsigned int az_array_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx);
-unsigned int az_array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
-
 
 static inline AZValue *
 az_array_value_at (const AZArrayImplementation *array_impl, const AZArray *array, unsigned int idx)
 {
 	return (AZValue *) ((char *) array->values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_IMPL(array_impl->elem_impl)));
 }
+
+/**
+ * @brief Deserializes an array into uninitialized instance
+ * 
+ * If successful it allocates the storage and the caller is responsible for managing it
+ * 
+ * @param array_impl The array implementation
+ * @param array An unitialized array instance
+ * @param s The source buffer
+ * @param slen The source buffer length
+ * @param ctx The executuon context
+ * @return The number of bytes consumed
+ */
+unsigned int az_array_deserialize (const AZArrayImplementation *array_impl, AZArray *array, const unsigned char *s, unsigned int slen, AZContext *ctx);
 
 #ifdef __cplusplus
 };
