@@ -139,9 +139,7 @@ az_function_invoke (const AZFunctionImplementation *impl, void *inst, const AZIm
 	arikkei_return_val_if_fail (az_type_is_a (AZ_IMPL_TYPE(&impl->implementation), AZ_TYPE_FUNCTION), 0);
 	arikkei_return_val_if_fail (inst != NULL, 0);
 #endif
-	ARIKKEI_CHECK_INTEGRITY ();
 	unsigned int result = impl->invoke (impl, inst, arg_impls, arg_vals, ret_impl, ret_val, ctx);
-	ARIKKEI_CHECK_INTEGRITY ();
 	return result;
 }
 

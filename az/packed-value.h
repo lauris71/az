@@ -66,9 +66,9 @@ az_packed_value_init_autobox(AZPackedValue *dst, const AZImplementation *impl)
 }
 
 static inline void
-az_packed_value_64_init_autobox(AZPackedValue *dst, const AZImplementation *impl)
+az_packed_value_64_init_autobox(AZPackedValue64 *dst, const AZImplementation *impl)
 {
-	az_value_init_autobox(impl, &dst->v, 64);
+	az_value_init_autobox(impl, &dst->packed_val.v, 64);
 }
 
 static inline void *

@@ -82,7 +82,7 @@ array_object_contains(const AZCollectionImplementation *coll_impl, AZCollection 
 	AZArrayImplementation *array_impl = (AZArrayImplementation *) coll_impl;
 	AZArrayObject *aobj = (AZArrayObject *) coll_inst;
 	for (unsigned int i = 0; i < aobj->array.list.collection.size; i++) {
-		const AZValue *val = (const AZValue *) ((char *) aobj->array.values + i * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(AZ_IMPL_TYPE(array_impl->elem_impl))));
+		const AZValue *val = (const AZValue *) ((char *) aobj->array.values + i * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_IMPL(array_impl->elem_impl)));
 		if (az_value_equals_instance_autobox(array_impl->elem_impl, val, impl, inst)) return 1;
 	}
 	return 0;
@@ -93,7 +93,7 @@ array_object_get_element (const AZListImplementation *list_impl, void *list_inst
 {
 	AZArrayImplementation *array_impl = (AZArrayImplementation *) list_impl;
 	AZArrayObject *aobj = (AZArrayObject *) list_inst;
-	return az_value_copy_autobox(array_impl->elem_impl, val, (const AZValue *) ((char *) aobj->array.values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_TYPE(AZ_IMPL_TYPE(array_impl->elem_impl)))), size);
+	return az_value_copy_autobox(array_impl->elem_impl, val, (const AZValue *) ((char *) aobj->array.values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_IMPL(array_impl->elem_impl))), size);
 }
 
 AZArrayObject *

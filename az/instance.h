@@ -86,6 +86,20 @@ unsigned int az_instance_serialize (const AZImplementation *impl, void *inst, un
  */
 unsigned int az_instance_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
 
+/**
+ * @brief get a newly allocated string representation of instance
+ *
+ * Convenience frontend to az_instance_to_string. To speed things up for the
+ * normal case the instance is first rendered into a local buffer and copied,
+ * only if the representation does not fit there an exact size buffer is
+ * allocated and the instance is rendered again.
+ *
+ * @param impl type implementation
+ * @param inst type instance
+ * @return the newly allocated terminated string (free with free())
+ */
+uint8_t *az_instance_to_string_new (const AZImplementation *impl, void *inst);
+
 /* Get rootmost interface */
 const AZImplementation *az_instance_get_interface (const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
 

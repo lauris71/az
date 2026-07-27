@@ -207,6 +207,21 @@ az_instance_to_string (const AZImplementation* impl, void *inst, unsigned char *
 	return klass->to_string (impl, inst, d, dlen);
 }
 
+uint8_t *
+az_instance_to_string_new (const AZImplementation *impl, void *inst)
+{
+	uint8_t buf[256];
+	unsigned int len = az_instance_to_string (impl, inst, buf, sizeof (buf));
+	uint8_t *str = (uint8_t *) malloc (len + 1);
+	if (len < sizeof (buf)) {
+		/* The representation fitted the local buffer and is terminated */
+		memcpy (str, buf, len + 1);
+	} else {
+		az_instance_to_string (impl, inst, str, len + 1);
+	}
+	return str;
+}
+
 const AZImplementation *
 az_instance_get_interface (const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst)
 {

@@ -15,13 +15,6 @@
 
 #define AZ_TYPE_VALUE_SIZE(t) az_class_value_size(az_type_get_class(t))
 
-#ifdef ARIKKEI_MEMCHECK
-#define ARIKKEI_CHECK_INTEGRITY() arikkei_check_integrity()
-void arikkei_check_integrity (void);
-#else
-#define ARIKKEI_CHECK_INTEGRITY()
-#endif
-
 #if defined(AZ_GLOBALS_STATIC) || defined(AZ_GLOBALS_SINGLE_THREAD)
 	static inline unsigned int
 	az_type_is_valid(uint32_t type)

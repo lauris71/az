@@ -254,6 +254,10 @@ check_to_string(const AZImplementation *impl, void *inst, const char *expected)
         TEST_ASSERT_EQUAL_MEMORY(expected, buf, expected_len - 1);
         TEST_ASSERT_EQUAL_UINT8(0xAA, buf[expected_len - 1]);
     }
+    /* Newly allocated string (fits the local buffer) */
+    uint8_t *allocated = az_instance_to_string_new(impl, inst);
+    TEST_ASSERT_EQUAL_STRING(expected, (const char *) allocated);
+    free(allocated);
 }
 
 static void
@@ -287,6 +291,15 @@ test_to_string()
     AZString *str = az_string_new((const unsigned char *) "Hello, world!");
     check_to_string(AZ_IMPL_FROM_TYPE(AZ_TYPE_STRING), str, "Hello, world!");
     az_string_unref(str);
+    /* Newly allocated string (does not fit the local buffer, rendered twice) */
+    uint8_t long_buf[300];
+    memset(long_buf, 'x', sizeof(long_buf) - 1);
+    long_buf[sizeof(long_buf) - 1] = 0;
+    AZString *long_str = az_string_new(long_buf);
+    uint8_t *long_result = az_instance_to_string_new(AZ_IMPL_FROM_TYPE(AZ_TYPE_STRING), long_str);
+    TEST_ASSERT_EQUAL_STRING((const char *) long_buf, (const char *) long_result);
+    free(long_result);
+    az_string_unref(long_str);
     /* NULL string instance is an empty string */
     AZClass *str_klass = AZ_CLASS_FROM_TYPE(AZ_TYPE_STRING);
     uint8_t buf[16];

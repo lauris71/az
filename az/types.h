@@ -50,21 +50,6 @@ extern "C" {
  */
 #define AZ_TYPE_FLAGS(t) ((t) & ~AZ_TYPE_MASK)
 
-typedef struct _AZTypeInfo AZTypeInfo;
-
-/**
- * @brief An internal array element of type info
- * 
- * It is used to get a class from typecode (type index) and to determine parent types
- * without having to traverse the class hierarchy.
- * 
- */
-struct _AZTypeInfo {
-	AZClass *klass;
-	/* Parent INDEX */
-	uint32_t pidx;
-};
-
 /*
  * Basic type queries
  */
