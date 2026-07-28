@@ -9,6 +9,7 @@ set(AZ_HEADERS
 	config.h
 	extend.h
 	field.h
+	function-native.h
 	function-value.h
 	function.h
 	instance.c
@@ -33,6 +34,7 @@ set(AZ_SOURCES
 	class.c
 	convert.c
 	field.c
+	function-native.c
 	function-value.c
 	function.c
 	interface.c

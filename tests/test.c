@@ -11,6 +11,7 @@
 #include <az/boxed-value.h>
 #include <az/extend.h>
 #include <az/function.h>
+#include <az/function-native.h>
 #include <az/function-value.h>
 #include <az/packed-value.h>
 #include <az/reference-of.h>
@@ -812,5 +813,28 @@ test_call_native()
         memset (&ret_val, 0, sizeof (AZValue64));
         TEST_ASSERT (call_native ((void (*) (void)) native_fval_sig, AZ_TYPE_UINT64, 1, types, &ret_impl, &ret_val, impls, vals));
         TEST_ASSERT_EQUAL_UINT64 (0xdeadbeef, ret_val.value.uint64_v);
+    }
+    /* AZFunctionNative - native function invoked through the AZFunction interface */
+    {
+        unsigned int fn_type = az_function_native_get_type();
+        unsigned int arg_types[2] = {AZ_TYPE_INT32, AZ_TYPE_INT32};
+        AZFunctionSignature *sig = az_function_signature_new (0, AZ_TYPE_INT32, 2, arg_types);
+        AZFunctionNative fnat;
+        const AZImplementation *f_impl;
+        void *f_inst;
+        const AZImplementation *impls[2] = {AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32), AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32)};
+        AZValue a, b;
+        const AZValue *vals[2] = {&a, &b};
+        az_function_native_setup (&fnat, sig, (void (*) (void)) native_add_i32);
+        a.int32_v = 17;
+        b.int32_v = 25;
+        ret_impl = NULL;
+        memset (&ret_val, 0, sizeof (AZValue64));
+        f_impl = az_instance_get_interface_from_type (fn_type, &fnat, AZ_TYPE_FUNCTION, &f_inst);
+        TEST_ASSERT (f_impl != NULL);
+        TEST_ASSERT (az_function_invoke ((const AZFunctionImplementation *) f_impl, f_inst, impls, vals, &ret_impl, &ret_val, NULL));
+        TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32));
+        TEST_ASSERT_EQUAL_INT32 (42, ret_val.value.int32_v);
+        az_function_signature_delete (sig);
     }
 }

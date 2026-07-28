@@ -16,6 +16,7 @@
 #include <az/base.h>
 #include <az/class.h>
 #include <az/extend.h>
+#include <az/function-native.h>
 #include <az/function-value.h>
 #include <az/packed-value.h>
 #include <az/private.h>
@@ -377,14 +378,26 @@ az_class_define_method_va(AZClass *klass, unsigned int idx, const unsigned char 
 
 void
 az_class_define_static_method (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
-unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *))
+	unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *))
 {
 	AZFunctionSignature *sig;
 	AZFunctionValue fval;
 	sig = az_function_signature_new (AZ_TYPE_NONE, ret_type, n_args, arg_types);
 	az_function_value_setup (&fval, sig, invoke);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
-		(AZImplementation *) az_type_get_class (AZ_TYPE_FUNCTION_VALUE), &fval);
+		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_VALUE), &fval);
+}
+
+void az_class_define_static_method_native (AZClass *klass, unsigned int idx, const unsigned char *key,
+	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
+	void (*invoke) (void))
+{
+	AZFunctionSignature *sig;
+	AZFunctionNative fval;
+	sig = az_function_signature_new (AZ_TYPE_NONE, ret_type, n_args, arg_types);
+	az_function_native_setup (&fval, sig, invoke);
+	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
+		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_NATIVE), &fval);
 }
 
 void az_class_define_static_method_va (AZClass *klass, unsigned int idx, const unsigned char *key,
@@ -395,15 +408,28 @@ void az_class_define_static_method_va (AZClass *klass, unsigned int idx, const u
 	unsigned int arg_types[64], i;
 	arikkei_return_if_fail (n_args < 64);
 
-	//uint64_t *p = (uint64_t *) &n_args + 1;
+	va_start (ap, n_args);
+	for (i = 0; i < n_args; i++) {
+		arg_types[i] = va_arg (ap, unsigned int);
+	}
+	va_end (ap);
+	az_class_define_static_method (klass, idx, key, ret_type, n_args, arg_types, invoke);
+}
+
+void az_class_define_static_method_native_va (AZClass *klass, unsigned int idx, const unsigned char *key,
+	void (*invoke) (void),
+	unsigned int ret_type, unsigned int n_args, ...)
+{
+	va_list ap;
+	unsigned int arg_types[64], i;
+	arikkei_return_if_fail (n_args < 64);
 
 	va_start (ap, n_args);
 	for (i = 0; i < n_args; i++) {
 		arg_types[i] = va_arg (ap, unsigned int);
-		//fprintf (stderr, "%u %llu\n", arg_types[i], p[i] & 0xffffffff);
 	}
 	va_end (ap);
-	az_class_define_static_method (klass, idx, key, ret_type, n_args, arg_types, invoke);
+	az_class_define_static_method_native(klass, idx, key, ret_type, n_args, arg_types, invoke);
 }
 
 int

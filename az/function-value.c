@@ -26,7 +26,7 @@ az_function_value_get_type (void)
 	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!function_value_type) {
-		az_register_type (&function_value_type, (const unsigned char *) "FunctionValue", AZ_TYPE_STRUCT, sizeof (AZFunctionValueClass), sizeof (AZFunctionValue), AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY,
+		az_register_type (&function_value_type, (const unsigned char *) "FunctionValue", AZ_TYPE_STRUCT, sizeof(AZFunctionValueClass), sizeof(AZFunctionValue), AZ_FLAG_FINAL,
 			1, 0,
 			(void (*) (AZClass *)) function_value_class_init,
 			NULL, NULL);
@@ -60,7 +60,7 @@ function_value_invoke (const AZFunctionImplementation *impl, void *inst, const A
 }
 
 void
-az_function_value_setup (AZFunctionValue *fval, AZFunctionSignature *sig,
+az_function_value_setup (AZFunctionValue *fval, const AZFunctionSignature *sig,
 unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *))
 {
 	fval->signature = sig;
