@@ -3,11 +3,12 @@ cmake_minimum_required(VERSION 3.30)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED YES)
 
+PROJECT(az)
+
+# The MSVC variable is only set by project(), so this check must come after it
 if(MSVC)
     add_compile_options(/std:c11 /experimental:c11atomics)
 endif()
-
-PROJECT(az)
 
 #if you don't want the full compiler output, remove the following line
 SET(CMAKE_VERBOSE_MAKEFILE ON)
