@@ -98,14 +98,22 @@ unsigned int az_function_invoke_by_type_instance (unsigned int type, void *inst,
 unsigned int az_instance_invoke_function (const AZImplementation *impl, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types);
 
 /*
- * Argument rules
- * Final types with value size <= 8 bytes - as values
- * Final types with value size > 8 bytes - as pointers
- * Objects as values
- * Non-final types as implementation, value/pointer
+ * Native <-> az function calling rules (determined by signature)
+ *
+ * Arguments:
+ * Objects - [pointer]
+ * Primitive types - [value]
+ * Final types - [pointer]
+ * Non-final types - [impl, pointer]
+ *
+ * Return values:
+ * Primitives - by value
+ * Final blocks and objects - by pointer
+ * Final values - void, the first (hidden) argument is a pointer to the return storage
+ * Non-final values/blocks - implementation pointer, the first (hidden) argument is a
+ * pointer to the return storage (struct storage for values, void * location for blocks)
  *
  * No references are created
- * fixme: This should be changed
  */
 
 /** @ingroup function
@@ -121,6 +129,24 @@ unsigned int az_instance_invoke_function (const AZImplementation *impl, void *in
 unsigned int az_function_invoke_va (const AZFunctionImplementation *impl, void *inst, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
 unsigned int az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
 unsigned int az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
+
+/** @ingroup function
+ * @brief Call a native C function with az arguments
+ *
+ * Marshals the arguments according to the native calling rules (see above) and calls
+ * the native function. The native function has to be non-variadic.
+ *
+ * Currently only implemented for ARM64 (AAPCS64), returns 0 on other architectures.
+ *
+ * @param func the native function pointer
+ * @param sig the function signature
+ * @param ret_impl the returned implementation (may be NULL)
+ * @param ret_val the returned value (may be NULL if the return value is not needed)
+ * @param arg_impls argument implementations
+ * @param arg_vals argument values
+ * @return 1 on success, 0 on error
+ */
+unsigned int az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation *arg_impls[], const AZValue *arg_vals[]);
 
 #ifdef __cplusplus
 };
