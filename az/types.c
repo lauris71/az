@@ -126,7 +126,7 @@ az_register_type (unsigned int *type, const unsigned char *name, unsigned int pa
 	AZClass *klass = az_class_new (name, parent_type, class_size, instance_size, flags, instance_init, instance_finalize);
 	/* Type has to be registered before class_init so it is accessible in class constructor (ifaces, properties) */
 	/* The release store pairs with the acquire-load in AZ_TYPE_READ fast-path */
-	__atomic_store_n(type, klass->impl.type, __ATOMIC_RELEASE);
+	atomic_store_explicit((_Atomic unsigned int *)type, klass->impl.type, memory_order_release);
 	if (n_interfaces_self) az_class_set_num_interfaces (klass, n_interfaces_self);
 	if (n_properties_self) az_class_set_num_properties (klass, n_properties_self);
 	if (class_init) class_init (klass);
@@ -153,7 +153,7 @@ az_register_composite_type (unsigned int *type, const unsigned char *name, unsig
 	AZClass *klass = az_class_new (name, parent_type, class_size, instance_size, flags, instance_init, instance_finalize);
 	/* Type has to be registered before class_init so it is accessible in class constructor (ifaces, properties) */
 	/* The release store pairs with the acquire-load in AZ_TYPE_READ fast-path */
-	__atomic_store_n(type, klass->impl.type, __ATOMIC_RELEASE);
+	atomic_store_explicit((_Atomic unsigned int *)type, klass->impl.type, memory_order_release);
 	if (n_interfaces_self) az_class_set_num_interfaces (klass, n_interfaces_self);
 	if (n_properties_self) az_class_set_num_properties (klass, n_properties_self);
 	if (class_init) class_init (klass, data);

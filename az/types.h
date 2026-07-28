@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdatomic.h>
 
 #include <arikkei/arikkei-utils.h>
 
@@ -130,7 +131,7 @@ extern "C" {
 	void az_types_unlock();
 	#define AZ_TYPES_LOCK() az_types_lock()
 	#define AZ_TYPES_UNLOCK() az_types_unlock()
-	#define AZ_TYPE_READ(t) __atomic_load_n(&(t), __ATOMIC_ACQUIRE)
+	#define AZ_TYPE_READ(t) atomic_load_explicit((_Atomic unsigned int *)&(t), memory_order_acquire)
 #endif
 
 #define az_type_get_impl(t) ((AZImplementation *) az_type_get_class(t))
