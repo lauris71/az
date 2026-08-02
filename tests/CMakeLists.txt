@@ -9,11 +9,11 @@ find_library(MATH_LIBRARY m)
 find_library(LIBARIKKEI
     NAMES arikkei arikkeid
     PATHS
-        ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei/Release
-        ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei/Release
-        ${CMAKE_SOURCE_DIR}/../../build/arikkei/arikkei ${CMAKE_SOURCE_DIR}/../../build/arikkei/arikkei/Release
-        ${CMAKE_SOURCE_DIR}/../build/arikkei/arikkei ${CMAKE_SOURCE_DIR}/../build/arikkei/arikkei/Release
-        ${PROJECT_SOURCE_DIR}/../build/arikkei/arikkei ${PROJECT_SOURCE_DIR}/../build/arikkei/arikkei/Release
+        ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei/Release ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei/Debug
+        ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei/Release ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei/Debug
+        ${CMAKE_SOURCE_DIR}/../../build/arikkei/arikkei ${CMAKE_SOURCE_DIR}/../../build/arikkei/arikkei/Release ${CMAKE_SOURCE_DIR}/../../build/arikkei/arikkei/Debug
+        ${CMAKE_SOURCE_DIR}/../build/arikkei/arikkei ${CMAKE_SOURCE_DIR}/../build/arikkei/arikkei/Release ${CMAKE_SOURCE_DIR}/../build/arikkei/arikkei/Debug
+        ${PROJECT_SOURCE_DIR}/../build/arikkei/arikkei ${PROJECT_SOURCE_DIR}/../build/arikkei/arikkei/Release ${PROJECT_SOURCE_DIR}/../build/arikkei/arikkei/Debug
 )
 
 add_executable(az_test

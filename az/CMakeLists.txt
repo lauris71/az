@@ -52,6 +52,15 @@ set(AZ_SOURCES
 	weak-reference.c
 )
 
+# Windows x64 native call trampoline (MSVC, Microsoft x64 calling convention)
+# ARM64EC defines _M_X64 as well and is binary-compatible with the x64 trampoline
+if(MSVC AND (CMAKE_VS_PLATFORM_NAME MATCHES "^(x64|ARM64EC)$" OR CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64|X64|ARM64EC"))
+	enable_language(ASM_MASM)
+	set(AZ_SOURCES ${AZ_SOURCES} native-call-win64.asm)
+	# Single source of truth for both the assembler source and the C guard in function.c
+	add_compile_definitions(AZ_NATIVE_CALL_WIN64=1)
+endif()
+
 add_library(az STATIC
 	${AZ_HEADERS}
 	${AZ_SOURCES}
