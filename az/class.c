@@ -56,9 +56,9 @@ impl_call_setStaticProperty (const AZImplementation **arg_impls, const AZValue *
 	prop_idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &def_class, &sub_impl, &sub_inst);
 	arikkei_return_val_if_fail (prop_idx >= 0, 0);
 	AZField *prop = &def_class->props_self[prop_idx];
-	arikkei_return_val_if_fail (prop->spec == AZ_FIELD_CLASS, 0);
-	arikkei_return_val_if_fail (!prop->is_final, 0);
-	arikkei_return_val_if_fail (prop->write != AZ_FIELD_WRITE_NONE, 0);
+	arikkei_return_val_if_fail (AZ_FIELD_SPEC(prop) == AZ_FIELD_CLASS, 0);
+	arikkei_return_val_if_fail (!AZ_FIELD_IS_FINAL(prop), 0);
+	arikkei_return_val_if_fail (AZ_FIELD_WRITE(prop) != AZ_FIELD_WRITE_NONE, 0);
 	az_instance_set_property_by_id (def_class, sub_impl, NULL, prop_idx, arg_impls[2], az_value_get_inst(arg_impls[2], arg_vals[2]), ctx);
 	return 1;
 }
@@ -75,8 +75,8 @@ impl_call_getstaticProperty (const AZImplementation **arg_impls, const AZValue *
 	prop_idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &def_class, &sub_impl, &sub_inst);
 	arikkei_return_val_if_fail (prop_idx >= 0, 0);
 	AZField *prop = &def_class->props_self[prop_idx];
-	arikkei_return_val_if_fail (prop->spec == AZ_FIELD_CLASS, 0);
-	arikkei_return_val_if_fail (prop->read != AZ_FIELD_READ_NONE, 0);
+	arikkei_return_val_if_fail (AZ_FIELD_SPEC(prop) == AZ_FIELD_CLASS, 0);
+	arikkei_return_val_if_fail (AZ_FIELD_READ(prop) != AZ_FIELD_READ_NONE, 0);
 	az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, ret_impl, &ret_val->value, 64, NULL);
 	return 1;
 }
@@ -472,7 +472,7 @@ az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, vo
 	arikkei_return_val_if_fail (key != NULL, -1);
 	/* NB! Until "new" is handled differently we have to go subclass-first */
 	for (i = 0; i < (int) klass->n_props_self; i++) {
-		if (az_string_equals(key, klass->props_self[i].key) && klass->props_self->is_function) {
+		if (az_string_equals(key, klass->props_self[i].key) && AZ_FIELD_IS_FUNCTION(&klass->props_self[i])) {
 			if (klass->props_self[i].signature && !az_function_signature_is_assignable_to (klass->props_self[i].signature, sig, 0)) {
 				continue;
 			}

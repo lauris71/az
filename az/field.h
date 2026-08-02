@@ -41,12 +41,16 @@ extern "C" {
 /* Write via set_property method */
 #define AZ_FIELD_WRITE_METHOD 3
 
+#define AZ_FIELD_IS_FUNCTION(f) ((f)->is_function)
+#define AZ_FIELD_IS_FINAL(f) ((f)->is_final)
+#define AZ_FIELD_SPEC(f) ((f)->spec)
+#define AZ_FIELD_READ(f) ((f)->read)
+#define AZ_FIELD_WRITE(f) ((f)->write)
+
 struct _AZField {
 	AZString *key;
 	unsigned int type;
 	/* Shortcuts */
-	unsigned int is_reference : 1;
-	unsigned int is_interface : 1;
 	unsigned int is_function : 1;
 	/* Mutation types */
 	unsigned int is_final : 1;
@@ -60,10 +64,10 @@ struct _AZField {
 			/* Offset in instance/implementation/class */
 			uint32_t offset;
 			/* for unsigned integer/boolean types */
-			/* Mask os relevant bits */
-			uint32_t mask;
 			/* Number of bits to shift right */
 			uint32_t shift;
+			/* Mask os relevant bits */
+			uint32_t mask;
 			/* For boolean types */
 			/* Final value to xor with */
 			uint32_t bits;
