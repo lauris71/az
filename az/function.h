@@ -136,8 +136,9 @@ unsigned int az_function_invoke_by_value_signature_va (const AZImplementation *i
  * Marshals the arguments according to the native calling rules (see above) and calls
  * the native function. The native function has to be non-variadic.
  *
- * Currently implemented for ARM64 (AAPCS64) and x86-64 Windows (Microsoft x64
- * calling convention), returns 0 on other architectures.
+ * Currently implemented for ARM64 (AAPCS64), x86-64 System V (AMD64) and
+ * x86-64 Windows (Microsoft x64 calling convention), returns 0 on other
+ * architectures.
  *
  * @param func the native function pointer
  * @param sig the function signature
