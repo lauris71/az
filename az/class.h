@@ -292,13 +292,13 @@ az_class_parent(const AZClass *klass) {
  * The order is class->interface[0]->superinterfaces->interface[1]...->superclasses
  * If the index is >= 0, the property definition is def_class->props_self[index] 
  * 
- * @param klass current class (either the same as implementation or a superclass)
+ * @param klass current class (either the the class of the impl or a superclass)
  * @param impl type implementation (can be null for static properties)
  * @param inst type instance (can be null for static or implementation properties)
  * @param key the property key
- * @param def_class result for the class where the property is defined
- * @param sub_impl result for the actual implementation (either impl or sub-implementation, can be null)
- * @param sub_inst result for the actual instance (either inst or sub-interface, can be null)
+ * @param def_class result: the actual class where the property is defined
+ * @param sub_impl result: the actual implementation (either impl or sub-implementation, can be null)
+ * @param sub_inst result: the actual instance (either inst or sub-interface, can be null)
  * @return the property index in def_class
  */
 int az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);

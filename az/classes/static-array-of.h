@@ -46,7 +46,7 @@ unsigned int az_static_array_of_get_type (unsigned int element_type);
 ARIKKEI_INLINE AZValue *
 az_static_array_of_value_at (const AZStaticArrayOfClass *klass, const AZStaticArrayOf *sarr, unsigned int idx)
 {
-	return (AZValue *) ((char *) sarr->array.values + idx * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_IMPL(klass->array_impl.elem_impl)));
+	return az_array_value_at(&klass->array_impl, &sarr->array, idx);
 }
 
 #ifdef __cplusplus
