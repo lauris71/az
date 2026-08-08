@@ -20,6 +20,8 @@
 #include <az/types.h>
 #include <az/value.h>
 #include <az/classes/active-object.h>
+#include <az/classes/object-list.h>
+#include <az/classes/weak-object-list.h>
 #include <az/collections/array-list.h>
 #include <az/collections/array.h>
 #include <az/classes/array-object.h>
@@ -35,6 +37,7 @@ static void test_boxed_value();
 static void test_array_list();
 static void test_array();
 static void test_call_native();
+static void test_object_list();
 
 void test_hash_map(void);
 void test_hash_set(void);
@@ -66,6 +69,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_array);
         } else if (!strcmp(argv[i], "call-native")) {
             RUN_TEST(test_call_native);
+        } else if (!strcmp(argv[i], "object-list")) {
+            RUN_TEST(test_object_list);
         } else if (!strcmp(argv[i], "hash-map")) {
             RUN_TEST(test_hash_map);
         } else if (!strcmp(argv[i], "hash-set")) {
@@ -837,5 +842,77 @@ test_call_native()
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32));
         TEST_ASSERT_EQUAL_INT32 (42, ret_val.value.int32_v);
         az_function_signature_delete (sig);
+    }
+}
+
+/*
+ * AZObjectList and AZWeakObjectList
+ */
+
+static unsigned int test_active_object_type = 0;
+
+static unsigned int
+test_active_object_get_type (void)
+{
+    if (!test_active_object_type) {
+        az_register_type (&test_active_object_type, (const unsigned char *) "TestActiveObject", AZ_TYPE_ACTIVE_OBJECT, sizeof (AZActiveObjectClass), sizeof (AZActiveObject), 0, 0, 0, NULL, NULL, NULL);
+    }
+    return test_active_object_type;
+}
+
+static void
+test_object_list()
+{
+    az_init();
+    unsigned int ao_type = test_active_object_get_type();
+
+    /* Strong list */
+    {
+        AZObjectList *list = az_object_list_new (ao_type);
+        AZActiveObject *o1 = (AZActiveObject *) az_object_new (ao_type);
+        AZActiveObject *o2 = (AZActiveObject *) az_object_new (ao_type);
+        AZActiveObject *o3 = (AZActiveObject *) az_object_new (ao_type);
+        az_object_list_append_object (list, (AZObject *) o1);
+        az_object_list_append_object (list, (AZObject *) o2);
+        TEST_ASSERT_EQUAL_UINT (2, list->list.collection.size);
+        /* The list holds strong references */
+        TEST_ASSERT_EQUAL_UINT (2, o1->object.reference.refcount);
+        az_object_list_insert_object (list, (AZObject *) o3, 1);
+        TEST_ASSERT_EQUAL_UINT (3, list->list.collection.size);
+        TEST_ASSERT (list->objects[1] == (AZObject *) o3);
+        TEST_ASSERT (az_object_list_contains (list, (AZObject *) o2));
+        az_object_list_remove_object (list, (AZObject *) o3);
+        TEST_ASSERT_EQUAL_UINT (2, list->list.collection.size);
+        TEST_ASSERT_EQUAL_UINT (1, o3->object.reference.refcount);
+        az_object_list_remove_object_by_index (list, 0);
+        TEST_ASSERT_EQUAL_UINT (1, list->list.collection.size);
+        TEST_ASSERT (list->objects[0] == (AZObject *) o2);
+        az_object_list_clear (list);
+        TEST_ASSERT_EQUAL_UINT (0, list->list.collection.size);
+        TEST_ASSERT_EQUAL_UINT (1, o2->object.reference.refcount);
+        az_object_list_delete (list);
+        az_object_unref ((AZObject *) o1);
+        az_object_unref ((AZObject *) o2);
+        az_object_unref ((AZObject *) o3);
+    }
+    /* Weak list */
+    {
+        AZWeakObjectList *list = az_weak_object_list_new (AZ_TYPE_ACTIVE_OBJECT);
+        AZActiveObject *o1 = (AZActiveObject *) az_object_new (ao_type);
+        AZActiveObject *o2 = (AZActiveObject *) az_object_new (ao_type);
+        az_weak_object_list_append_object (list, o1);
+        az_weak_object_list_append_object (list, o2);
+        TEST_ASSERT_EQUAL_UINT (2, list->list.collection.size);
+        /* The list does not hold strong references */
+        TEST_ASSERT_EQUAL_UINT (1, o1->object.reference.refcount);
+        TEST_ASSERT (az_weak_object_list_contains (list, o1));
+        /* Explicit removal */
+        az_weak_object_list_remove_object (list, o1);
+        TEST_ASSERT_EQUAL_UINT (1, list->list.collection.size);
+        /* Shutdown removes the object from the list automatically (and frees it) */
+        az_object_shutdown ((AZObject *) o2);
+        TEST_ASSERT_EQUAL_UINT (0, list->list.collection.size);
+        az_weak_object_list_delete (list);
+        az_object_unref ((AZObject *) o1);
     }
 }

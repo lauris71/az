@@ -79,14 +79,8 @@ object_list_init (AZObjectListClass *klass, AZObjectList *objl)
 static void
 object_list_finalize (AZObjectListClass *klass, AZObjectList *objl)
 {
-	if (objl->weak) {
-		for (unsigned int i = 0; i < objl->list.collection.size; i++) {
-			az_active_object_remove_listener_by_data (AZ_ACTIVE_OBJECT (objl->objects[i]), objl);
-		}
-	} else {
-		for (unsigned int i = 0; i < objl->list.collection.size; i++) {
-			az_object_unref (objl->objects[i]);
-		}
+	for (unsigned int i = 0; i < objl->list.collection.size; i++) {
+		az_object_unref (objl->objects[i]);
 	}
 	free (objl->objects);
 }
@@ -129,22 +123,20 @@ object_list_call_Append (const AZImplementation *arg_impls[], const AZValue *arg
 }
 
 void
-az_object_list_setup (AZObjectList *objl, unsigned int type, unsigned int weak)
+az_object_list_setup (AZObjectList *objl, unsigned int type)
 {
 	arikkei_return_if_fail (objl != NULL);
-	arikkei_return_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE) || (weak && az_type_is_a (type, AZ_TYPE_ACTIVE_OBJECT)) || az_type_is_a (type, AZ_TYPE_OBJECT));
+	arikkei_return_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE) || az_type_is_a (type, AZ_TYPE_OBJECT));
 	az_instance_init_by_type (objl, AZ_TYPE_OBJECT_LIST);
 	objl->type = type;
-	objl->interface = az_type_is_a (type, AZ_TYPE_INTERFACE);
-	objl->weak = weak;
 }
 
 AZObjectList *
-az_object_list_new (unsigned int type, unsigned int weak)
+az_object_list_new (unsigned int type)
 {
-	arikkei_return_val_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE) || (weak && az_type_is_a (type, AZ_TYPE_ACTIVE_OBJECT)) || az_type_is_a (type, AZ_TYPE_OBJECT), NULL);
+	arikkei_return_val_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE) || az_type_is_a (type, AZ_TYPE_OBJECT), NULL);
 	AZObjectList *objl = (AZObjectList *) malloc (sizeof (AZObjectList));
-	az_object_list_setup (objl, type, weak);
+	az_object_list_setup (objl, type);
 	return objl;
 }
 
@@ -156,37 +148,28 @@ az_object_list_delete (AZObjectList *objl)
 	free (objl);
 }
 
-static void object_list_object_dispose (AZActiveObject *object, void *data);
 static unsigned int object_list_remove_object_internal (AZObjectList *objl, AZObject *object);
-
-AZObjectEventVector object_list_event_vector = {
-	object_list_object_dispose
-};
 
 void
 az_object_list_append_object (AZObjectList *objl, AZObject *obj)
 {
 	arikkei_return_if_fail (objl != NULL);
-	arikkei_return_if_fail ((objl->weak && AZ_IS_ACTIVE_OBJECT (obj)) || AZ_IS_OBJECT (obj));
-	arikkei_return_if_fail ((objl->interface && az_object_implements (obj, objl->type)) || az_object_is_a (obj, objl->type));
+	arikkei_return_if_fail (AZ_IS_OBJECT (obj));
+	arikkei_return_if_fail ((AZ_TYPE_IS_INTERFACE(objl->type) && az_object_implements(obj, objl->type)) || az_object_is_a(obj, objl->type));
 	if (objl->list.collection.size >= objl->allocated_size) {
 		objl->allocated_size = objl->allocated_size << 1;
 		objl->objects = (AZObject **) realloc (objl->objects, objl->allocated_size * sizeof (AZObject *));
 	}
 	objl->objects[objl->list.collection.size++] = obj;
-	if (objl->weak) {
-		az_active_object_add_listener (AZ_ACTIVE_OBJECT (obj), &object_list_event_vector, sizeof (AZObjectEventVector), objl);
-	} else {
-		az_object_ref (obj);
-	}
+	az_object_ref (obj);
 }
 
 void
 az_object_list_insert_object (AZObjectList *objl, AZObject *obj, unsigned int pos)
 {
 	arikkei_return_if_fail (objl != NULL);
-	arikkei_return_if_fail ((objl->weak && AZ_IS_ACTIVE_OBJECT (obj)) || AZ_IS_OBJECT (obj));
-	arikkei_return_if_fail ((objl->interface && az_object_implements (obj, objl->type)) || az_object_is_a (obj, objl->type));
+	arikkei_return_if_fail (AZ_IS_OBJECT (obj));
+	arikkei_return_if_fail ((AZ_TYPE_IS_INTERFACE(objl->type) && az_object_implements(obj, objl->type)) || az_object_is_a(obj, objl->type));
 	arikkei_return_if_fail (pos <= objl->list.collection.size);
 	if (objl->list.collection.size >= objl->allocated_size) {
 		objl->allocated_size = objl->allocated_size << 1;
@@ -195,25 +178,17 @@ az_object_list_insert_object (AZObjectList *objl, AZObject *obj, unsigned int po
 	if (pos < objl->list.collection.size) memmove(&objl->objects[pos + 1], &objl->objects[pos], (objl->list.collection.size - pos) * sizeof (AZObject *));
 	objl->list.collection.size += 1;
 	objl->objects[pos] = obj;
-	if (objl->weak) {
-		az_active_object_add_listener (AZ_ACTIVE_OBJECT (obj), &object_list_event_vector, sizeof (AZObjectEventVector), objl);
-	} else {
-		az_object_ref (obj);
-	}
+	az_object_ref (obj);
 }
 
 void
 az_object_list_remove_object (AZObjectList *objl, AZObject *obj)
 {
 	arikkei_return_if_fail (objl != NULL);
-	arikkei_return_if_fail ((objl->weak && AZ_IS_ACTIVE_OBJECT (obj)) || AZ_IS_OBJECT (obj));
-	arikkei_return_if_fail ((objl->interface && az_object_implements (obj, objl->type)) || az_object_is_a (obj, objl->type));
+	arikkei_return_if_fail (AZ_IS_OBJECT (obj));
+	arikkei_return_if_fail ((AZ_TYPE_IS_INTERFACE(objl->type) && az_object_implements(obj, objl->type)) || az_object_is_a(obj, objl->type));
 	if (object_list_remove_object_internal (objl, obj)) {
-		if (objl->weak) {
-			az_active_object_remove_listener_by_data (AZ_ACTIVE_OBJECT (obj), objl);
-		} else {
-			az_object_unref (obj);
-		}
+		az_object_unref (obj);
 	}
 }
 
@@ -225,11 +200,7 @@ az_object_list_remove_object_by_index (AZObjectList *objl, unsigned int idx)
 	arikkei_return_if_fail (idx < objl->list.collection.size);
 	obj = objl->objects[idx];
 	if (object_list_remove_object_internal (objl, obj)) {
-		if (objl->weak) {
-			az_active_object_remove_listener_by_data (AZ_ACTIVE_OBJECT (obj), objl);
-		} else {
-			az_object_unref (obj);
-		}
+		az_object_unref (obj);
 	}
 }
 
@@ -239,11 +210,7 @@ az_object_list_clear (AZObjectList *objl)
 	unsigned int i;
 	arikkei_return_if_fail (objl != NULL);
 	for (i = 0; i < objl->list.collection.size; i++) {
-		if (objl->weak) {
-			az_active_object_remove_listener_by_data (AZ_ACTIVE_OBJECT (objl->objects[i]), objl);
-		} else {
-			az_object_unref (objl->objects[i]);
-		}
+		az_object_unref (objl->objects[i]);
 	}
 	objl->list.collection.size = 0;
 }
@@ -252,19 +219,12 @@ unsigned int
 az_object_list_contains (AZObjectList *objl, AZObject *obj)
 {
 	arikkei_return_val_if_fail (objl != NULL, 0);
-	arikkei_return_val_if_fail ((objl->weak && AZ_IS_ACTIVE_OBJECT (obj)) || AZ_IS_OBJECT (obj), 0);
-	arikkei_return_val_if_fail ((objl->interface && az_object_implements (obj, objl->type)) || az_object_is_a (obj, objl->type), 0);
+	arikkei_return_val_if_fail (AZ_IS_OBJECT (obj), 0);
+	arikkei_return_val_if_fail ((AZ_TYPE_IS_INTERFACE(objl->type) && az_object_implements(obj, objl->type)) || az_object_is_a(obj, objl->type), 0);
 	for (unsigned int i = 0; i < objl->list.collection.size; i++) {
 		if (objl->objects[i] == obj) return 1;
 	}
 	return 0;
-}
-
-static void
-object_list_object_dispose (AZActiveObject *obj, void *data)
-{
-	AZObjectList *objl = (AZObjectList *) data;
-	object_list_remove_object_internal (objl, (AZObject *) obj);
 }
 
 static unsigned int
@@ -281,4 +241,3 @@ object_list_remove_object_internal (AZObjectList *objl, AZObject *obj)
 	}
 	return 0;
 }
-
