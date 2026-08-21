@@ -7,7 +7,6 @@
 */
 
 #include <assert.h>
-#include <stdlib.h>
 
 #include <arikkei/arikkei-utils.h>
 
@@ -22,7 +21,7 @@ AZClass AZFieldKlass = {
 	&AZBlockKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "field",
-	7, sizeof(AZClass), 0,
+	7, sizeof(AZClass), sizeof(AZField),
 	NULL,
 	NULL, NULL,
 	NULL, NULL, az_any_to_string,
@@ -54,6 +53,11 @@ void az_field_setup_value (AZField *prop, const unsigned char *key, unsigned int
 	prop->read = read;
 	prop->write = write;
 	prop->offset = offset;
+	/* Masked (bit-field) values default to plain access */
+	prop->value_type_idx = 0;
+	prop->shift = 0;
+	prop->mask_width = 0;
+	prop->bits = 0;
 }
 
 void az_field_setup_stored (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
@@ -75,17 +79,9 @@ void az_field_setup_stored (AZField *prop, const unsigned char *key, unsigned in
 	prop->spec = spec;
 	prop->read = read;
 	prop->write = write;
+	prop->value.impl = NULL;
 	if (impl) {
-		unsigned int size = sizeof(AZPackedValue);
-		AZClass *val_class = AZ_CLASS_FROM_IMPL(impl);
-		if (az_class_value_size(val_class) > 16) {
-			size += (az_class_value_size(val_class) - 16);
-		}
-		prop->value = (AZPackedValue *) malloc(size);
-		prop->value->impl = impl;
-		az_value_set_from_inst (impl, &prop->value->v, inst);
-	} else {
-		prop->value = NULL;
+		prop->value.impl = az_value_set_from_inst_autobox(impl, &prop->value.v, AZ_VALUE_MAX_SIZE, inst);
 	}
 }
 

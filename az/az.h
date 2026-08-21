@@ -101,36 +101,35 @@ enum AZTypeFlags {
 
 /** @ingroup types
  * @brief Implementation/Class flags
- * 
+ *
  * These are stored in lower-order bits (bits 23-0) and either describe the implementation behaviour or less-used type
  * hierarchy information and are stored only in the class (implementation) flags field.
- * 
+ *
  * The AZ_FLAG_IMPL_IS_CLASS flag is a special case: it is stored in the implementation flags and marks
  * whether the implementation is a class (containing flags field) or a standalone implementation of an
  * interface (containing pointer to the class instead).
  */
-enum AZImplementationFlags {
-	/**
-	 * @brief Marks that an implementation is a standalone class
-	 * 
-	 * It exploits the feature that classes are aligned to 8 bytes. Thus, if any of the 3
-	 * lowest bits is set, the AZImplementation union contains flags and type, not a
-	 * pointer to the AZClass
-	 */
-	AZ_FLAG_IMPL_IS_CLASS = 0x01,
-	/**
-	 * @brief Instance construction should be preceded by filling memory by zeroes
-	 * 
-	 * Subclasses should not clear this flag if set set by parent. If set the type can still implement
-	 * constructor - which can then rely on the instance being zero-filled.
-	 */
-	AZ_FLAG_ZERO_MEMORY = 0x04,
 
-	/* Miscellaneous info flags */
-	AZ_FLAG_ARITHMETIC = 0x100,
-	AZ_FLAG_INTEGRAL = 0x200,
-	AZ_FLAG_SIGNED = 0x400
-};
+/**
+ * @brief Marks that an implementation is a standalone class
+ *
+ * It exploits the feature that classes are aligned to 8 bytes. Thus, if any of the 3
+ * lowest bits is set, the AZImplementation union contains flags and type, not a
+ * pointer to the AZClass
+ */
+#define AZ_FLAG_IMPL_IS_CLASS 0x01
+/**
+ * @brief Instance construction should be preceded by filling memory by zeroes
+ *
+ * Subclasses should not clear this flag if set set by parent. If set the type can still implement
+ * constructor - which can then rely on the instance being zero-filled.
+ */
+#define AZ_FLAG_ZERO_MEMORY 0x04
+
+/* Miscellaneous info flags */
+#define AZ_FLAG_ARITHMETIC 0x100
+#define AZ_FLAG_INTEGRAL 0x200
+#define AZ_FLAG_SIGNED 0x400
 
 /** @ingroup types
  * @brief Predefined type indices
@@ -139,40 +138,38 @@ enum AZImplementationFlags {
  * access the type information (class) in the single global array.
  */
 
-enum AZTypeIdx {
-	AZ_TYPE_IDX_NONE,
-	AZ_TYPE_IDX_ANY,
-	AZ_TYPE_IDX_BOOLEAN,
-	AZ_TYPE_IDX_INT8,
-	AZ_TYPE_IDX_UINT8,
-	AZ_TYPE_IDX_INT16,
-	AZ_TYPE_IDX_UINT16,
-	AZ_TYPE_IDX_INT32,
-	AZ_TYPE_IDX_UINT32,
-	AZ_TYPE_IDX_INT64,
-	AZ_TYPE_IDX_UINT64,
-	AZ_TYPE_IDX_FLOAT,
-	AZ_TYPE_IDX_DOUBLE,
-	AZ_TYPE_IDX_COMPLEX_FLOAT,
-	AZ_TYPE_IDX_COMPLEX_DOUBLE,
-	AZ_TYPE_IDX_POINTER,
-	AZ_TYPE_IDX_STRUCT,
-	AZ_TYPE_IDX_BLOCK,
-	AZ_TYPE_IDX_IMPLEMENTATION,
-	AZ_TYPE_IDX_CLASS,
-	AZ_TYPE_IDX_INTERFACE,
-	AZ_TYPE_IDX_FIELD,
-	AZ_TYPE_IDX_FUNCTION_SIGNATURE,
-	AZ_TYPE_IDX_FUNCTION,
-	AZ_TYPE_IDX_REFERENCE,
-	AZ_TYPE_IDX_STRING,
-	AZ_TYPE_IDX_BOXED_VALUE,
-	AZ_TYPE_IDX_BOXED_INTERFACE,
-	AZ_TYPE_IDX_PACKED_VALUE,
-	AZ_TYPE_IDX_OBJECT,
-	AZ_TYPE_IDX_INPUT_STREAM,
-	AZ_TYPE_IDX_OUTPUT_STREAM
-};
+#define AZ_TYPE_IDX_NONE 0
+#define AZ_TYPE_IDX_ANY 1
+#define AZ_TYPE_IDX_BOOLEAN 2
+#define AZ_TYPE_IDX_INT8 3
+#define AZ_TYPE_IDX_UINT8 4
+#define AZ_TYPE_IDX_INT16 5
+#define AZ_TYPE_IDX_UINT16 6
+#define AZ_TYPE_IDX_INT32 7
+#define AZ_TYPE_IDX_UINT32 8
+#define AZ_TYPE_IDX_INT64 9
+#define AZ_TYPE_IDX_UINT64 10
+#define AZ_TYPE_IDX_FLOAT 11
+#define AZ_TYPE_IDX_DOUBLE 12
+#define AZ_TYPE_IDX_COMPLEX_FLOAT 13
+#define AZ_TYPE_IDX_COMPLEX_DOUBLE 14
+#define AZ_TYPE_IDX_POINTER 15
+#define AZ_TYPE_IDX_STRUCT 16
+#define AZ_TYPE_IDX_BLOCK 17
+#define AZ_TYPE_IDX_IMPLEMENTATION 18
+#define AZ_TYPE_IDX_CLASS 19
+#define AZ_TYPE_IDX_INTERFACE 20
+#define AZ_TYPE_IDX_FIELD 21
+#define AZ_TYPE_IDX_FUNCTION_SIGNATURE 22
+#define AZ_TYPE_IDX_FUNCTION 23
+#define AZ_TYPE_IDX_REFERENCE 24
+#define AZ_TYPE_IDX_STRING 25
+#define AZ_TYPE_IDX_BOXED_VALUE 26
+#define AZ_TYPE_IDX_BOXED_INTERFACE 27
+#define AZ_TYPE_IDX_PACKED_VALUE 28
+#define AZ_TYPE_IDX_OBJECT 29
+#define AZ_TYPE_IDX_INPUT_STREAM 30
+#define AZ_TYPE_IDX_OUTPUT_STREAM 31
 
 /* Fundamental types have ANY as parent */
 #define AZ_NUM_FUNDAMENTAL_TYPES (AZ_TYPE_IDX_BLOCK + 1)

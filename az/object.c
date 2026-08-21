@@ -37,7 +37,7 @@ AZObjectClass AZObjectKlass = {
 			/* props_self */
 			NULL,
 			(const uint8_t *) "object",
-			7, sizeof(AZObjectClass), 0,
+			7, sizeof(AZObjectClass), sizeof(AZObject),
 			NULL,
 			/* instance_init, instance_finalize */
 			(void (*) (const AZImplementation *, void *)) object_init, NULL,

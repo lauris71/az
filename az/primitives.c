@@ -545,11 +545,17 @@ az_post_init_primitive_classes (void)
 	az_class_define_property (any_class, ANY_PROP_TYPE, (const unsigned char *) "type", AZ_TYPE_UINT32, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
 	az_class_define_property (any_class, ANY_PROP_CLASS, (const unsigned char *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
 	az_class_define_property_value(any_class, ANY_PROP_ARITHMETIC, (const uint8_t *) "isArithmetic", AZ_TYPE_BOOLEAN, 1, AZ_FIELD_CLASS, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZClass, impl.flags));
-	any_class->props_self[ANY_PROP_ARITHMETIC].mask = AZ_FLAG_ARITHMETIC;
+	any_class->props_self[ANY_PROP_ARITHMETIC].value_type_idx = AZ_TYPE_IDX_UINT32;
+	any_class->props_self[ANY_PROP_ARITHMETIC].shift = 8;
+	any_class->props_self[ANY_PROP_ARITHMETIC].mask_width = 1;
 	az_class_define_property_value(any_class, ANY_PROP_INTEGRAL, (const uint8_t *) "isIntegral", AZ_TYPE_BOOLEAN, 1, AZ_FIELD_CLASS, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZClass, impl.flags));
-	any_class->props_self[ANY_PROP_INTEGRAL].mask = AZ_FLAG_INTEGRAL;
+	any_class->props_self[ANY_PROP_INTEGRAL].value_type_idx = AZ_TYPE_IDX_UINT32;
+	any_class->props_self[ANY_PROP_INTEGRAL].shift = 9;
+	any_class->props_self[ANY_PROP_INTEGRAL].mask_width = 1;
 	az_class_define_property_value(any_class, ANY_PROP_SIGNED, (const uint8_t *) "isSigned", AZ_TYPE_BOOLEAN, 1, AZ_FIELD_CLASS, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZClass, impl.flags));
-	any_class->props_self[ANY_PROP_SIGNED].mask = AZ_FLAG_SIGNED;
+	any_class->props_self[ANY_PROP_SIGNED].value_type_idx = AZ_TYPE_IDX_UINT32;
+	any_class->props_self[ANY_PROP_SIGNED].shift = 10;
+	any_class->props_self[ANY_PROP_SIGNED].mask_width = 1;
 	for (i = AZ_TYPE_INDEX(AZ_TYPE_ANY); i <= AZ_TYPE_INDEX(AZ_TYPE_POINTER); i++) {
 		az_class_post_init (AZ_CLASS_FROM_TYPE(i));
 	}

@@ -129,7 +129,7 @@ AZReferenceClass AZReferenceKlass = {
 	&AZBlockKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "reference",
-	7, sizeof(AZReferenceClass), 0,
+	7, sizeof(AZReferenceClass), sizeof(AZReference),
 	NULL,
 	(void (*) (const AZImplementation *, void *)) reference_instance_init, NULL,
 	NULL, NULL, az_any_to_string,

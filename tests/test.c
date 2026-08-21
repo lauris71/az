@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <arikkei/arikkei-threads.h>
+#include <arikkei/arikkei-utils.h>
 
 #include <az/az.h>
 #include <az/base.h>
@@ -38,6 +39,8 @@ static void test_array_list();
 static void test_array();
 static void test_call_native();
 static void test_object_list();
+static void test_masked_field();
+static void test_masked_field_widths();
 
 void test_hash_map(void);
 void test_hash_set(void);
@@ -71,6 +74,10 @@ main(int argc, const char *argv[])
             RUN_TEST(test_call_native);
         } else if (!strcmp(argv[i], "object-list")) {
             RUN_TEST(test_object_list);
+        } else if (!strcmp(argv[i], "masked-field")) {
+            RUN_TEST(test_masked_field);
+        } else if (!strcmp(argv[i], "masked-field-widths")) {
+            RUN_TEST(test_masked_field_widths);
         } else if (!strcmp(argv[i], "hash-map")) {
             RUN_TEST(test_hash_map);
         } else if (!strcmp(argv[i], "hash-set")) {
@@ -915,4 +922,307 @@ test_object_list()
         az_weak_object_list_delete (list);
         az_object_unref ((AZObject *) o1);
     }
+}
+
+/*
+ * Masked (bit-field) property read/write
+ */
+
+typedef struct {
+    uint32_t flags;
+} MaskedInst;
+
+#define MASKED_NUM_PROPS 4
+#define MASKED_PROP_BOOL 0
+#define MASKED_PROP_BOOL_INV 1
+#define MASKED_PROP_UINT3 2
+#define MASKED_PROP_UINT8 3
+
+static unsigned int masked_type = 0;
+
+static void
+masked_class_init (AZClass *klass)
+{
+    /* Boolean at bit 0 (stored in a uint32_t) */
+    az_class_define_property_value (klass, MASKED_PROP_BOOL, (const uint8_t *) "flag", AZ_TYPE_BOOLEAN, 0,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_VALUE, ARIKKEI_OFFSET (MaskedInst, flags));
+    klass->props_self[MASKED_PROP_BOOL].value_type_idx = AZ_TYPE_IDX_UINT32;
+    klass->props_self[MASKED_PROP_BOOL].shift = 0;
+    klass->props_self[MASKED_PROP_BOOL].mask_width = 1;
+    klass->props_self[MASKED_PROP_BOOL].bits = 0;
+    /* Inverted boolean at bit 1 (stored value is XORed with 1 on read) */
+    az_class_define_property_value (klass, MASKED_PROP_BOOL_INV, (const uint8_t *) "flagInv", AZ_TYPE_BOOLEAN, 0,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_VALUE, ARIKKEI_OFFSET (MaskedInst, flags));
+    klass->props_self[MASKED_PROP_BOOL_INV].value_type_idx = AZ_TYPE_IDX_UINT32;
+    klass->props_self[MASKED_PROP_BOOL_INV].shift = 1;
+    klass->props_self[MASKED_PROP_BOOL_INV].mask_width = 1;
+    klass->props_self[MASKED_PROP_BOOL_INV].bits = 1;
+    /* 3-bit unsigned integer at bits 2-4 (stored in a uint32_t) */
+    az_class_define_property_value (klass, MASKED_PROP_UINT3, (const uint8_t *) "nibble", AZ_TYPE_UINT32, 0,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_VALUE, ARIKKEI_OFFSET (MaskedInst, flags));
+    klass->props_self[MASKED_PROP_UINT3].value_type_idx = AZ_TYPE_IDX_UINT32;
+    klass->props_self[MASKED_PROP_UINT3].shift = 2;
+    klass->props_self[MASKED_PROP_UINT3].mask_width = 3;
+    klass->props_self[MASKED_PROP_UINT3].bits = 0;
+    /* 8-bit unsigned integer at bits 8-15 (stored in a uint32_t) */
+    az_class_define_property_value (klass, MASKED_PROP_UINT8, (const uint8_t *) "byte", AZ_TYPE_UINT32, 0,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_VALUE, ARIKKEI_OFFSET (MaskedInst, flags));
+    klass->props_self[MASKED_PROP_UINT8].value_type_idx = AZ_TYPE_IDX_UINT32;
+    klass->props_self[MASKED_PROP_UINT8].shift = 8;
+    klass->props_self[MASKED_PROP_UINT8].mask_width = 8;
+    klass->props_self[MASKED_PROP_UINT8].bits = 0;
+}
+
+static unsigned int
+masked_get_type (void)
+{
+    if (!masked_type) {
+        az_register_type (&masked_type, (const unsigned char *) "MaskedTest", AZ_TYPE_STRUCT, sizeof (AZClass), sizeof (MaskedInst),
+            AZ_FLAG_FINAL, 0, MASKED_NUM_PROPS, masked_class_init, NULL, NULL);
+    }
+    return masked_type;
+}
+
+static void
+test_masked_field()
+{
+    az_init();
+    unsigned int type = masked_get_type();
+    AZClass *klass = AZ_CLASS_FROM_TYPE (type);
+    MaskedInst inst;
+    inst.flags = 0;
+
+    const AZImplementation *prop_impl;
+    AZValue64 prop_val;
+    AZValue set_val;
+
+    /* Read default (all zero) values */
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "flag", &prop_impl, &prop_val));
+    TEST_ASSERT (prop_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_BOOLEAN));
+    TEST_ASSERT_EQUAL_UINT (0, prop_val.value.boolean_v);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "flagInv", &prop_impl, &prop_val));
+    TEST_ASSERT_EQUAL_UINT (1, prop_val.value.boolean_v);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "nibble", &prop_impl, &prop_val));
+    TEST_ASSERT (prop_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT32));
+    TEST_ASSERT_EQUAL_UINT (0, prop_val.value.uint32_v);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "byte", &prop_impl, &prop_val));
+    TEST_ASSERT_EQUAL_UINT (0, prop_val.value.uint32_v);
+
+    /* Write boolean true */
+    set_val.boolean_v = 1;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "flag", AZ_IMPL_FROM_TYPE (AZ_TYPE_BOOLEAN), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT32 (0x1, inst.flags);
+    /* Read it back */
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "flag", &prop_impl, &prop_val));
+    TEST_ASSERT_EQUAL_UINT (1, prop_val.value.boolean_v);
+
+    /* Write inverted boolean true (stored bit becomes 0) */
+    set_val.boolean_v = 1;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "flagInv", AZ_IMPL_FROM_TYPE (AZ_TYPE_BOOLEAN), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT32 (0x1, inst.flags);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "flagInv", &prop_impl, &prop_val));
+    TEST_ASSERT_EQUAL_UINT (1, prop_val.value.boolean_v);
+    /* Write inverted boolean false (stored bit becomes 1) */
+    set_val.boolean_v = 0;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "flagInv", AZ_IMPL_FROM_TYPE (AZ_TYPE_BOOLEAN), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT32 (0x3, inst.flags);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "flagInv", &prop_impl, &prop_val));
+    TEST_ASSERT_EQUAL_UINT (0, prop_val.value.boolean_v);
+
+    /* Write 3-bit unsigned integer */
+    set_val.uint32_v = 5;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "nibble", AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT32), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT32 (0x17, inst.flags);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "nibble", &prop_impl, &prop_val));
+    TEST_ASSERT_EQUAL_UINT (5, prop_val.value.uint32_v);
+    /* Overflowing value is masked */
+    set_val.uint32_v = 0xff;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "nibble", AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT32), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT32 (0x1f, inst.flags);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "nibble", &prop_impl, &prop_val));
+    TEST_ASSERT_EQUAL_UINT (7, prop_val.value.uint32_v);
+
+    /* Write 8-bit unsigned integer */
+    set_val.uint32_v = 0xa5;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "byte", AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT32), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT32 (0xa51f, inst.flags);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "byte", &prop_impl, &prop_val));
+    TEST_ASSERT_EQUAL_UINT (0xa5, prop_val.value.uint32_v);
+
+    /* Writing one field does not disturb others */
+    set_val.boolean_v = 0;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "flag", AZ_IMPL_FROM_TYPE (AZ_TYPE_BOOLEAN), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT32 (0xa51e, inst.flags);
+    set_val.uint32_v = 0;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "byte", AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT32), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT32 (0x1e, inst.flags);
+}
+
+/*
+ * Masked properties stored in fields of the same width as the property type
+ */
+
+typedef struct {
+    uint8_t u8;
+    uint16_t u16;
+    uint64_t u64;
+} MaskedWidthInst;
+
+#define MASKEDW_NUM_PROPS 6
+#define MASKEDW_PROP_U8 0
+#define MASKEDW_PROP_U16 1
+#define MASKEDW_PROP_U64 2
+#define MASKEDW_PROP_U8_IN_U64 3
+#define MASKEDW_PROP_BOOL_IN_U64 4
+#define MASKEDW_PROP_BOOL_IN_U8 5
+
+static unsigned int maskedw_type = 0;
+
+static void
+maskedw_class_init (AZClass *klass)
+{
+    /* 3-bit uint8 stored in a uint8_t (bits 1-3) */
+    az_class_define_property_value (klass, MASKEDW_PROP_U8, (const uint8_t *) "v8", AZ_TYPE_UINT8, 0,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_VALUE, ARIKKEI_OFFSET (MaskedWidthInst, u8));
+    klass->props_self[MASKEDW_PROP_U8].value_type_idx = AZ_TYPE_IDX_UINT8;
+    klass->props_self[MASKEDW_PROP_U8].shift = 1;
+    klass->props_self[MASKEDW_PROP_U8].mask_width = 3;
+    klass->props_self[MASKEDW_PROP_U8].bits = 0;
+    /* 5-bit uint16 stored in a uint16_t (bits 4-8) */
+    az_class_define_property_value (klass, MASKEDW_PROP_U16, (const uint8_t *) "v16", AZ_TYPE_UINT16, 0,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_VALUE, ARIKKEI_OFFSET (MaskedWidthInst, u16));
+    klass->props_self[MASKEDW_PROP_U16].value_type_idx = AZ_TYPE_IDX_UINT16;
+    klass->props_self[MASKEDW_PROP_U16].shift = 4;
+    klass->props_self[MASKEDW_PROP_U16].mask_width = 5;
+    klass->props_self[MASKEDW_PROP_U16].bits = 0;
+    /* 20-bit uint64 stored in a uint64_t (bits 40-59) */
+    az_class_define_property_value (klass, MASKEDW_PROP_U64, (const uint8_t *) "v64", AZ_TYPE_UINT64, 0,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_VALUE, ARIKKEI_OFFSET (MaskedWidthInst, u64));
+    klass->props_self[MASKEDW_PROP_U64].value_type_idx = AZ_TYPE_IDX_UINT64;
+    klass->props_self[MASKEDW_PROP_U64].shift = 40;
+    klass->props_self[MASKEDW_PROP_U64].mask_width = 20;
+    klass->props_self[MASKEDW_PROP_U64].bits = 0;
+    /* uint8 property stored in a uint64_t (bits 8-15) */
+    az_class_define_property_value (klass, MASKEDW_PROP_U8_IN_U64, (const uint8_t *) "v8in64", AZ_TYPE_UINT8, 0,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_VALUE, ARIKKEI_OFFSET (MaskedWidthInst, u64));
+    klass->props_self[MASKEDW_PROP_U8_IN_U64].value_type_idx = AZ_TYPE_IDX_UINT64;
+    klass->props_self[MASKEDW_PROP_U8_IN_U64].shift = 8;
+    klass->props_self[MASKEDW_PROP_U8_IN_U64].mask_width = 8;
+    klass->props_self[MASKEDW_PROP_U8_IN_U64].bits = 0;
+    /* Boolean property stored in a uint64_t (bit 63) */
+    az_class_define_property_value (klass, MASKEDW_PROP_BOOL_IN_U64, (const uint8_t *) "bin64", AZ_TYPE_BOOLEAN, 0,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_VALUE, ARIKKEI_OFFSET (MaskedWidthInst, u64));
+    klass->props_self[MASKEDW_PROP_BOOL_IN_U64].value_type_idx = AZ_TYPE_IDX_UINT64;
+    klass->props_self[MASKEDW_PROP_BOOL_IN_U64].shift = 63;
+    klass->props_self[MASKEDW_PROP_BOOL_IN_U64].mask_width = 1;
+    klass->props_self[MASKEDW_PROP_BOOL_IN_U64].bits = 0;
+    /* Boolean property stored in a uint8_t (bit 7) */
+    az_class_define_property_value (klass, MASKEDW_PROP_BOOL_IN_U8, (const uint8_t *) "bin8", AZ_TYPE_BOOLEAN, 0,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_VALUE, ARIKKEI_OFFSET (MaskedWidthInst, u8));
+    klass->props_self[MASKEDW_PROP_BOOL_IN_U8].value_type_idx = AZ_TYPE_IDX_UINT8;
+    klass->props_self[MASKEDW_PROP_BOOL_IN_U8].shift = 7;
+    klass->props_self[MASKEDW_PROP_BOOL_IN_U8].mask_width = 1;
+    klass->props_self[MASKEDW_PROP_BOOL_IN_U8].bits = 0;
+}
+
+static unsigned int
+maskedw_get_type (void)
+{
+    if (!maskedw_type) {
+        az_register_type (&maskedw_type, (const unsigned char *) "MaskedWidthTest", AZ_TYPE_STRUCT, sizeof (AZClass), sizeof (MaskedWidthInst),
+            AZ_FLAG_FINAL, 0, MASKEDW_NUM_PROPS, maskedw_class_init, NULL, NULL);
+    }
+    return maskedw_type;
+}
+
+static void
+test_masked_field_widths()
+{
+    az_init();
+    unsigned int type = maskedw_get_type();
+    AZClass *klass = AZ_CLASS_FROM_TYPE (type);
+    MaskedWidthInst inst;
+    inst.u8 = 0;
+    inst.u16 = 0;
+    inst.u64 = 0;
+
+    const AZImplementation *prop_impl;
+    AZValue64 prop_val;
+    AZValue set_val;
+
+    /* uint8 storage */
+    set_val.uint8_v = 5;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "v8", AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT8), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT8 (0x0a, inst.u8);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "v8", &prop_impl, &prop_val));
+    TEST_ASSERT (prop_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT8));
+    TEST_ASSERT_EQUAL_UINT8 (5, prop_val.value.uint8_v);
+    /* Overflow is masked, other bits preserved */
+    inst.u8 |= 0x81;
+    set_val.uint8_v = 0xff;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "v8", AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT8), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT8 (0x8f, inst.u8);
+
+    /* uint16 storage */
+    set_val.uint16_v = 17;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "v16", AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT16), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT16 (0x0110, inst.u16);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "v16", &prop_impl, &prop_val));
+    TEST_ASSERT (prop_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT16));
+    TEST_ASSERT_EQUAL_UINT16 (17, prop_val.value.uint16_v);
+    inst.u16 |= 0x8001;
+    set_val.uint16_v = 0xffff;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "v16", AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT16), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT16 (0x81f1, inst.u16);
+
+    /* uint64 storage */
+    set_val.uint64_v = 0xabcde;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "v64", AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT64), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT64 (0xabcde0000000000ULL, inst.u64);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "v64", &prop_impl, &prop_val));
+    TEST_ASSERT (prop_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT64));
+    TEST_ASSERT_EQUAL_UINT64 (0xabcde, prop_val.value.uint64_v);
+    inst.u64 |= 0xff;
+    set_val.uint64_v = 0xffffffffffffffffULL;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "v64", AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT64), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT64 (0x0fffff00000000ffULL, inst.u64);
+
+    /* uint8 property stored in a uint64_t */
+    inst.u64 = 0;
+    set_val.uint8_v = 0x5a;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "v8in64", AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT8), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT64 (0x5a00ULL, inst.u64);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "v8in64", &prop_impl, &prop_val));
+    TEST_ASSERT (prop_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT8));
+    TEST_ASSERT_EQUAL_UINT8 (0x5a, prop_val.value.uint8_v);
+    /* Other bits of the container are preserved */
+    inst.u64 |= 0xff;
+    set_val.uint8_v = 0;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "v8in64", AZ_IMPL_FROM_TYPE (AZ_TYPE_UINT8), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT64 (0xffULL, inst.u64);
+
+    /* Boolean property stored in a uint64_t */
+    inst.u64 = 0;
+    set_val.boolean_v = 1;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "bin64", AZ_IMPL_FROM_TYPE (AZ_TYPE_BOOLEAN), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT64 (0x8000000000000000ULL, inst.u64);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "bin64", &prop_impl, &prop_val));
+    TEST_ASSERT (prop_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_BOOLEAN));
+    TEST_ASSERT_EQUAL_UINT (1, prop_val.value.boolean_v);
+    set_val.boolean_v = 0;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "bin64", AZ_IMPL_FROM_TYPE (AZ_TYPE_BOOLEAN), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT64 (0, inst.u64);
+
+    /* Boolean property stored in a uint8_t */
+    inst.u8 = 0;
+    set_val.boolean_v = 1;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "bin8", AZ_IMPL_FROM_TYPE (AZ_TYPE_BOOLEAN), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT8 (0x80, inst.u8);
+    TEST_ASSERT (az_instance_get_property_by_key (&klass->impl, &inst, (const uint8_t *) "bin8", &prop_impl, &prop_val));
+    TEST_ASSERT_EQUAL_UINT (1, prop_val.value.boolean_v);
+    /* Other bits of the container are preserved */
+    inst.u8 |= 0x01;
+    set_val.boolean_v = 0;
+    TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "bin8", AZ_IMPL_FROM_TYPE (AZ_TYPE_BOOLEAN), &set_val, NULL));
+    TEST_ASSERT_EQUAL_UINT8 (0x01, inst.u8);
 }

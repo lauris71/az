@@ -63,19 +63,25 @@ struct _AZField {
 		struct {
 			/* Offset in instance/implementation/class */
 			uint32_t offset;
-			/* for unsigned integer/boolean types */
-			/* Number of bits to shift right */
-			uint32_t shift;
-			/* Mask os relevant bits */
-			uint32_t mask;
+			/* Masked (bit-field) values */
+			/* The type index of the containing value (AZ_TYPE_IDX_UINT8...AZ_TYPE_IDX_UINT64, */
+			/* determines the width of the integer read/written at offset, 0 defaults to uint32) */
+			uint8_t value_type_idx;
+			/* Number of bits to shift right before masking */
+			uint8_t shift;
+			/* The number of contiguous bits in the mask */
+			uint8_t mask_width;
 			/* For boolean types */
 			/* Final value to xor with */
-			uint32_t bits;
+			uint8_t bits;
 		};
 		/* Stored value, may be the actual value for final properties */
-		AZPackedValue *value;
+		struct {
+			const AZImplementation *impl;
+			AZValue v;
+		} value;
 	};
-};
+} ARIKKEI_ALIGN_16;
 
 extern AZClass AZFieldKlass;
 

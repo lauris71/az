@@ -295,6 +295,63 @@ az_instance_set_property_by_key (const AZImplementation *impl, void *inst, const
 	return az_instance_set_property_by_id (sub_class, sub_impl, sub_inst, idx, prop_impl, prop_inst, ctx);
 }
 
+/*
+ * Read the containing integer of a masked (bit-field) property.
+ * The containing type (and thus the width read at the field offset) is determined
+ * by field->value_type_idx, the value is shifted right, then masked to mask_width bits.
+ */
+static uint64_t
+az_field_masked_read (const AZField *prop, const AZValue *src)
+{
+	uint64_t v;
+	switch (prop->value_type_idx) {
+		case AZ_TYPE_IDX_UINT8:
+			v = src->uint8_v;
+			break;
+		case AZ_TYPE_IDX_UINT16:
+			v = src->uint16_v;
+			break;
+		case AZ_TYPE_IDX_UINT64:
+			v = src->uint64_v;
+			break;
+		default:
+			/* Legacy masked fields (value_type unset) are stored in uint32 */
+			v = src->uint32_v;
+			break;
+	}
+	if (prop->mask_width >= 64) return v >> prop->shift;
+	return (v >> prop->shift) & ((1ULL << prop->mask_width) - 1);
+}
+
+/*
+ * Write a masked (bit-field) property into its containing integer.
+ * Only the bits covered by the mask are modified, the value is masked to
+ * mask_width bits and shifted left; the result is merged into the containing
+ * value whose width is determined by field->value_type_idx.
+ */
+static void
+az_field_masked_write (const AZField *prop, AZValue *dst, uint64_t v)
+{
+	uint64_t mask = (prop->mask_width >= 64) ? ~0ULL : ((1ULL << prop->mask_width) - 1);
+	uint64_t cmask = mask << prop->shift;
+	uint64_t shifted = (v & mask) << prop->shift;
+	switch (prop->value_type_idx) {
+		case AZ_TYPE_IDX_UINT8:
+			dst->uint8_v = (uint8_t) ((dst->uint8_v & ~(uint8_t) cmask) | shifted);
+			break;
+		case AZ_TYPE_IDX_UINT16:
+			dst->uint16_v = (uint16_t) ((dst->uint16_v & ~(uint16_t) cmask) | shifted);
+			break;
+		case AZ_TYPE_IDX_UINT64:
+			dst->uint64_v = (dst->uint64_v & ~cmask) | shifted;
+			break;
+		default:
+			/* Legacy masked fields (value_type unset) are stored in uint32 */
+			dst->uint32_v = (uint32_t) ((dst->uint32_v & ~(uint32_t) cmask) | shifted);
+			break;
+	}
+}
+
 unsigned int
 az_instance_set_property_by_id (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx)
 {
@@ -328,7 +385,35 @@ az_instance_set_property_by_id (const AZClass *klass, const AZImplementation *im
 		} else {
 			val = (AZValue *) ((char *) klass + prop->offset);
 		}
-		az_value_set_from_inst (prop_impl, val, prop_inst);
+		if (prop->mask_width) {
+			if (prop->type == AZ_TYPE_BOOLEAN) {
+				uint64_t v = (prop_inst && ((AZValue *) prop_inst)->boolean_v) ? 1 : 0;
+				az_field_masked_write (prop, val, v ^ prop->bits);
+			} else if (AZ_TYPE_IS_UNSIGNED(prop->type)) {
+				uint64_t v = 0;
+				if (prop_inst) {
+					switch (prop->type) {
+						case AZ_TYPE_UINT8:
+							v = ((AZValue *) prop_inst)->uint8_v;
+							break;
+						case AZ_TYPE_UINT16:
+							v = ((AZValue *) prop_inst)->uint16_v;
+							break;
+						case AZ_TYPE_UINT32:
+							v = ((AZValue *) prop_inst)->uint32_v;
+							break;
+						default:
+							v = ((AZValue *) prop_inst)->uint64_v;
+							break;
+					}
+				}
+				az_field_masked_write (prop, val, v);
+			} else {
+				return 0;
+			}
+		} else {
+			az_value_set_from_inst (prop_impl, val, prop_inst);
+		}
 	} else if (AZ_FIELD_WRITE(prop) == AZ_FIELD_WRITE_PACKED) {
 		AZPackedValue *val;
 		if (AZ_FIELD_SPEC(prop) == AZ_FIELD_INSTANCE) {
@@ -369,14 +454,34 @@ az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, 
 			} else {
 				src = (AZValue *) ((char *) klass + prop->offset);
 			}
-			if (prop->mask) {
+			if (prop->mask_width) {
 				if (prop->type == AZ_TYPE_BOOLEAN) {
-					uint32_t v = ((src->uint32_v & prop->mask) >> prop->shift) ^ prop->bits;
+					uint64_t v = az_field_masked_read (prop, src) ^ prop->bits;
 					*prop_impl = &AZBooleanKlass.impl;
 					prop_val->boolean_v = (v != 0);
 					return 1;
+				} else if (AZ_TYPE_IS_UNSIGNED(prop->type)) {
+					uint64_t v = az_field_masked_read (prop, src);
+					AZClass *prop_class = AZ_CLASS_FROM_TYPE(prop->type);
+					*prop_impl = &prop_class->impl;
+					switch (prop->type) {
+						case AZ_TYPE_UINT8:
+							prop_val->uint8_v = (uint8_t) v;
+							break;
+						case AZ_TYPE_UINT16:
+							prop_val->uint16_v = (uint16_t) v;
+							break;
+						case AZ_TYPE_UINT32:
+							prop_val->uint32_v = (uint32_t) v;
+							break;
+						case AZ_TYPE_UINT64:
+							prop_val->uint64_v = v;
+							break;
+						default:
+							return 0;
+					}
+					return 1;
 				} else {
-					// fixme: handle integral types
 					return 0;
 				}
 			}
@@ -427,8 +532,8 @@ az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, 
 		}
 		case AZ_FIELD_READ_STORED_STATIC:
 			/* Packed value inside field definition */
-			if (prop->value->impl) {
-				*prop_impl = az_value_copy_autobox (prop->value->impl, prop_val, &prop->value->v, val_size);
+			if (prop->value.impl) {
+				*prop_impl = az_value_copy_autobox (prop->value.impl, prop_val, &prop->value.v, val_size);
 			} else {
 				*prop_impl = NULL;
 			}
