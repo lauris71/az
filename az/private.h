@@ -51,6 +51,16 @@
 /* Library internals */
 void az_globals_init (void);
 
+typedef struct _AZReference AZReference;
+typedef struct _AZReferenceClass AZReferenceClass;
+
+/*
+ * Drops the last reference to an instance, giving AZReferenceClass::drop a chance
+ * to claim ownership first. Only called from az_reference_unref (reference.c);
+ * not part of the public API.
+ */
+void az_reference_drop (AZReferenceClass *klass, AZReference *ref);
+
 /**
  * @brief Publish a fully constructed class
  *

@@ -29,34 +29,14 @@ mtx_t mutex;
 void
 az_reference_ref (AZReference* ref)
 {
+	unsigned int refcount;
 	AZ_REFERENCE_LOCK ();
-#ifdef AZ_SAFETY_CHECKS
-	if (!ref->refcount) {
-		AZ_REFERENCE_UNLOCK ();
-		return;
-	}
-#endif
-	ref->refcount += 1;
+	refcount = ref->refcount;
+	if (refcount) ref->refcount = refcount + 1;
 	AZ_REFERENCE_UNLOCK ();
-}
-
-void
-az_reference_unref (AZReferenceClass* klass, AZReference* ref)
-{
-	AZ_REFERENCE_LOCK ();
 #ifdef AZ_SAFETY_CHECKS
-	if (!ref->refcount) {
-		AZ_REFERENCE_UNLOCK ();
-		return;
-	}
+	arikkei_return_if_fail (refcount);
 #endif
-	if (ref->refcount == 1) {
-		AZ_REFERENCE_UNLOCK ();
-		az_reference_drop (klass, ref);
-	} else {
-		ref->refcount -= 1;
-		AZ_REFERENCE_UNLOCK ();
-	}
 }
 #else
 #define AZ_REFERENCE_LOCK()
@@ -64,55 +44,72 @@ az_reference_unref (AZReferenceClass* klass, AZReference* ref)
 #endif
 
 void
-az_reference_drop (AZReferenceClass *klass, AZReference *ref)
+az_reference_unref (AZReferenceClass* klass, AZReference* ref)
 {
-#ifdef AZ_SAFETY_CHECKS
+	unsigned int refcount;
 	AZ_REFERENCE_LOCK ();
-	if (ref->refcount != 1) {
+	refcount = ref->refcount;
+	if (refcount > 1) {
+		ref->refcount = refcount - 1;
 		AZ_REFERENCE_UNLOCK ();
 		return;
 	}
 	AZ_REFERENCE_UNLOCK ();
+	if (refcount == 1) {
+		/* We are guaranteed to be the only thread holding a reference, so the
+		 * (possibly slow) drop callback and disposal run without the global lock */
+		az_reference_drop (klass, ref);
+	}
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_if_fail (refcount);
 #endif
-	/* We are guaranteed to hold the only reference to this object */
-	if (!klass->drop || klass->drop (klass, ref)) {
-		/* No one took ownership of the object */
-		if (klass->dispose) klass->dispose (klass, ref);
-		az_instance_delete(AZ_CLASS_TYPE(&klass->klass), ref);
-	} else {
-		/* Someone took ownership but may have dropped it in another thread */
+}
+
+void
+az_reference_drop (AZReferenceClass *klass, AZReference *ref)
+{
+	/* The caller held the only counted reference (refcount was 1 when az_reference_unref
+	 * made the decision), but the object may have been resurrected through a class-specific
+	 * side channel meanwhile - the drop callback is responsible for detecting this */
+	if (klass->drop && !klass->drop (klass, ref)) {
+		/* Ownership was claimed (e.g. by a resource cache): release the caller's
+		 * reference and dispose only if the claim was already dropped again in
+		 * another thread */
+		unsigned int last;
 		AZ_REFERENCE_LOCK ();
-		if (ref->refcount == 1) {
-			AZ_REFERENCE_UNLOCK ();
+		last = (ref->refcount == 1);
+		if (!last) ref->refcount -= 1;
+		AZ_REFERENCE_UNLOCK ();
+		if (last) {
 			if (klass->dispose) klass->dispose (klass, ref);
 			az_instance_delete(AZ_CLASS_TYPE(&klass->klass), ref);
-		} else {
-            ref->refcount -= 1;
-			AZ_REFERENCE_UNLOCK ();
 		}
+		return;
 	}
+	/* No one took ownership of the object */
+	if (klass->dispose) klass->dispose (klass, ref);
+	az_instance_delete(AZ_CLASS_TYPE(&klass->klass), ref);
 }
 
 void
 az_reference_dispose (AZReferenceClass *klass, AZReference *ref)
 {
-#ifdef AZ_SAFETY_CHECKS
+	unsigned int refcount;
 	AZ_REFERENCE_LOCK ();
-	if (ref->refcount == 0) {
-		AZ_REFERENCE_UNLOCK ();
-		return;
-	}
+	refcount = ref->refcount;
 	AZ_REFERENCE_UNLOCK ();
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_if_fail (refcount);
+#else
+	if (!refcount) return;
 #endif
-	/* We are guaranteed to hold reference so no another threas can auto-dispose by unref */
+	/* We are guaranteed to hold reference so no another thread can auto-dispose by unref */
 	if (klass->dispose) klass->dispose (klass, ref);
 	AZ_REFERENCE_LOCK ();
-	ref->refcount -= 1;
-	if (!ref->refcount) {
-		AZ_REFERENCE_UNLOCK ();
+	refcount = (ref->refcount -= 1);
+	AZ_REFERENCE_UNLOCK ();
+	if (!refcount) {
 		az_instance_delete(AZ_CLASS_TYPE(&klass->klass), ref);
-	} else {
-		AZ_REFERENCE_UNLOCK ();
 	}
 }
 

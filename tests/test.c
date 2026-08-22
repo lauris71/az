@@ -43,6 +43,7 @@ static void test_object_list();
 static void test_masked_field();
 static void test_masked_field_widths();
 static void test_circular_reference();
+static void test_strings_mt();
 
 void test_hash_map(void);
 void test_hash_set(void);
@@ -82,6 +83,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_masked_field_widths);
         } else if (!strcmp(argv[i], "circular-reference")) {
             RUN_TEST(test_circular_reference);
+        } else if (!strcmp(argv[i], "strings-mt")) {
+            RUN_TEST(test_strings_mt);
         } else if (!strcmp(argv[i], "hash-map")) {
             RUN_TEST(test_hash_map);
         } else if (!strcmp(argv[i], "hash-set")) {
@@ -1502,4 +1505,87 @@ test_circular_reference()
     TEST_ASSERT (AZ_CLASS_FROM_TYPE (ty) != NULL);
     TEST_ASSERT (az_type_implements (tx, ty));
     TEST_ASSERT (!az_type_implements (ty, tx));
+}
+
+/*
+ * Race string collation from multiple threads.
+ *
+ * All threads interning the same content have to get the same collated AZString
+ * instance, and the collation table has to survive concurrent
+ * new/lookup/unref/concat (including disposal churn and resurrection).
+ */
+
+#define SMT_NUM_THREADS 8
+#define SMT_NUM_ITERS 2000
+#define SMT_NUM_STRINGS 8
+
+static const char *smt_strings[SMT_NUM_STRINGS] = {
+    "alpha", "beta", "gamma", "delta", "alphabeta", "deltata", "epsilon", "zeta"
+};
+
+static AZString *smt_results[SMT_NUM_THREADS][SMT_NUM_STRINGS];
+static AZString *smt_concat[SMT_NUM_THREADS];
+
+static int
+string_mt_thread (void *arg)
+{
+    unsigned int seed = (unsigned int) (uintptr_t) arg;
+    AZString *alpha = az_string_new ((const unsigned char *) "alpha");
+    AZString *beta = az_string_new ((const unsigned char *) "beta");
+    for (unsigned int i = 0; i < SMT_NUM_ITERS; i++) {
+        unsigned int idx = (seed + i) % SMT_NUM_STRINGS;
+        /* Intern, verify collation against lookup, and churn the previous ref */
+        AZString *s = az_string_new ((const unsigned char *) smt_strings[idx]);
+        AZString *l = az_string_lookup ((const unsigned char *) smt_strings[idx]);
+        if (l) {
+            if (l != s) return (int) (idx + 1);
+            az_string_unref (l);
+        }
+        if (smt_results[seed][idx]) az_string_unref (smt_results[seed][idx]);
+        smt_results[seed][idx] = s;
+        /* Concat exercises the create-collate-discard path */
+        AZString *c = az_string_concat (alpha, beta);
+        if (smt_concat[seed]) az_string_unref (smt_concat[seed]);
+        smt_concat[seed] = c;
+    }
+    az_string_unref (alpha);
+    az_string_unref (beta);
+    return 0;
+}
+
+static void
+test_strings_mt()
+{
+    az_init();
+    thrd_t threads[SMT_NUM_THREADS];
+    for (int i = 0; i < SMT_NUM_THREADS; i++) {
+        TEST_ASSERT(thrd_create(&threads[i], string_mt_thread, (void *) (uintptr_t) i) == thrd_success);
+    }
+    int results[SMT_NUM_THREADS];
+    for (int i = 0; i < SMT_NUM_THREADS; i++) {
+        TEST_ASSERT(thrd_join(threads[i], &results[i]) == thrd_success);
+        TEST_ASSERT_EQUAL (0, results[i]);
+    }
+    /* All threads agree on every collated instance */
+    AZString *alphabet = az_string_lookup ((const unsigned char *) "alphabeta");
+    TEST_ASSERT (alphabet != NULL);
+    for (unsigned int idx = 0; idx < SMT_NUM_STRINGS; idx++) {
+        AZString *ref = az_string_lookup ((const unsigned char *) smt_strings[idx]);
+        TEST_ASSERT (ref != NULL);
+        for (int i = 0; i < SMT_NUM_THREADS; i++) {
+            TEST_ASSERT (smt_results[i][idx] == NULL || smt_results[i][idx] == ref);
+        }
+        az_string_unref (ref);
+    }
+    for (int i = 0; i < SMT_NUM_THREADS; i++) {
+        TEST_ASSERT (smt_concat[i] == alphabet);
+    }
+    az_string_unref (alphabet);
+    /* Cleanup */
+    for (int i = 0; i < SMT_NUM_THREADS; i++) {
+        for (unsigned int idx = 0; idx < SMT_NUM_STRINGS; idx++) {
+            if (smt_results[i][idx]) az_string_unref (smt_results[i][idx]);
+        }
+        if (smt_concat[i]) az_string_unref (smt_concat[i]);
+    }
 }

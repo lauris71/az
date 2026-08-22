@@ -59,18 +59,8 @@ struct _AZReferenceClass {
 
 extern AZReferenceClass AZReferenceKlass;
 
-/**
- * @brief Drop the last reference
- *
- * Called by az_reference_unref when the reference count reaches 1. Gives
- * AZReferenceClass::drop a chance to claim ownership, otherwise disposes
- * and deletes the instance.
- */
-void az_reference_drop (AZReferenceClass *klass, AZReference *ref);
-
 #ifdef AZ_MT_REFERENCES
 void az_reference_ref (AZReference* ref);
-void az_reference_unref (AZReferenceClass* klass, AZReference* ref);
 #else
 ARIKKEI_INLINE void
 az_reference_ref (AZReference *ref)
@@ -80,20 +70,9 @@ az_reference_ref (AZReference *ref)
 #endif
 	ref->refcount += 1;
 }
-
-ARIKKEI_INLINE void
-az_reference_unref (AZReferenceClass *klass, AZReference *ref)
-{
-#ifdef AZ_SAFETY_CHECKS
-	arikkei_return_if_fail (ref->refcount);
 #endif
-	if (ref->refcount == 1) {
-		az_reference_drop (klass, ref);
-	} else {
-		ref->refcount -= 1;
-	}
-}
-#endif
+/* Unref goes through az_reference_drop (library internal) at the last reference */
+void az_reference_unref (AZReferenceClass* klass, AZReference* ref);
 
 /**
  * @brief Shutdown instance and drop reference

@@ -17,6 +17,35 @@
 
 #include "value.h"
 
+#ifdef AZ_MT_REFERENCES
+#include <arikkei/arikkei-threads.h>
+#endif
+
+/*
+ * The collation table is guarded by a dedicated mutex.
+ *
+ * Lock ordering:
+ * - registry -> dict: class constructors (holding the registry lock) create
+ *   strings for property keys, so string creation never holds the dict mutex
+ *   (instance init takes the registry lock)
+ * - dict -> reference: a lookup holds the dict mutex across find + az_string_ref;
+ *   the reference machinery never takes the dict mutex (the drop/dispose
+ *   callbacks are invoked with no locks held)
+ *
+ * Resurrection safety: the last-reference drop callback (string_drop) verifies
+ * the refcount under the dict mutex before removing the string from the table
+ * and cancels disposal if a concurrent lookup resurrected it, so a lookup can
+ * never return a string that is being freed.
+ */
+#ifdef AZ_MT_REFERENCES
+static mtx_t dict_mutex;
+#define AZ_STRING_LOCK() mtx_lock (&dict_mutex)
+#define AZ_STRING_UNLOCK() mtx_unlock (&dict_mutex)
+#else
+#define AZ_STRING_LOCK()
+#define AZ_STRING_UNLOCK()
+#endif
+
 typedef struct _AZStringLookup AZStringLookup;
 
 struct _AZStringLookup {
@@ -106,11 +135,42 @@ deserialize_string (const AZImplementation *impl, AZValue *value, const unsigned
 	return 5 + len;
 }
 
+/*
+ * Remove the string from the collation table if it is the collated instance.
+ * Pointer identity matters: a content-equal duplicate (e.g. the discarded result
+ * of az_string_concat) is not a member and must not remove its collated twin
+ * (the table looks members up by content).
+ * The dict mutex is held by the caller.
+ */
+static void
+string_uncollate (AZString *str)
+{
+	AZString **ptr = (AZString **) arikkei_dict_lookup (&AZStringKlass.chr2str, &str);
+	if (ptr && (*ptr == str)) arikkei_dict_remove_pval (&AZStringKlass.chr2str, str);
+}
+
+/*
+ * Called at the last reference with no locks held. Removes the string from the
+ * collation table, unless it was resurrected by a concurrent lookup.
+ */
+static unsigned int
+string_drop (AZReferenceClass *klass, AZReference *ref)
+{
+	AZString *str = (AZString *) ref;
+	unsigned int die;
+	AZ_STRING_LOCK();
+	die = (str->reference.refcount == 1);
+	if (die) string_uncollate (str);
+	AZ_STRING_UNLOCK();
+	return die;
+}
+
 static void
 string_dispose (AZReferenceClass *klass, AZReference *ref)
 {
-	AZString *str = (AZString *) ref;
-	arikkei_dict_remove_pval (&AZStringKlass.chr2str, str);
+	AZ_STRING_LOCK();
+	string_uncollate ((AZString *) ref);
+	AZ_STRING_UNLOCK();
 }
 
 AZStringClass AZStringKlass = {
@@ -123,13 +183,16 @@ AZStringClass AZStringKlass = {
 	NULL, NULL,
 	serialize_string, deserialize_string, string_to_string,
 	NULL, NULL},
-	NULL, string_dispose},
+	string_drop, string_dispose},
 	{0}
 };
 
 void
 az_init_string_class (void)
 {
+#ifdef AZ_MT_REFERENCES
+	mtx_init (&dict_mutex, mtx_plain);
+#endif
 	az_class_new_with_value(&AZStringKlass.reference_class.klass);
 	arikkei_dict_setup_full (&AZStringKlass.chr2str, 701, string_hash, string_equal);
 }
@@ -144,20 +207,26 @@ az_string_new (const unsigned char *str)
 AZString *
 az_string_new_length (const unsigned char *str, unsigned int length)
 {
-	AZString *astr;
+	/* Create outside the lock: instance init takes the registry lock, and the lock
+	 * ordering is registry -> dict (class constructors create strings, not vice versa) */
+	AZString *astr = (AZString *) malloc (sizeof (AZString) + length);
+	az_instance_init_by_type (astr, AZ_TYPE_STRING);
+	astr->length = length;
+	memcpy ((unsigned char *) astr->str, str, length);
+	((unsigned char *) astr->str)[length] = 0;
 	AZStringLookup lookup = {length, str};
+	AZ_STRING_LOCK();
 	AZString **ptr = (AZString **) arikkei_dict_lookup_foreign(&AZStringKlass.chr2str, &lookup, string_data_hash(&lookup), string_data_equal);
 	if (ptr) {
-		astr = *ptr;
-		az_string_ref (astr);
-	} else {
-		astr = (AZString *) malloc (sizeof (AZString) + length);
-		az_instance_init_by_type (astr, AZ_TYPE_STRING);
-		astr->length = length;
-		memcpy ((unsigned char *) astr->str, str, length);
-		((unsigned char *) astr->str)[length] = 0;
-		arikkei_dict_insert_pval (&AZStringKlass.chr2str, astr, astr);
+		/* Find + ref are atomic w.r.t. the last-reference removal (string_drop) */
+		AZString *found = *ptr;
+		az_string_ref (found);
+		AZ_STRING_UNLOCK();
+		az_string_unref (astr);
+		return found;
 	}
+	arikkei_dict_insert_pval (&AZStringKlass.chr2str, astr, astr);
+	AZ_STRING_UNLOCK();
 	return astr;
 }
 
@@ -172,10 +241,15 @@ AZString *
 az_string_lookup_length (const unsigned char *chars, unsigned int length)
 {
 	AZStringLookup lookup = {length, chars};
+	AZ_STRING_LOCK();
 	AZString **ptr = (AZString **) arikkei_dict_lookup_foreign(&AZStringKlass.chr2str, &lookup, string_data_hash(&lookup), string_data_equal);
-	if (!ptr) return NULL;
+	if (!ptr) {
+		AZ_STRING_UNLOCK();
+		return NULL;
+	}
 	AZString *astr = *ptr;
 	if (astr) az_string_ref (astr);
+	AZ_STRING_UNLOCK();
 	return astr;
 }
 
@@ -191,13 +265,18 @@ az_string_concat (AZString *lhs, AZString *rhs)
 	if (lhs->length) memcpy ((unsigned char *) built->str, lhs->str, lhs->length);
 	if (rhs->length) memcpy ((unsigned char *) built->str + lhs->length, rhs->str, rhs->length);
 	((unsigned char *) built->str)[lhs->length + rhs->length] = 0;
+	AZ_STRING_LOCK();
 	AZString **ptr = (AZString **) arikkei_dict_lookup(&AZStringKlass.chr2str, &built);
 	if (ptr) {
-		az_string_unref (*ptr);
-		return *ptr;
-	} else {
-		arikkei_dict_insert_pval (&AZStringKlass.chr2str, built, built);
+		/* The collated string gets a new reference, the duplicate is disposed */
+		astr = *ptr;
+		az_string_ref (astr);
+		AZ_STRING_UNLOCK();
+		az_string_unref (built);
+		return astr;
 	}
+	arikkei_dict_insert_pval (&AZStringKlass.chr2str, built, built);
+	AZ_STRING_UNLOCK();
 	return built;
 }
 
