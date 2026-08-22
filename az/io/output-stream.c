@@ -15,7 +15,7 @@
 #include <az/io/output-stream.h>
 
 AZInterfaceClass AZOutputStreamKlass = {
-	{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_IDX_OUTPUT_STREAM},
+	{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_OUTPUT_STREAM},
 	&AZInterfaceKlass.klass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "output stream",

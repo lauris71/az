@@ -86,6 +86,37 @@ struct _AZInstanceAllocator {
 	void (*free_array) (AZClass *klass, void *location, unsigned int n_elements);
 };
 
+/*
+ * Class constructor constraints (circular type references)
+ *
+ * While a class constructor (class_init) runs, the class is already registered -
+ * its typecode is valid and may be visible to other threads - but NOT published,
+ * i.e. AZ_CLASS_FROM_TYPE of its own type (and of any type whose constructor
+ * started the current registration chain) returns NULL. This allows circular type
+ * references: class A may declare a method taking an argument of type B and class
+ * B one of type A, because declarations only need the typecode.
+ *
+ * Consequently, from a class constructor only the definition family of library
+ * methods may be used with not-yet-published types:
+ *
+ * - az_class_declare_interface (see the constraint below)
+ * - az_class_define_property / az_class_define_property_value /
+ *   az_class_define_property_packed / az_class_define_property_function_val /
+ *   az_class_define_property_function_packed
+ * - az_class_define_method family
+ *
+ * These only store typecodes and never resolve the referenced class. General
+ * library methods (az_type_is_a, az_instance_new, property access, ...) may
+ * resolve the type internally and must not be called with unpublished types.
+ * There are no such constraints for non-circular references: the referenced type
+ * is always fully constructed before the referencing constructor runs.
+ *
+ * Circular interface implementation is NOT supported: az_class_declare_interface
+ * has to initialize the embedded implementation from the fully constructed
+ * interface class, so the interface may not be mid-construction. In practice:
+ * if (interface) class A declares a property of type B, then class B cannot
+ * implement interface A.
+ */
 struct _AZClass {
 	AZImplementation impl;
 	/**

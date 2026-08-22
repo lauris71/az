@@ -47,7 +47,6 @@ void az_field_setup_value (AZField *prop, const unsigned char *key, unsigned int
 #endif
 	prop->key = az_string_new (key);
 	prop->type = type;
-	prop->is_function = az_type_is_a (type, AZ_TYPE_FUNCTION);
 	prop->is_final = is_final;
 	prop->spec = spec;
 	prop->read = read;
@@ -74,7 +73,6 @@ void az_field_setup_stored (AZField *prop, const unsigned char *key, unsigned in
 #endif
 	prop->key = az_string_new (key);
 	prop->type = type;
-	prop->is_function = az_type_is_a (type, AZ_TYPE_FUNCTION);
 	prop->is_final = is_final;
 	prop->spec = spec;
 	prop->read = read;
@@ -98,7 +96,6 @@ void az_field_setup_method (AZField *prop, const unsigned char *key, unsigned in
 #endif
 	prop->key = az_string_new (key);
 	prop->type = type;
-	prop->is_function = az_type_is_a (type, AZ_TYPE_FUNCTION);
 	prop->is_final = is_final;
 	prop->spec = spec;
 	prop->read = read;
@@ -117,6 +114,7 @@ void az_field_setup_function (AZField *field, const unsigned char *key, unsigned
 	} else {
 		az_field_setup_stored (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, impl, inst);
 	}
+	field->is_function = 1;
 	field->signature = sig;
 }
 
@@ -132,5 +130,6 @@ void az_field_setup_function_packed (AZField *field, const unsigned char *key, u
 		// fixme: Cannot happen
 		az_field_setup_stored (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, NULL, NULL);
 	}
+	field->is_function = 1;
 	field->signature = sig;
 }

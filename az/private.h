@@ -21,8 +21,9 @@
 	{
 		if (AZ_TYPE_INDEX(type) == 0) return 0;
 		if (AZ_TYPE_INDEX(type) >= az_num_types) return 0;
+		/* The slot is NULL while the class is reserved but not yet published */
 		AZImplementation *impl = AZ_IMPL_FROM_TYPE(type);
-		return type == impl->type;
+		return impl && (type == impl->type);
 	}
 	#define ENSURE_INITIALIZED() if (!az_num_types) az_init()
 #elif defined(AZ_GLOBALS_MULTI_THREAD)
@@ -44,12 +45,24 @@ void az_globals_init (void);
 
 /**
  * @brief Registers class in type system
- * 
- * If impl.type is not set a next available type will be assigned.
- * 
+ *
+ * If impl.type is not set a next available type will be assigned. Only reserves the
+ * typecode - the class slot in az_types remains NULL until az_class_publish, so
+ * lock-free readers never see an unfinished class.
+ *
  * @param klass A class to register
  */
 void az_register_class(AZClass *klass);
+
+/**
+ * @brief Publish a fully constructed class
+ *
+ * Writes the class to its az_types slot with release semantics (where applicable).
+ * After this any thread may access the class via the AZ_CLASS_FROM_TYPE fast path.
+ *
+ * @param klass A class to publish
+ */
+void az_class_publish (AZClass *klass);
 
 /* Library internals */
 void az_init_primitive_classes (void);

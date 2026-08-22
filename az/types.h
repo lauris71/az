@@ -56,11 +56,28 @@ extern "C" {
  */
 
 #if defined(AZ_GLOBALS_STATIC)
-	/* Fixed-length static array */
-	extern AZClass *az_types[];
-	extern unsigned int az_num_types;
-	#define AZ_CLASS_FROM_TYPE(t) az_types[AZ_TYPE_INDEX(t)]
-	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_types[AZ_TYPE_INDEX(t)])
+	/* Fixed-length static array, thread-safe with lock-free fast path */
+	extern _Atomic(AZClass *) az_types[];
+	extern _Atomic unsigned int az_num_types;
+	/* Slow path: locked lookup */
+	AZClass *az_type_get_class (unsigned int type);
+	/*
+	 * Lock-free fast path
+	 *
+	 * Class slots are published with release semantics only after the class is fully
+	 * constructed (see az_class_publish), so an acquire load yielding non-NULL is
+	 * guaranteed to see the complete class. NULL means the type is not (yet)
+	 * registered - fall back to the locked slow path.
+	 */
+	static inline AZClass *
+	az_class_from_type (unsigned int type)
+	{
+		AZClass *klass = atomic_load_explicit (&az_types[AZ_TYPE_INDEX(type)], memory_order_acquire);
+		if (!klass) klass = az_type_get_class (type);
+		return klass;
+	}
+	#define AZ_CLASS_FROM_TYPE(t) az_class_from_type(t)
+	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_class_from_type(t))
 #elif defined(AZ_GLOBALS_SINGLE_THREAD)
 	/* Dynamically allocated array*/
 	extern AZClass **az_types;
@@ -68,6 +85,7 @@ extern "C" {
 	#define AZ_CLASS_FROM_TYPE(t) az_types[AZ_TYPE_INDEX(t)]
 	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_types[AZ_TYPE_INDEX(t)])
 #elif defined(AZ_GLOBALS_MULTI_THREAD)
+	AZClass *az_type_get_class (unsigned int type);
 	#define AZ_CLASS_FROM_TYPE(t) az_type_get_class(t)
 	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_type_get_class(t))
 #endif
@@ -83,7 +101,7 @@ extern "C" {
 #define AZ_TYPE_IS_FINAL(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_FINAL)
 #define AZ_TYPE_IS_ABSTRACT(t) (AZ_CLASS_FLAGS(AZ_CLASS_FROM_TYPE(t)) & AZ_FLAG_ABSTRACT)
 
-#if defined(AZ_GLOBALS_STATIC) || defined(AZ_GLOBALS_SINGLE_THREAD)
+#if defined(AZ_GLOBALS_SINGLE_THREAD)
 	#ifdef AZ_SAFETY_CHECKS
 		static inline AZClass *
 		az_type_get_class (unsigned int type)
@@ -98,20 +116,24 @@ extern "C" {
 	#define AZ_TYPES_LOCK()
 	#define AZ_TYPES_UNLOCK()
 	#define AZ_TYPE_READ(t) (t)
-#elif defined(AZ_GLOBALS_MULTI_THREAD)
-	AZClass *az_type_get_class (unsigned int type);
+#elif defined(AZ_GLOBALS_STATIC) || defined(AZ_GLOBALS_MULTI_THREAD)
 	/**
 	 * @brief Lock the type system mutex
 	 *
 	 * The mutex is recursive, so it can be taken recursively from class/implementation
 	 * constructors and nested get_type() calls.
 	 *
+	 * Registration (az_register_type/az_register_composite_type) holds the lock through
+	 * the entire reserve -> construct -> publish sequence. The class slot is written
+	 * last, with release semantics, so it serves as the publication point: a non-NULL
+	 * slot always denotes a fully constructed class. The typecode variable itself is
+	 * stored earlier (with release semantics) because class constructors may need it
+	 * for circular type references (e.g. methods of A and B taking arguments of each
+	 * other's type) - a typecode alone never grants access to an unfinished class.
+	 *
 	 * Lazy type registration (get_type methods) uses double-checked locking: a fast-path
 	 * acquire-read of the static type variable, followed by the locked check-and-register
-	 * sequence. The lock is held through the entire registration (including class_init and
-	 * post_init), so the fully constructed class is published to other threads via the
-	 * mutex release-acquire pair. The acquire-load on the fast path synchronizes with the
-	 * release semantics of the mutex unlock:
+	 * sequence:
 	 *
 	 * unsigned int t = AZ_TYPE_READ(type);
 	 * if (t) return t;
@@ -122,6 +144,11 @@ extern "C" {
 	 * t = type;
 	 * AZ_TYPES_UNLOCK();
 	 * return t;
+	 *
+	 * Under AZ_GLOBALS_STATIC reading the class itself is also lock-free: the acquire
+	 * load in the AZ_CLASS_FROM_TYPE fast path synchronizes with the release store of
+	 * the slot. Under AZ_GLOBALS_MULTI_THREAD all class access goes through the locked
+	 * az_type_get_class.
 	 *
 	 * For types with dynamically-grown subtype arrays (e.g. az_reference_of_get_type),
 	 * the fast-path is not safe because the array itself may be reallocated; these must

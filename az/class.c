@@ -129,6 +129,9 @@ void
 az_class_new_with_value (AZClass *klass)
 {
 	az_register_class(klass);
+	/* Fundamental classes are statically initialized; publish immediately */
+	/* (az_init runs before any concurrent access) */
+	az_class_publish (klass);
 }
 
 void
@@ -161,6 +164,20 @@ az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type,
 	arikkei_return_if_fail (impl_offset <= UINT16_MAX);
 	arikkei_return_if_fail (inst_offset <= UINT16_MAX);
 #endif
+	/*
+	 * The interface class has to be fully constructed (published): az_class_post_init
+	 * resolves the interface chain and non-interface classes also initialize the
+	 * embedded implementation from it. In particular a class constructor cannot
+	 * implement an interface whose own constructor is still running (circular
+	 * interface implementation is not supported - see AZClass documentation).
+	 */
+	AZClass *iface_class = AZ_CLASS_FROM_TYPE(type);
+	if (!iface_class) {
+		fprintf (stderr, "az_class_declare_interface: %s cannot declare interface type %u:"
+			" the interface class is not fully constructed yet (circular interface implementation is not supported)\n",
+			(const char *) klass->name, type);
+		return;
+	}
 	AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[idx] : &klass->ifaces_self[idx];
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (!ifentry->type);
@@ -169,7 +186,6 @@ az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type,
 	/* if class is interface, sub-implementations are defined in it's standalone implementations instead */
 	if (!AZ_CLASS_IS_INTERFACE(klass)) {
 		/* Init implementation */
-		AZClass *iface_class = AZ_CLASS_FROM_TYPE(ifentry->type);
 		az_implementation_init_by_type ((AZImplementation *) ((char *) klass + ifentry->impl_offset), ifentry->type);
 	}
 }
@@ -197,6 +213,8 @@ az_class_post_init (AZClass *klass)
 		/* Initially n_ifaces_all has the value from parent class */
 		for (i = 0; i < klass->n_ifaces_self; i++) {
 			AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[i] : &klass->ifaces_self[i];
+			/* The declaration may have been rejected (e.g. circular interface implementation) */
+			if (!ifentry->type) continue;
 			AZClass *iface_class = AZ_CLASS_FROM_TYPE(ifentry->type);
 			klass->n_ifaces_all += (1 + iface_class->n_ifaces_all);
 		}
@@ -242,8 +260,11 @@ az_class_post_init (AZClass *klass)
 			}
 			unsigned int idx = 0;
 			for (i = 0; i < klass->n_ifaces_self; i++) {
-				ifaces[idx] = *az_class_iface_self(klass, i);
-				AZClass *iface_class = AZ_CLASS_FROM_TYPE(az_class_iface_self(klass, i)->type);
+				const AZIFEntry *self_entry = az_class_iface_self(klass, i);
+				/* The declaration may have been rejected (e.g. circular interface implementation) */
+				if (!self_entry->type) continue;
+				ifaces[idx] = *self_entry;
+				AZClass *iface_class = AZ_CLASS_FROM_TYPE(self_entry->type);
 				idx += 1;
 				memcpy(&ifaces[idx], az_class_iface_all(iface_class, 0), iface_class->n_ifaces_all * sizeof (AZIFEntry *));
 				idx += iface_class->n_ifaces_all;
@@ -449,6 +470,8 @@ az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, vo
 	/* interfaces */
 	for (uint16_t i = 0; i < (int) klass->n_ifaces_self; i++) {
 		const AZIFEntry *ifentry = az_class_iface_self(klass, i);
+		/* Skip entries whose declaration was rejected during construction */
+		if (!ifentry->type) continue;
 		AZClass *if_class = AZ_CLASS_FROM_TYPE(ifentry->type);
 		AZImplementation *if_impl = (impl) ? (AZImplementation *) ((char *) impl + ifentry->impl_offset) : NULL;
 		void *if_inst = (inst) ? (void *) ((char *) inst + ifentry->inst_offset) : NULL;
@@ -485,6 +508,8 @@ az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, vo
 	/* interfaces */
 	for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
 		const AZIFEntry *ifentry = az_class_iface_self(klass, i);
+		/* Skip entries whose declaration was rejected during construction */
+		if (!ifentry->type) continue;
 		AZClass *if_class = AZ_CLASS_FROM_TYPE(ifentry->type);
 		AZImplementation *if_impl = (impl) ? (AZImplementation *) ((char *) impl + ifentry->impl_offset) : NULL;
 		void *if_inst = (inst) ? (void *) ((char *) inst + ifentry->inst_offset) : NULL;

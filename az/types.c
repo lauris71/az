@@ -107,6 +107,10 @@ az_register_type (unsigned int *type, const unsigned char *name, unsigned int pa
 {
 #ifdef AZ_SAFETY_CHECKS
 	ENSURE_INITIALIZED();
+#endif
+	/* The recursive registry mutex is held through the entire reserve -> construct -> publish sequence */
+	AZ_TYPES_LOCK();
+#ifdef AZ_SAFETY_CHECKS
 	assert (!parent_type || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size));
 	assert (!parent_type || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size));
 #endif
@@ -121,6 +125,9 @@ az_register_type (unsigned int *type, const unsigned char *name, unsigned int pa
 	if (n_properties_self) az_class_set_num_properties (klass, n_properties_self);
 	if (class_init) class_init (klass);
 	az_class_post_init (klass);
+	/* The class is fully constructed - publish it to lock-free readers */
+	az_class_publish (klass);
+	AZ_TYPES_UNLOCK();
 	return klass;
 }
 
@@ -134,6 +141,10 @@ az_register_composite_type (unsigned int *type, const unsigned char *name, unsig
 {
 #ifdef AZ_SAFETY_CHECKS
 	ENSURE_INITIALIZED();
+#endif
+	/* The recursive registry mutex is held through the entire reserve -> construct -> publish sequence */
+	AZ_TYPES_LOCK();
+#ifdef AZ_SAFETY_CHECKS
 	assert (!parent_type || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size));
 	assert (!parent_type || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size));
 #endif
@@ -148,6 +159,9 @@ az_register_composite_type (unsigned int *type, const unsigned char *name, unsig
 	if (n_properties_self) az_class_set_num_properties (klass, n_properties_self);
 	if (class_init) class_init (klass, data);
 	az_class_post_init (klass);
+	/* The class is fully constructed - publish it to lock-free readers */
+	az_class_publish (klass);
+	AZ_TYPES_UNLOCK();
 	return klass;
 }
 

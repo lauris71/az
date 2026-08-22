@@ -15,6 +15,7 @@
 #include <az/function.h>
 #include <az/function-native.h>
 #include <az/function-value.h>
+#include <az/interface.h>
 #include <az/packed-value.h>
 #include <az/reference-of.h>
 #include <az/string.h>
@@ -41,6 +42,7 @@ static void test_call_native();
 static void test_object_list();
 static void test_masked_field();
 static void test_masked_field_widths();
+static void test_circular_reference();
 
 void test_hash_map(void);
 void test_hash_set(void);
@@ -78,6 +80,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_masked_field);
         } else if (!strcmp(argv[i], "masked-field-widths")) {
             RUN_TEST(test_masked_field_widths);
+        } else if (!strcmp(argv[i], "circular-reference")) {
+            RUN_TEST(test_circular_reference);
         } else if (!strcmp(argv[i], "hash-map")) {
             RUN_TEST(test_hash_map);
         } else if (!strcmp(argv[i], "hash-set")) {
@@ -1225,4 +1229,130 @@ test_masked_field_widths()
     set_val.boolean_v = 0;
     TEST_ASSERT (az_instance_set_property_by_key (&klass->impl, &inst, (const uint8_t *) "bin8", AZ_IMPL_FROM_TYPE (AZ_TYPE_BOOLEAN), &set_val, NULL));
     TEST_ASSERT_EQUAL_UINT8 (0x01, inst.u8);
+}
+
+/*
+ * Circular type references in class constructors
+ *
+ * While a class constructor runs the class is registered (valid typecode) but not
+ * published (AZ_CLASS_FROM_TYPE returns NULL). Definition methods may reference such
+ * types by typecode, but implementing an in-flight interface is rejected with a
+ * warning (see AZClass documentation).
+ */
+
+typedef struct {
+    uint32_t v;
+} CircInst;
+
+static unsigned int circ_a_type = 0;
+static unsigned int circ_b_type = 0;
+
+static unsigned int circ_b_get_type (void);
+
+static void
+circ_a_class_init (AZClass *klass)
+{
+    /* Property of type B - triggers B registration while A is in flight */
+    az_class_define_property_value (klass, 0, (const uint8_t *) "b", circ_b_get_type (), 1,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET (CircInst, v));
+}
+
+static void
+circ_b_class_init (AZClass *klass)
+{
+    /* A is mid-construction: typecode valid, class not yet published */
+    TEST_ASSERT (circ_a_type != 0);
+    TEST_ASSERT (AZ_CLASS_FROM_TYPE (circ_a_type) == NULL);
+    /* Circular reference by typecode is allowed in definitions */
+    az_class_define_property_value (klass, 0, (const uint8_t *) "a", circ_a_type, 1,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET (CircInst, v));
+}
+
+static unsigned int
+circ_a_get_type (void)
+{
+    if (!circ_a_type) {
+        az_register_type (&circ_a_type, (const unsigned char *) "CircA", AZ_TYPE_STRUCT, sizeof (AZClass), sizeof (CircInst),
+            AZ_FLAG_FINAL, 0, 1, circ_a_class_init, NULL, NULL);
+    }
+    return circ_a_type;
+}
+
+static unsigned int
+circ_b_get_type (void)
+{
+    if (!circ_b_type) {
+        az_register_type (&circ_b_type, (const unsigned char *) "CircB", AZ_TYPE_STRUCT, sizeof (AZClass), sizeof (CircInst),
+            AZ_FLAG_FINAL, 0, 1, circ_b_class_init, NULL, NULL);
+    }
+    return circ_b_type;
+}
+
+/* Circular interface implementation (not supported) */
+
+typedef struct {
+    AZClass klass;
+    AZImplementation iface_impl;
+} CircImplClass;
+
+static unsigned int circ_iface_type = 0;
+static unsigned int circ_impl_type = 0;
+
+static unsigned int circ_impl_get_type (void);
+
+static void
+circ_iface_class_init (AZClass *klass)
+{
+    /* Triggers CircImpl registration while the interface is in flight */
+    az_class_define_property_value (klass, 0, (const uint8_t *) "impl", circ_impl_get_type (), 1,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, 0);
+}
+
+static void
+circ_impl_class_init (AZClass *klass)
+{
+    /* Rejected with a clear warning: the interface is mid-construction */
+    az_class_declare_interface (klass, 0, circ_iface_type, ARIKKEI_OFFSET (CircImplClass, iface_impl), 0);
+}
+
+static unsigned int
+circ_iface_get_type (void)
+{
+    if (!circ_iface_type) {
+        az_register_interface_type (&circ_iface_type, (const unsigned char *) "CircIface", AZ_TYPE_INTERFACE,
+            sizeof (AZInterfaceClass), sizeof (AZImplementation), sizeof (uint32_t), AZ_FLAG_ABSTRACT, 0, 1,
+            circ_iface_class_init, NULL, NULL, NULL);
+    }
+    return circ_iface_type;
+}
+
+static unsigned int
+circ_impl_get_type (void)
+{
+    if (!circ_impl_type) {
+        az_register_type (&circ_impl_type, (const unsigned char *) "CircImpl", AZ_TYPE_STRUCT, sizeof (CircImplClass), sizeof (CircInst),
+            AZ_FLAG_FINAL, 1, 0, circ_impl_class_init, NULL, NULL);
+    }
+    return circ_impl_type;
+}
+
+static void
+test_circular_reference()
+{
+    az_init();
+    /* Circular property references by typecode */
+    unsigned int ta = circ_a_get_type ();
+    unsigned int tb = circ_b_get_type ();
+    AZClass *ka = AZ_CLASS_FROM_TYPE (ta);
+    AZClass *kb = AZ_CLASS_FROM_TYPE (tb);
+    TEST_ASSERT (ka != NULL);
+    TEST_ASSERT (kb != NULL);
+    TEST_ASSERT_EQUAL_UINT (tb, ka->props_self[0].type);
+    TEST_ASSERT_EQUAL_UINT (ta, kb->props_self[0].type);
+    /* Circular interface implementation is rejected, both classes still publish */
+    unsigned int ti = circ_iface_get_type ();
+    unsigned int tm = circ_impl_get_type ();
+    TEST_ASSERT (AZ_CLASS_FROM_TYPE (ti) != NULL);
+    TEST_ASSERT (AZ_CLASS_FROM_TYPE (tm) != NULL);
+    TEST_ASSERT (!az_type_implements (tm, ti));
 }

@@ -22,9 +22,13 @@ extern "C" {
 
 /*
  * Three variants of handling global type arrays:
- * AZ_GLOBALS_STATIC - use compile-time fixed size arrays (AZ_MAX_TYPES)
+ * AZ_GLOBALS_STATIC - fixed-size static array (AZ_MAX_TYPES); thread-safe
+ *     registration with a lock-free AZ_CLASS_FROM_TYPE fast path
  * AZ_GLOBALS_SINGLE_THREAD - completely ignore concurrency 
- * AZ_GLOBALS_MULTI_THREAD - use mutex
+ * AZ_GLOBALS_MULTI_THREAD - mutex-protected dynamically grown array, all
+ *     class access goes through the locked az_type_get_class
+ *
+ * In all cases az_init() has to be called before spawning threads.
  * 
  * The following macros are redefined depending on globals handling:
  * - AZ_CLASS_FROM_TYPE

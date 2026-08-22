@@ -173,7 +173,8 @@ enum AZTypeFlags {
 
 /* Fundamental types have ANY as parent */
 #define AZ_NUM_FUNDAMENTAL_TYPES (AZ_TYPE_IDX_BLOCK + 1)
-#define AZ_NUM_BASE_TYPES (AZ_TYPE_IDX_OBJECT + 1)
+/* All base classes with predefined typecodes (registered by az_init) */
+#define AZ_NUM_BASE_TYPES (AZ_TYPE_IDX_OUTPUT_STREAM + 1)
 
 /** @ingroup types
  * @brief Predefined typecodes
