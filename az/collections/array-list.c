@@ -37,15 +37,13 @@ az_array_list_get_type (void)
 	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!type) {
-		AZArrayListKlass = (AZArrayListClass *) az_register_type (&type, (const unsigned char *) "AZArrayList", AZ_TYPE_BLOCK, sizeof (AZArrayListClass), sizeof (AZArrayList), 0,
+		az_register_type (&type, (const unsigned char *) "AZArrayList", AZ_TYPE_BLOCK, sizeof (AZArrayListClass), sizeof (AZArrayList), 0,
 			1, 0,
 			(void (*) (AZClass *)) array_list_class_init,
 			(void (*) (const AZImplementation *, void *)) array_list_init,
 			(void (*) (const AZImplementation *, void *)) array_list_finalize);
-
-		AZArrayListKlass->list_impl.collection_impl.contains = array_list_contains;
-		AZArrayListKlass->list_impl.get_element = array_list_get_element;
-		AZArrayListKlass->default_size = 4;
+		/* Registration nested inside another class construction is deferred - force it */
+		AZArrayListKlass = (AZArrayListClass *) az_type_get_class (type);
 	}
 	t = type;
 	AZ_TYPES_UNLOCK();
@@ -56,6 +54,9 @@ static void
 array_list_class_init (AZArrayListClass *klass)
 {
 	az_class_declare_interface((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZArrayListClass, list_impl), 0);
+	klass->list_impl.collection_impl.contains = array_list_contains;
+	klass->list_impl.get_element = array_list_get_element;
+	klass->default_size = 4;
 }
 
 static void

@@ -1234,10 +1234,11 @@ test_masked_field_widths()
 /*
  * Circular type references in class constructors
  *
- * While a class constructor runs the class is registered (valid typecode) but not
- * published (AZ_CLASS_FROM_TYPE returns NULL). Definition methods may reference such
- * types by typecode, but implementing an in-flight interface is rejected with a
- * warning (see AZClass documentation).
+ * Types referenced from a class constructor are reserved immediately (valid
+ * typecode) but constructed lazily if the registration was nested inside another
+ * class construction. Consequently circular references through properties and even
+ * interface implementation resolve regardless of registration order; only genuine
+ * extends/implements cycles are rejected (with a clear error).
  */
 
 typedef struct {
@@ -1252,18 +1253,17 @@ static unsigned int circ_b_get_type (void);
 static void
 circ_a_class_init (AZClass *klass)
 {
-    /* Property of type B - triggers B registration while A is in flight */
+    /* Property of type B - reserves B (nested registration is deferred) */
     az_class_define_property_value (klass, 0, (const uint8_t *) "b", circ_b_get_type (), 1,
         AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET (CircInst, v));
+    TEST_ASSERT (circ_b_type != 0);
 }
 
 static void
 circ_b_class_init (AZClass *klass)
 {
-    /* A is mid-construction: typecode valid, class not yet published */
+    /* B is constructed lazily after A was fully constructed */
     TEST_ASSERT (circ_a_type != 0);
-    TEST_ASSERT (AZ_CLASS_FROM_TYPE (circ_a_type) == NULL);
-    /* Circular reference by typecode is allowed in definitions */
     az_class_define_property_value (klass, 0, (const uint8_t *) "a", circ_a_type, 1,
         AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET (CircInst, v));
 }
@@ -1288,7 +1288,7 @@ circ_b_get_type (void)
     return circ_b_type;
 }
 
-/* Circular interface implementation (not supported) */
+/* Circular interface implementation (works with deferred construction) */
 
 typedef struct {
     AZClass klass;
@@ -1303,7 +1303,7 @@ static unsigned int circ_impl_get_type (void);
 static void
 circ_iface_class_init (AZClass *klass)
 {
-    /* Triggers CircImpl registration while the interface is in flight */
+    /* Reserves CircImpl (nested registration is deferred, not constructed here) */
     az_class_define_property_value (klass, 0, (const uint8_t *) "impl", circ_impl_get_type (), 1,
         AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, 0);
 }
@@ -1311,7 +1311,7 @@ circ_iface_class_init (AZClass *klass)
 static void
 circ_impl_class_init (AZClass *klass)
 {
-    /* Rejected with a clear warning: the interface is mid-construction */
+    /* CircImpl is constructed lazily, after the interface was fully constructed */
     az_class_declare_interface (klass, 0, circ_iface_type, ARIKKEI_OFFSET (CircImplClass, iface_impl), 0);
 }
 
@@ -1336,6 +1336,134 @@ circ_impl_get_type (void)
     return circ_impl_type;
 }
 
+/*
+ * The esoteric case: A implements B and C, B extends C and D, C has a property of A.
+ * Previously the result depended on the registration entry point.
+ */
+
+typedef struct {
+    AZClass klass;
+    AZImplementation b_impl;
+    AZImplementation c_impl;
+} CDAClass;
+
+typedef struct {
+    uint32_t b_data;
+    uint32_t c_data;
+} CDAInst;
+
+static unsigned int cd_a_type = 0, cd_b_type = 0, cd_c_type = 0, cd_d_type = 0;
+
+static unsigned int cd_a_get_type (void);
+
+static void
+cd_c_class_init (AZClass *klass)
+{
+    /* Property referring to A - reserves A, does not construct it */
+    az_class_define_property_value (klass, 0, (const uint8_t *) "a", cd_a_get_type (), 1,
+        AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET (CDAInst, b_data));
+}
+
+static unsigned int
+cd_c_get_type (void)
+{
+    if (!cd_c_type) {
+        az_register_interface_type (&cd_c_type, (const unsigned char *) "CDC", AZ_TYPE_INTERFACE,
+            sizeof (AZInterfaceClass), sizeof (AZImplementation), sizeof (uint32_t), AZ_FLAG_ABSTRACT, 0, 1,
+            cd_c_class_init, NULL, NULL, NULL);
+    }
+    return cd_c_type;
+}
+
+static unsigned int
+cd_d_get_type (void)
+{
+    if (!cd_d_type) {
+        az_register_interface_type (&cd_d_type, (const unsigned char *) "CDD", AZ_TYPE_INTERFACE,
+            sizeof (AZInterfaceClass), sizeof (AZImplementation), sizeof (uint32_t), AZ_FLAG_ABSTRACT, 0, 0,
+            NULL, NULL, NULL, NULL);
+    }
+    return cd_d_type;
+}
+
+static void
+cd_b_class_init (AZClass *klass)
+{
+    /* B extends C and D; declaring C constructs it (reserving A, not constructing it) */
+    az_class_declare_interface (klass, 0, cd_c_get_type (), 0, 0);
+    az_class_declare_interface (klass, 1, cd_d_get_type (), 0, 0);
+}
+
+static unsigned int
+cd_b_get_type (void)
+{
+    if (!cd_b_type) {
+        az_register_interface_type (&cd_b_type, (const unsigned char *) "CDB", AZ_TYPE_INTERFACE,
+            sizeof (AZInterfaceClass), sizeof (AZImplementation), sizeof (uint32_t), AZ_FLAG_ABSTRACT, 2, 0,
+            cd_b_class_init, NULL, NULL, NULL);
+    }
+    return cd_b_type;
+}
+
+static void
+cd_a_class_init (AZClass *klass)
+{
+    /* A is constructed on first access; B and C are fully constructed by then */
+    az_class_declare_interface (klass, 0, cd_b_get_type (), ARIKKEI_OFFSET (CDAClass, b_impl), ARIKKEI_OFFSET (CDAInst, b_data));
+    az_class_declare_interface (klass, 1, cd_c_get_type (), ARIKKEI_OFFSET (CDAClass, c_impl), ARIKKEI_OFFSET (CDAInst, c_data));
+}
+
+static unsigned int
+cd_a_get_type (void)
+{
+    if (!cd_a_type) {
+        az_register_type (&cd_a_type, (const unsigned char *) "CDA", AZ_TYPE_STRUCT, sizeof (CDAClass), sizeof (CDAInst),
+            AZ_FLAG_FINAL, 2, 0, cd_a_class_init, NULL, NULL);
+    }
+    return cd_a_type;
+}
+
+/* Genuine extends cycle: X extends Y, Y extends X - the inner edge is rejected */
+
+static unsigned int cyc_x_type = 0, cyc_y_type = 0;
+
+static unsigned int cyc_y_get_type (void);
+
+static void
+cyc_x_class_init (AZClass *klass)
+{
+    az_class_declare_interface (klass, 0, cyc_y_get_type (), 0, 0);
+}
+
+static void
+cyc_y_class_init (AZClass *klass)
+{
+    /* X is mid-construction: rejected with a clear error, Y completes without it */
+    az_class_declare_interface (klass, 0, cyc_x_type, 0, 0);
+}
+
+static unsigned int
+cyc_x_get_type (void)
+{
+    if (!cyc_x_type) {
+        az_register_interface_type (&cyc_x_type, (const unsigned char *) "CycX", AZ_TYPE_INTERFACE,
+            sizeof (AZInterfaceClass), sizeof (AZImplementation), sizeof (uint32_t), AZ_FLAG_ABSTRACT, 1, 0,
+            cyc_x_class_init, NULL, NULL, NULL);
+    }
+    return cyc_x_type;
+}
+
+static unsigned int
+cyc_y_get_type (void)
+{
+    if (!cyc_y_type) {
+        az_register_interface_type (&cyc_y_type, (const unsigned char *) "CycY", AZ_TYPE_INTERFACE,
+            sizeof (AZInterfaceClass), sizeof (AZImplementation), sizeof (uint32_t), AZ_FLAG_ABSTRACT, 1, 0,
+            cyc_y_class_init, NULL, NULL, NULL);
+    }
+    return cyc_y_type;
+}
+
 static void
 test_circular_reference()
 {
@@ -1344,15 +1472,34 @@ test_circular_reference()
     unsigned int ta = circ_a_get_type ();
     unsigned int tb = circ_b_get_type ();
     AZClass *ka = AZ_CLASS_FROM_TYPE (ta);
-    AZClass *kb = AZ_CLASS_FROM_TYPE (tb);
     TEST_ASSERT (ka != NULL);
-    TEST_ASSERT (kb != NULL);
     TEST_ASSERT_EQUAL_UINT (tb, ka->props_self[0].type);
+    /* B is constructed on first access */
+    AZClass *kb = AZ_CLASS_FROM_TYPE (tb);
+    TEST_ASSERT (kb != NULL);
     TEST_ASSERT_EQUAL_UINT (ta, kb->props_self[0].type);
-    /* Circular interface implementation is rejected, both classes still publish */
+    /* Circular interface implementation now works (deferred construction) */
     unsigned int ti = circ_iface_get_type ();
     unsigned int tm = circ_impl_get_type ();
     TEST_ASSERT (AZ_CLASS_FROM_TYPE (ti) != NULL);
     TEST_ASSERT (AZ_CLASS_FROM_TYPE (tm) != NULL);
-    TEST_ASSERT (!az_type_implements (tm, ti));
+    TEST_ASSERT (az_type_implements (tm, ti));
+    /* The esoteric case: entry from B, property/interface mix */
+    unsigned int tcb = cd_b_get_type ();
+    unsigned int tcc = cd_c_get_type ();
+    unsigned int tcd = cd_d_get_type ();
+    unsigned int tca = cd_a_get_type ();
+    TEST_ASSERT (az_type_implements (tcb, tcc));
+    TEST_ASSERT (az_type_implements (tcb, tcd));
+    TEST_ASSERT (az_type_implements (tca, tcb));
+    TEST_ASSERT (az_type_implements (tca, tcc));
+    /* Transitive: A implements D through B */
+    TEST_ASSERT (az_type_implements (tca, tcd));
+    /* Genuine interface cycle: the closing edge is rejected, everything completes */
+    unsigned int tx = cyc_x_get_type ();
+    unsigned int ty = cyc_y_get_type ();
+    TEST_ASSERT (AZ_CLASS_FROM_TYPE (tx) != NULL);
+    TEST_ASSERT (AZ_CLASS_FROM_TYPE (ty) != NULL);
+    TEST_ASSERT (az_type_implements (tx, ty));
+    TEST_ASSERT (!az_type_implements (ty, tx));
 }

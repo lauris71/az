@@ -57,33 +57,44 @@ extern "C" {
 
 #if defined(AZ_GLOBALS_STATIC)
 	/* Fixed-length static array, thread-safe with lock-free fast path */
-	extern _Atomic(AZClass *) az_types[];
+	extern _Atomic(uintptr_t) az_types[];
 	extern _Atomic unsigned int az_num_types;
-	/* Slow path: locked lookup */
+	/* Slow path: locked lookup, constructs the class on demand */
 	AZClass *az_type_get_class (unsigned int type);
 	/*
 	 * Lock-free fast path
 	 *
-	 * Class slots are published with release semantics only after the class is fully
-	 * constructed (see az_class_publish), so an acquire load yielding non-NULL is
-	 * guaranteed to see the complete class. NULL means the type is not (yet)
-	 * registered - fall back to the locked slow path.
+	 * A slot holds either a class pointer or a tagged (LSB set) construction descriptor
+	 * for a type whose class is reserved but not yet constructed. Class pointers are
+	 * published with release semantics only after full construction (az_class_publish),
+	 * so an acquire load yielding an untagged pointer is guaranteed to see the complete
+	 * class. Anything else falls back to the locked slow path, which constructs the
+	 * class on demand.
 	 */
 	static inline AZClass *
 	az_class_from_type (unsigned int type)
 	{
-		AZClass *klass = atomic_load_explicit (&az_types[AZ_TYPE_INDEX(type)], memory_order_acquire);
-		if (!klass) klass = az_type_get_class (type);
-		return klass;
+		uintptr_t p = atomic_load_explicit (&az_types[AZ_TYPE_INDEX(type)], memory_order_acquire);
+		if (p && !(p & 1)) return (AZClass *) p;
+		return az_type_get_class (type);
 	}
 	#define AZ_CLASS_FROM_TYPE(t) az_class_from_type(t)
 	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_class_from_type(t))
 #elif defined(AZ_GLOBALS_SINGLE_THREAD)
 	/* Dynamically allocated array*/
-	extern AZClass **az_types;
+	extern uintptr_t *az_types;
 	extern unsigned int az_num_types;
-	#define AZ_CLASS_FROM_TYPE(t) az_types[AZ_TYPE_INDEX(t)]
-	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_types[AZ_TYPE_INDEX(t)])
+	/* Slow path: lookup, constructs the class on demand */
+	AZClass *az_type_get_class (unsigned int type);
+	static inline AZClass *
+	az_class_from_type (unsigned int type)
+	{
+		uintptr_t p = az_types[AZ_TYPE_INDEX(type)];
+		if (p && !(p & 1)) return (AZClass *) p;
+		return az_type_get_class (type);
+	}
+	#define AZ_CLASS_FROM_TYPE(t) az_class_from_type(t)
+	#define AZ_IMPL_FROM_TYPE(t) ((AZImplementation *) az_class_from_type(t))
 #elif defined(AZ_GLOBALS_MULTI_THREAD)
 	AZClass *az_type_get_class (unsigned int type);
 	#define AZ_CLASS_FROM_TYPE(t) az_type_get_class(t)
@@ -102,17 +113,6 @@ extern "C" {
 #define AZ_TYPE_IS_ABSTRACT(t) (AZ_CLASS_FLAGS(AZ_CLASS_FROM_TYPE(t)) & AZ_FLAG_ABSTRACT)
 
 #if defined(AZ_GLOBALS_SINGLE_THREAD)
-	#ifdef AZ_SAFETY_CHECKS
-		static inline AZClass *
-		az_type_get_class (unsigned int type)
-		{
-			if (!az_num_types) az_init ();
-			arikkei_return_val_if_fail (AZ_TYPE_INDEX(type) < az_num_types, NULL);
-			return AZ_CLASS_FROM_TYPE(type);
-		}
-	#else
-		#define az_type_get_class AZ_CLASS_FROM_TYPE
-	#endif
 	#define AZ_TYPES_LOCK()
 	#define AZ_TYPES_UNLOCK()
 	#define AZ_TYPE_READ(t) (t)
@@ -124,12 +124,16 @@ extern "C" {
 	 * constructors and nested get_type() calls.
 	 *
 	 * Registration (az_register_type/az_register_composite_type) holds the lock through
-	 * the entire reserve -> construct -> publish sequence. The class slot is written
-	 * last, with release semantics, so it serves as the publication point: a non-NULL
-	 * slot always denotes a fully constructed class. The typecode variable itself is
-	 * stored earlier (with release semantics) because class constructors may need it
-	 * for circular type references (e.g. methods of A and B taking arguments of each
-	 * other's type) - a typecode alone never grants access to an unfinished class.
+	 * the entire reserve -> construct -> publish sequence. The typecode is reserved
+	 * first and stored to the caller's variable (with release semantics) before any
+	 * construction, so class constructors may reference not-yet-constructed types by
+	 * typecode (e.g. methods of A and B taking arguments of each other's type).
+	 *
+	 * Top-level registrations construct the class eagerly; registrations nested inside
+	 * another class construction only reserve the typecode and defer construction to
+	 * the first class access (az_type_get_class). The slot holds a tagged construction
+	 * descriptor until the class is published with release semantics: an untagged slot
+	 * pointer always denotes a fully constructed class.
 	 *
 	 * Lazy type registration (get_type methods) uses double-checked locking: a fast-path
 	 * acquire-read of the static type variable, followed by the locked check-and-register

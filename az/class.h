@@ -87,35 +87,24 @@ struct _AZInstanceAllocator {
 };
 
 /*
- * Class constructor constraints (circular type references)
+ * Class construction and circular type references
  *
- * While a class constructor (class_init) runs, the class is already registered -
- * its typecode is valid and may be visible to other threads - but NOT published,
- * i.e. AZ_CLASS_FROM_TYPE of its own type (and of any type whose constructor
- * started the current registration chain) returns NULL. This allows circular type
- * references: class A may declare a method taking an argument of type B and class
- * B one of type A, because declarations only need the typecode.
+ * Registering a type reserves its typecode immediately; the class itself is
+ * constructed either eagerly (top-level registration, interfaces) or lazily on
+ * first class access (registration nested inside another class construction).
+ * Consequently, from a class constructor:
  *
- * Consequently, from a class constructor only the definition family of library
- * methods may be used with not-yet-published types:
+ * - any type may be referenced by typecode (properties, method signatures),
+ *   including types whose registration is still in progress
+ * - any OTHER type's class may be accessed - it is constructed on demand
+ *   (az_type_get_class), so e.g. interface implementation works for circular
+ *   references regardless of registration order
+ * - the class being constructed is NOT accessible by typecode until its
+ *   construction finishes (self-references have to use the typecode)
  *
- * - az_class_declare_interface (see the constraint below)
- * - az_class_define_property / az_class_define_property_value /
- *   az_class_define_property_packed / az_class_define_property_function_val /
- *   az_class_define_property_function_packed
- * - az_class_define_method family
- *
- * These only store typecodes and never resolve the referenced class. General
- * library methods (az_type_is_a, az_instance_new, property access, ...) may
- * resolve the type internally and must not be called with unpublished types.
- * There are no such constraints for non-circular references: the referenced type
- * is always fully constructed before the referencing constructor runs.
- *
- * Circular interface implementation is NOT supported: az_class_declare_interface
- * has to initialize the embedded implementation from the fully constructed
- * interface class, so the interface may not be mid-construction. In practice:
- * if (interface) class A declares a property of type B, then class B cannot
- * implement interface A.
+ * Genuine circular dependencies through extends/implements edges (A extends B
+ * and B extends A, directly or transitively) are impossible by definition;
+ * they are detected during construction and reported.
  */
 struct _AZClass {
 	AZImplementation impl;

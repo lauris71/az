@@ -34,12 +34,14 @@ az_array_object_get_type ()
 	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!az_array_object_type) {
-		az_array_object_class = (AZArrayObjectClass *) az_register_type (&az_array_object_type, (const unsigned char *) "AZArrayOfObject", AZ_TYPE_OBJECT,
+		az_register_type (&az_array_object_type, (const unsigned char *) "AZArrayOfObject", AZ_TYPE_OBJECT,
 			sizeof (AZArrayObjectClass), sizeof (AZArrayObject), AZ_FLAG_FINAL,
 			1, 0,
 			(void (*) (AZClass *)) array_object_class_init,
 			(void (*) (const AZImplementation *, void *)) array_object_instance_init,
 			(void (*) (const AZImplementation *, void *)) array_object_instance_finalize);
+		/* Registration nested inside another class construction is deferred - force it */
+		az_array_object_class = (AZArrayObjectClass *) az_type_get_class (az_array_object_type);
 	}
 	t = az_array_object_type;
 	AZ_TYPES_UNLOCK();

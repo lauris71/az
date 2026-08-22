@@ -31,10 +31,12 @@ az_buffer_input_stream_get_type (void)
 	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!bistream_type) {
-		bistream_class = (AZBufferInputStreamClass *) az_register_type (&bistream_type, (const unsigned char *) "AZBufferInputStream", AZ_TYPE_STRUCT,
+		az_register_type (&bistream_type, (const unsigned char *) "AZBufferInputStream", AZ_TYPE_STRUCT,
 			sizeof (AZBufferInputStreamClass), sizeof (AZBufferInputStream), AZ_FLAG_FINAL, 0, 0,
 			(void (*) (AZClass *)) bistream_class_init,
 			NULL, NULL);
+		/* Registration nested inside another class construction is deferred - force it */
+		bistream_class = (AZBufferInputStreamClass *) az_type_get_class (bistream_type);
 	}
 	t = bistream_type;
 	AZ_TYPES_UNLOCK();

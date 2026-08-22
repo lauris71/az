@@ -8,7 +8,6 @@
  * Licensed under GNU General Public License version 3 or any later version.
  */
 
-#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -108,27 +107,12 @@ az_register_type (unsigned int *type, const unsigned char *name, unsigned int pa
 #ifdef AZ_SAFETY_CHECKS
 	ENSURE_INITIALIZED();
 #endif
-	/* The recursive registry mutex is held through the entire reserve -> construct -> publish sequence */
-	AZ_TYPES_LOCK();
-#ifdef AZ_SAFETY_CHECKS
-	assert (!parent_type || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size));
-	assert (!parent_type || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size));
-#endif
-	if ((flags & AZ_FLAG_ZERO_MEMORY) || n_interfaces_self || instance_init || instance_finalize) {
-		flags |= AZ_FLAG_CONSTRUCT;
-	}
-	AZClass *klass = az_class_new (name, parent_type, class_size, instance_size, flags, instance_init, instance_finalize);
-	/* Type has to be registered before class_init so it is accessible in class constructor (ifaces, properties) */
-	/* The release store pairs with the acquire-load in AZ_TYPE_READ fast-path */
-	atomic_store_explicit((_Atomic unsigned int *)type, klass->impl.type, memory_order_release);
-	if (n_interfaces_self) az_class_set_num_interfaces (klass, n_interfaces_self);
-	if (n_properties_self) az_class_set_num_properties (klass, n_properties_self);
-	if (class_init) class_init (klass);
-	az_class_post_init (klass);
-	/* The class is fully constructed - publish it to lock-free readers */
-	az_class_publish (klass);
-	AZ_TYPES_UNLOCK();
-	return klass;
+	/* Top-level registrations construct eagerly, nested ones are deferred until first class access */
+	return az_type_register_internal (type, name, parent_type, class_size, instance_size, flags,
+		n_interfaces_self, n_properties_self,
+		class_init, NULL, NULL,
+		instance_init, instance_finalize,
+		0, NULL, 0);
 }
 
 AZClass *
@@ -142,26 +126,11 @@ az_register_composite_type (unsigned int *type, const unsigned char *name, unsig
 #ifdef AZ_SAFETY_CHECKS
 	ENSURE_INITIALIZED();
 #endif
-	/* The recursive registry mutex is held through the entire reserve -> construct -> publish sequence */
-	AZ_TYPES_LOCK();
-#ifdef AZ_SAFETY_CHECKS
-	assert (!parent_type || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size));
-	assert (!parent_type || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size));
-#endif
-	if ((flags & AZ_FLAG_ZERO_MEMORY) || n_interfaces_self || instance_init || instance_finalize) {
-		flags |= AZ_FLAG_CONSTRUCT;
-	}
-	AZClass *klass = az_class_new (name, parent_type, class_size, instance_size, flags, instance_init, instance_finalize);
-	/* Type has to be registered before class_init so it is accessible in class constructor (ifaces, properties) */
-	/* The release store pairs with the acquire-load in AZ_TYPE_READ fast-path */
-	atomic_store_explicit((_Atomic unsigned int *)type, klass->impl.type, memory_order_release);
-	if (n_interfaces_self) az_class_set_num_interfaces (klass, n_interfaces_self);
-	if (n_properties_self) az_class_set_num_properties (klass, n_properties_self);
-	if (class_init) class_init (klass, data);
-	az_class_post_init (klass);
-	/* The class is fully constructed - publish it to lock-free readers */
-	az_class_publish (klass);
-	AZ_TYPES_UNLOCK();
-	return klass;
+	/* Top-level registrations construct eagerly, nested ones are deferred until first class access */
+	return az_type_register_internal (type, name, parent_type, class_size, instance_size, flags,
+		n_interfaces_self, n_properties_self,
+		NULL, class_init, data,
+		instance_init, instance_finalize,
+		0, NULL, 0);
 }
 

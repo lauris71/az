@@ -23,17 +23,20 @@ AZInterfaceClass *az_register_interface_type (unsigned int *type, const unsigned
 	void (*instance_init) (const AZImplementation *, void *),
 	void (*instance_finalize) (const AZImplementation *, void *))
 {
-	AZInterfaceClass *if_klass;
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_val_if_fail (az_type_is_a(parent, AZ_TYPE_INTERFACE), NULL);
 #endif
-	az_register_type (type, name, parent, class_size, inst_size, flags,
+	/*
+	 * Interface classes are always constructed eagerly, even when nested inside
+	 * another class construction: interface constructors may only reference other
+	 * types by typecode and force-construct super-interfaces, so they cannot
+	 * participate in construction cycles.
+	 */
+	return (AZInterfaceClass *) az_type_register_internal (type, name, parent, class_size, inst_size, flags,
 		n_interfaces_self, n_properties_self,
-		class_init, instance_init, instance_finalize);
-	if_klass = (AZInterfaceClass *) AZ_CLASS_FROM_TYPE(*type);
-	if_klass->implementation_size = impl_size;
-	if_klass->implementation_init = implementation_init;
-	return if_klass;
+		class_init, NULL, NULL,
+		instance_init, instance_finalize,
+		impl_size, implementation_init, 1);
 }
 
 AZInterfaceClass AZInterfaceKlass = {

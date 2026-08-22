@@ -95,15 +95,19 @@ az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int 
 {
 #ifdef AZ_SAFETY_CHECKS
 	ENSURE_INITIALIZED();
-	arikkei_return_val_if_fail ((parent_type == AZ_TYPE_NONE) || (class_size >= AZ_CLASS_FROM_TYPE(parent_type)->class_size), 0);
-	arikkei_return_val_if_fail ((parent_type == AZ_TYPE_NONE) || (instance_size >= AZ_CLASS_FROM_TYPE(parent_type)->instance_size), 0);
 #endif
 	arikkei_return_val_if_fail (!AZ_TYPE_IS_FINAL(parent_type), 0);
 
 	AZClass *klass = (AZClass *) malloc (class_size);
 	memset (klass, 0, class_size);
 	if (parent_type) {
-		AZClass *parent_class = AZ_CLASS_FROM_TYPE(parent_type);
+		/* The parent class is constructed on demand */
+		AZClass *parent_class = az_type_get_class (parent_type);
+		arikkei_return_val_if_fail (parent_class != NULL, NULL);
+#ifdef AZ_SAFETY_CHECKS
+		arikkei_return_val_if_fail (class_size >= parent_class->class_size, NULL);
+		arikkei_return_val_if_fail (instance_size >= parent_class->instance_size, NULL);
+#endif
 		memcpy (klass, parent_class, parent_class->class_size);
 		/* Overwrite values from supertype */
 		klass->impl.flags &= ~AZ_FLAG_ABSTRACT;
@@ -120,15 +124,13 @@ az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int 
 	klass->instance_init = instance_init;
 	klass->instance_finalize = instance_finalize;
 
-	az_register_class(klass);
-
+	/* The typecode is assigned and the class published by the caller (az_type_construct) */
 	return klass;
 }
 
 void
 az_class_new_with_value (AZClass *klass)
 {
-	az_register_class(klass);
 	/* Fundamental classes are statically initialized; publish immediately */
 	/* (az_init runs before any concurrent access) */
 	az_class_publish (klass);
@@ -165,16 +167,15 @@ az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type,
 	arikkei_return_if_fail (inst_offset <= UINT16_MAX);
 #endif
 	/*
-	 * The interface class has to be fully constructed (published): az_class_post_init
-	 * resolves the interface chain and non-interface classes also initialize the
-	 * embedded implementation from it. In particular a class constructor cannot
-	 * implement an interface whose own constructor is still running (circular
-	 * interface implementation is not supported - see AZClass documentation).
+	 * The interface class is needed to initialize the embedded implementation and to
+	 * resolve the interface chain in az_class_post_init; az_type_get_class constructs
+	 * it on demand. NULL means a genuine extends/implements cycle (the interface is
+	 * already being constructed), which is rejected with a clear warning.
 	 */
-	AZClass *iface_class = AZ_CLASS_FROM_TYPE(type);
+	AZClass *iface_class = az_type_get_class (type);
 	if (!iface_class) {
 		fprintf (stderr, "az_class_declare_interface: %s cannot declare interface type %u:"
-			" the interface class is not fully constructed yet (circular interface implementation is not supported)\n",
+			" circular interface implementation\n",
 			(const char *) klass->name, type);
 		return;
 	}

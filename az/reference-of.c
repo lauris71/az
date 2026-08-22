@@ -35,7 +35,7 @@ az_abstract_reference_of_get_type (void)
 	return t;
 }
 
-static void reference_of_class_init (AZReferenceOfClass *klass, AZClass *inst_class);
+static void reference_of_class_init (AZReferenceOfClass *klass, uintptr_t instance_type);
 static void reference_of_instance_init (AZReferenceOfClass *klass, AZReferenceOf *ref_of);
 static void reference_of_instance_finalize (AZReferenceOfClass *klass, AZReferenceOf *ref_of);
 /* AZClass implementation */
@@ -55,18 +55,15 @@ az_reference_of_get_type (unsigned int instance_type)
 		num_subtypes = new_size;
 	}
 	if (!subtypes[AZ_TYPE_INDEX(instance_type)]) {
-		/* Only value types */
-		AZClass *inst_class = AZ_CLASS_FROM_TYPE(instance_type);
-		unsigned int len = (unsigned int) strlen ((const char *) inst_class->name);
-		unsigned char *name = malloc (len + 12);
-		snprintf ((char *) name, len + 12, "ReferenceOf%s", inst_class->name);
-		unsigned int pos = (sizeof (AZReferenceOf) + inst_class->alignment) & ~(inst_class->alignment);
-		az_register_composite_type (&subtypes[AZ_TYPE_INDEX(instance_type)], name, AZ_TYPE_ABSTRACT_REFERENCE_OF, sizeof (AZReferenceOfClass), pos + inst_class->instance_size, 0,
+		/* Only value types; the instance typecode is passed as data and resolved at
+		 * class construction (sizes and name are derived there), so reserving the
+		 * composite type does not force construction of the instance type */
+		az_register_composite_type (&subtypes[AZ_TYPE_INDEX(instance_type)], (const unsigned char *) "ReferenceOf", AZ_TYPE_ABSTRACT_REFERENCE_OF, sizeof (AZReferenceOfClass), sizeof (AZReferenceOf), 0,
 			0, 0,
 			(void (*) (AZClass *, void *)) reference_of_class_init,
 			(void (*) (const AZImplementation *, void *)) reference_of_instance_init,
 			(void (*) (const AZImplementation *, void *)) reference_of_instance_finalize,
-			inst_class);
+			(void *) (uintptr_t) instance_type);
 	}
 	unsigned int type = subtypes[AZ_TYPE_INDEX(instance_type)];
 	AZ_TYPES_UNLOCK();
@@ -74,8 +71,18 @@ az_reference_of_get_type (unsigned int instance_type)
 }
 
 static void
-reference_of_class_init (AZReferenceOfClass *klass, AZClass *inst_class)
+reference_of_class_init (AZReferenceOfClass *klass, uintptr_t instance_type)
 {
+	/* The class is under construction; deriving name and sizes may force the
+	 * construction of the instance type (safe: the instance type cannot reference
+	 * this composite by anything but typecode) */
+	AZClass *inst_class = az_type_get_class ((unsigned int) instance_type);
+	unsigned int len = (unsigned int) strlen ((const char *) inst_class->name);
+	unsigned char *name = (unsigned char *) malloc (len + 12);
+	snprintf ((char *) name, len + 12, "ReferenceOf%s", inst_class->name);
+	((AZClass *) klass)->name = name;
+	unsigned int pos = (sizeof (AZReferenceOf) + inst_class->alignment) & ~(inst_class->alignment);
+	((AZClass *) klass)->instance_size = pos + inst_class->instance_size;
 	if (inst_class->alignment > klass->reference_klass.klass.alignment) klass->reference_klass.klass.alignment = inst_class->alignment;
 	klass->instance_type = AZ_CLASS_TYPE(inst_class);
 	klass->reference_klass.klass.to_string = reference_of_to_string;

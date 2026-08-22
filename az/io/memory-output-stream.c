@@ -30,10 +30,12 @@ az_memory_output_stream_get_type (void)
 	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!mostream_type) {
-		mostream_class = (AZMemoryOutputStreamClass *) az_register_type (&mostream_type, (const unsigned char *) "AZMemoryOutputStream", AZ_TYPE_STRUCT,
+		az_register_type (&mostream_type, (const unsigned char *) "AZMemoryOutputStream", AZ_TYPE_STRUCT,
 			sizeof (AZMemoryOutputStreamClass), sizeof (AZMemoryOutputStream), AZ_FLAG_FINAL, 0, 0,
 			(void (*) (AZClass *)) mostream_class_init,
 			NULL, NULL);
+		/* Registration nested inside another class construction is deferred - force it */
+		mostream_class = (AZMemoryOutputStreamClass *) az_type_get_class (mostream_type);
 	}
 	t = mostream_type;
 	AZ_TYPES_UNLOCK();
