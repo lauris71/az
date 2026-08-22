@@ -117,6 +117,7 @@ az_instance_new (unsigned int type)
 #endif
 	AZClass *klass = AZ_CLASS_FROM_TYPE(type);
 	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_ABSTRACT), NULL);
+	arikkei_return_val_if_fail(klass->instance_size > 0, NULL);
 	void *inst;
 	if (klass->allocator && klass->allocator->allocate) {
 		inst = klass->allocator->allocate (klass);
@@ -136,6 +137,8 @@ az_instance_new_array (unsigned int type, unsigned int n_elements)
 	arikkei_return_val_if_fail(!AZ_TYPE_IS_INTERFACE(type), NULL);
 #endif
 	AZClass *klass = az_type_get_class (type);
+	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_ABSTRACT), NULL);
+	arikkei_return_val_if_fail(klass->instance_size > 0, NULL);
 	void *elements;
 	if (klass->allocator && klass->allocator->allocate_array) {
 		elements = klass->allocator->allocate_array (klass, n_elements);

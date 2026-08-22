@@ -467,11 +467,11 @@ az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, vo
 int
 az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
-	int result, i;
+	int result;
 	//arikkei_return_val_if_fail (impl != NULL, -1);
 	arikkei_return_val_if_fail (key != NULL, -1);
 	/* NB! Until "new" is handled differently we have to go subclass-first */
-	for (i = 0; i < (int) klass->n_props_self; i++) {
+	for (uint16_t i = 0; i < klass->n_props_self; i++) {
 		if (az_string_equals(key, klass->props_self[i].key) && AZ_FIELD_IS_FUNCTION(&klass->props_self[i])) {
 			if (klass->props_self[i].signature && !az_function_signature_is_assignable_to (klass->props_self[i].signature, sig, 0)) {
 				continue;
@@ -483,7 +483,7 @@ az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, vo
 		}
 	}
 	/* interfaces */
-	for (i = 0; i < ( int) klass->n_ifaces_self; i++) {
+	for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
 		const AZIFEntry *ifentry = az_class_iface_self(klass, i);
 		AZClass *if_class = AZ_CLASS_FROM_TYPE(ifentry->type);
 		AZImplementation *if_impl = (impl) ? (AZImplementation *) ((char *) impl + ifentry->impl_offset) : NULL;

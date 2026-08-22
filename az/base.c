@@ -106,7 +106,8 @@ AZClass AZClassKlass = {
 	&AZImplKlass,
 	0, 0, 0, 0, {0}, NULL,
 	(const uint8_t *) "class",
-	7, sizeof(AZClass), sizeof(AZClass),
+	/* Class is variable size */
+	7, sizeof(AZClass), 0,
 	NULL,
 	NULL, NULL,
 	NULL, NULL, class_to_string,

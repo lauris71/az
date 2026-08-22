@@ -47,7 +47,6 @@ unsigned int
 az_type_is_a (unsigned int type, unsigned int test)
 {
 	AZClass *klass;
-	unsigned int i;
 #ifdef AZ_SAFETY_CHECKS
 	ENSURE_INITIALIZED();
 	arikkei_return_val_if_fail (az_type_is_valid(type), 0);
@@ -56,20 +55,11 @@ az_type_is_a (unsigned int type, unsigned int test)
 	if (!type) return 0;
 	if (type == test) return 1;
 
-#if defined(AZ_GLOBALS_STATIC) || defined(AZ_GLOBALS_SINGLE_THREAD)
-	test = AZ_TYPE_INDEX(test);
-	uint32_t idx = az_types[AZ_TYPE_INDEX(type)].pidx;
-	while (idx) {
-		if (idx == test) return 1;
-		idx = az_types[idx].pidx;
-	}
-#else
 	klass = AZ_CLASS_FROM_TYPE(type);
 	while (klass->parent) {
 		if (klass->parent->impl.type == test) return 1;
 		klass = klass->parent;
 	}
-#endif
 	return 0;
 }
 

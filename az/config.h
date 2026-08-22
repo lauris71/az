@@ -46,6 +46,10 @@ extern "C" {
     #endif
 #endif
 
+#if !defined(AZ_GLOBALS_SINGLE_THREAD)
+    #define AZ_MT_REFERENCES
+#endif
+
 #ifdef __cplusplus
 };
 #endif

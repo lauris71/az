@@ -1,4 +1,4 @@
-#define __AZ_CONVERT_H__
+#define __AZ_CONVERT_C__
 
 /*
  * A run-time type library

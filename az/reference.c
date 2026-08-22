@@ -26,8 +26,6 @@ mtx_t mutex;
 #define AZ_REFERENCE_LOCK() mtx_lock (&mutex)
 #define AZ_REFERENCE_UNLOCK() mtx_unlock (&mutex)
 
-static void az_reference_drop (AZReferenceClass *klass, AZReference *ref);
-
 void
 az_reference_ref (AZReference* ref)
 {

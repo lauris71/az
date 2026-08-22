@@ -12,9 +12,9 @@
  * Single global mutex is created for all reference types
  */
 
-#define AZ_MT_REFERENCES
-
 typedef struct _AZReferenceClass AZReferenceClass;
+
+#include <arikkei/arikkei-utils.h>
 
 #include <az/class.h>
 
@@ -58,6 +58,15 @@ struct _AZReferenceClass {
 };
 
 extern AZReferenceClass AZReferenceKlass;
+
+/**
+ * @brief Drop the last reference
+ *
+ * Called by az_reference_unref when the reference count reaches 1. Gives
+ * AZReferenceClass::drop a chance to claim ownership, otherwise disposes
+ * and deletes the instance.
+ */
+void az_reference_drop (AZReferenceClass *klass, AZReference *ref);
 
 #ifdef AZ_MT_REFERENCES
 void az_reference_ref (AZReference* ref);
