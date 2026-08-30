@@ -116,7 +116,8 @@ az_function_signature_is_assignable_to (const AZFunctionSignature *sig, const AZ
 	if (sig->n_args != other->n_args) return 0;
 	if (test_ret_val && (sig->ret_type || other->ret_type) && !az_type_is_a (sig->ret_type, other->ret_type)) return 0;
 	for (i = 0; i < sig->n_args; i++) {
-		if (!az_type_is_convertible_to (other->arg_types[i], sig->arg_types[i])) return 0;
+		/* fixme: For now we have to accept conditional conversion (should be fixed in Aosora first) */
+		if (az_type_get_conversion_to (other->arg_types[i], sig->arg_types[i]) > AZ_CONVERT_CONDITIONAL) return 0;
 	}
 	return 1;
 }
@@ -178,7 +179,7 @@ az_function_invoke_packed (const AZFunctionImplementation *impl, void *inst, AZP
 			d += 1;
 		}
 		while (d < sig->n_args) {
-			if (!args[s].impl && az_type_is_a (sig->arg_types[d], AZ_TYPE_BLOCK)) {
+			if (!args[s].impl && AZ_TYPE_IS_BLOCK (sig->arg_types[d])) {
 				s += 1;
 				d += 1;
 				continue;

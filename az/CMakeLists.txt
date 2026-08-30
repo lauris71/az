@@ -68,11 +68,16 @@ add_library(az STATIC
 
 set_property(TARGET az PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+# Debug builds produce libarikkeid; consumers linking the target never see the difference
+set_target_properties(arikkei PROPERTIES DEBUG_POSTFIX d)
+
 target_include_directories(az PUBLIC
 	${PROJECT_SOURCE_DIR}
-	${CMAKE_SOURCE_DIR}/arikkei
-	${CMAKE_SOURCE_DIR}/../arikkei
 )
+
+# arikkei is a drop-in static library (added by the top-level CMakeLists);
+# linking the target provides its include path transitively
+target_link_libraries(az PUBLIC arikkei)
 
 add_subdirectory(classes)
 add_subdirectory(collections)

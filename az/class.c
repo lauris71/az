@@ -260,17 +260,33 @@ az_class_post_init (AZClass *klass)
 				ifaces = klass->ifaces_all;
 			}
 			unsigned int idx = 0;
+			/*
+			 * A class may implement the same interface multiple times: directly and
+			 * transitively through other interfaces. Direct (self) declarations come
+			 * first so they win the az_instance_get_interface lookup.
+			 */
 			for (i = 0; i < klass->n_ifaces_self; i++) {
 				const AZIFEntry *self_entry = az_class_iface_self(klass, i);
 				/* The declaration may have been rejected (e.g. circular interface implementation) */
 				if (!self_entry->type) continue;
 				ifaces[idx] = *self_entry;
-				AZClass *iface_class = AZ_CLASS_FROM_TYPE(self_entry->type);
 				idx += 1;
-				memcpy(&ifaces[idx], az_class_iface_all(iface_class, 0), iface_class->n_ifaces_all * sizeof (AZIFEntry *));
-				idx += iface_class->n_ifaces_all;
 			}
-			memcpy (&ifaces[idx], az_class_iface_all(klass->parent, 0), klass->parent->n_ifaces_all * sizeof (AZIFEntry *));
+			/* Transitive closures: the offsets have to be composed with the self entry's */
+			for (i = 0; i < klass->n_ifaces_self; i++) {
+				const AZIFEntry *self_entry = az_class_iface_self(klass, i);
+				if (!self_entry->type) continue;
+				AZClass *iface_class = AZ_CLASS_FROM_TYPE(self_entry->type);
+				for (unsigned int j = 0; j < iface_class->n_ifaces_all; j++) {
+					const AZIFEntry *sub_entry = az_class_iface_all(iface_class, j);
+					ifaces[idx].type = sub_entry->type;
+					ifaces[idx].impl_offset = self_entry->impl_offset + sub_entry->impl_offset;
+					ifaces[idx].inst_offset = self_entry->inst_offset + sub_entry->inst_offset;
+					idx += 1;
+				}
+			}
+			/* Parent offsets are class-absolute (the parent is embedded at offset 0) */
+			memcpy (&ifaces[idx], az_class_iface_all(klass->parent, 0), klass->parent->n_ifaces_all * sizeof (AZIFEntry));
 		}
 	}
 	if (klass->n_ifaces_all) {
@@ -488,6 +504,8 @@ az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, vo
 	return -1;
 }
 
+#define noVERBOSE
+
 int
 az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
@@ -495,17 +513,43 @@ az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, vo
 	//arikkei_return_val_if_fail (impl != NULL, -1);
 	arikkei_return_val_if_fail (key != NULL, -1);
 	/* NB! Until "new" is handled differently we have to go subclass-first */
+#ifdef VERBOSE
+	fprintf(stderr, "Lookup function in %s: %s (", (const char *) klass->name, (const char *) key->str);
+	for (unsigned int i = 0; i < sig->n_args; i++) {
+		AZClass *arg_class = AZ_CLASS_FROM_TYPE(sig->arg_types[i]);
+		fprintf(stderr, "%s ", (arg_class) ? (const char *) arg_class->name : "NULL");
+	}
+	AZClass *ret_class = (sig->ret_type) ? AZ_CLASS_FROM_TYPE(sig->ret_type) : NULL;
+	fprintf(stderr, ") -> %s\n", ret_class ? (const char *) ret_class->name : "NULL");
+#endif
 	for (uint16_t i = 0; i < klass->n_props_self; i++) {
 		if (az_string_equals(key, klass->props_self[i].key) && AZ_FIELD_IS_FUNCTION(&klass->props_self[i])) {
-			if (klass->props_self[i].signature && !az_function_signature_is_assignable_to (klass->props_self[i].signature, sig, 0)) {
+			const AZFunctionSignature *prop_sig = klass->props_self[i].signature;
+#ifdef VERBOSE
+			fprintf(stderr, "    (");
+			for (unsigned int j = 0; j < prop_sig->n_args; j++) {
+				AZClass *arg_class = AZ_CLASS_FROM_TYPE(prop_sig->arg_types[j]);
+				fprintf(stderr, "%s ", arg_class ? (const char *) arg_class->name : "NULL");
+			}
+			ret_class = (prop_sig->ret_type) ? AZ_CLASS_FROM_TYPE(prop_sig->ret_type) : NULL;
+			fprintf(stderr, ") -> %s", ret_class ? (const char *) ret_class->name : "NULL");
+#endif
+			if (prop_sig && !az_function_signature_is_assignable_to (prop_sig, sig, 0)) {
+#ifdef VERBOSE
+				fprintf(stderr, " -\n");
+#endif
 				continue;
 			}
+#ifdef VERBOSE
+			fprintf(stderr, " OK\n");
+#endif
 			*def_class = klass;
 			if (sub_impl) *sub_impl = impl;
 			if (sub_inst) *sub_inst = inst;
 			return i;
 		}
 	}
+	fprintf (stderr, "    (not found)\n");
 	/* interfaces */
 	for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
 		const AZIFEntry *ifentry = az_class_iface_self(klass, i);

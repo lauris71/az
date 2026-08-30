@@ -561,44 +561,44 @@ az_post_init_primitive_classes (void)
 	}
 }
 
-#define A 0
-#define C 1
-#define E 2
-#define N 3
+#define A AZ_CONVERT_AUTO
+#define C AZ_CONVERT_CONDITIONAL
+#define E AZ_CONVERT_EXPLICIT
+#define N AZ_CANNOT_CONVERT
 
 const unsigned char az_primitive_conversion_table[] = {
 	/* From none */
 	N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N,
 	/* From any */
 	N, A, N, N, N, N, N, N, N, N, N, N, N, N, N, N,
-	/* Boolean */
-	N, A, A, E, E, E, E, E, E, E, E, E, E, E, E, N,
-	/* Int8 */
-	N, A, E, A, C, A, C, A, C, A, C, A, A, A, A, N,
-	/* UInt8 */
-	N, A, E, C, A, A, A, A, A, A, A, A, A, A, A, N,
-	/* Int16 */
-	N, A, E, C, C, A, C, A, C, A, C, A, A, A, A, N,
-	/* UInt16 */
-	N, A, E, C, C, C, A, A, A, A, A, A, A, A, A, N,
-	/* Int32 */
-	N, A, E, C, C, C, C, A, C, A, C, C, A, C, A, N,
-	/* UInt32 */
-	N, A, E, C, C, C, C, C, A, A, A, C, A, C, A, N,
-	/* Int64 */
-	N, A, E, C, C, C, C, C, C, A, C, C, C, C, C, N,
-	/* UInt64 */
-	N, A, E, C, C, C, C, C, C, C, A, C, C, C, C, N,
-	/* Float */
-	N, A, E, C, C, C, C, C, C, C, C, A, A, A, A, N,
-	/* Double */
-	N, A, E, C, C, C, C, C, C, C, C, C, A, C, A, N,
-	/* Complex float */
-	N, A, E, C, C, C, C, C, C, C, C, C, C, A, A, N,
-	/* Complex double */
-	N, A, E, C, C, C, C, C, C, C, C, C, C, C, A, N,
-	/* Pointer */
-	N, A, E, E, E, E, E, E, E, E, E, E, E, E, E, A
+	/* From boolean */
+	N, A, A, N, N, N, N, N, N, N, N, N, N, N, N, N,
+	/* From int8 */
+	N, A, N, A, C, A, C, A, C, A, C, A, A, A, A, N,
+	/* From uint8 */
+	N, A, N, C, A, A, A, A, A, A, A, A, A, A, A, N,
+	/* From int16 */
+	N, A, N, C, C, A, C, A, C, A, C, A, A, A, A, N,
+	/* From uint16 */
+	N, A, N, C, C, C, A, A, A, A, A, A, A, A, A, N,
+	/* From int32 */
+	N, A, N, C, C, C, C, A, C, A, C, C, A, C, A, N,
+	/* From uint32 */
+	N, A, N, C, C, C, C, C, A, A, A, C, A, C, A, N,
+	/* From int64 */
+	N, A, N, C, C, C, C, C, C, A, C, C, C, C, C, N,
+	/* From uint64 */
+	N, A, N, C, C, C, C, C, C, C, A, C, C, C, C, E,
+	/* From float */
+	N, A, N, C, C, C, C, C, C, C, C, A, A, A, A, N,
+	/* From double */
+	N, A, N, C, C, C, C, C, C, C, C, C, A, C, A, N,
+	/* From complex float */
+	N, A, N, C, C, C, C, C, C, C, C, C, C, A, A, N,
+	/* From complex double */
+	N, A, N, C, C, C, C, C, C, C, C, C, C, C, A, N,
+	/* From pointer */
+	N, A, N, N, N, N, N, N, N, N, E, N, N, N, N, A
 };
 
 static unsigned int

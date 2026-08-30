@@ -16,21 +16,28 @@
 #include <az/private.h>
 #include <az/types.h>
 
-unsigned int
-az_type_is_convertible_to (unsigned int type, unsigned int test)
+AZConversionType
+az_type_get_conversion_to (unsigned int type, unsigned int to_type)
 {
 #ifdef AZ_SAFETY_CHECKS
 	ENSURE_INITIALIZED();
 	// fixme: Disallowing 0 breaks azo
-	arikkei_return_val_if_fail (!type || az_type_is_valid(type), 0);
-	arikkei_return_val_if_fail (az_type_is_valid(test), 0);
+	arikkei_return_val_if_fail (!type || az_type_is_valid(type), AZ_CANNOT_CONVERT);
+	arikkei_return_val_if_fail (az_type_is_valid(to_type), AZ_CANNOT_CONVERT);
 #endif
-	if (az_type_is_assignable_to (type, test)) return 1;
-	/* Only arithmetic types have autoconversion */
-	if (AZ_TYPE_IS_ARITHMETIC(type) && AZ_TYPE_IS_ARITHMETIC(test)) {
-		if (az_primitive_can_convert(test, type) == AZ_CONVERT_AUTO) return 1;
-		fprintf (stderr, "Convert %s -> %s\n", AZ_CLASS_FROM_TYPE(type)->name, AZ_CLASS_FROM_TYPE(test)->name);
-		return 1;
+	if (type == AZ_TYPE_NONE) {
+		/* NONE can be converted to typed null (i.e. block type with null block pointer) */
+		/* fixme: temporarily AUTO, should be EXPLICIT (has to be fixed in Aosora first) */
+		return (AZ_TYPE_IS_BLOCK(to_type)) ? AZ_CONVERT_AUTO : AZ_CANNOT_CONVERT;
 	}
-	return 0;
+	/* Everything can be converted to itself, it's supertype and to an interface implemented by it */
+	if (az_type_is_assignable_to (type, to_type)) return AZ_CONVERT_AUTO;
+	/* Numeric conversions follow the conversion table */
+	if (AZ_TYPE_IS_ARITHMETIC(type) && AZ_TYPE_IS_ARITHMETIC(to_type)) {
+		return (AZConversionType) az_primitive_can_convert (to_type, type);
+	}
+	if ((type == AZ_TYPE_UINT64) && (to_type == AZ_TYPE_POINTER)) return AZ_CONVERT_EXPLICIT;
+	if ((type == AZ_TYPE_POINTER) && (to_type == AZ_TYPE_UINT64)) return AZ_CONVERT_EXPLICIT;
+	if (AZ_TYPE_IS_BLOCK(type) && (to_type == AZ_TYPE_POINTER)) return AZ_CONVERT_EXPLICIT;
+	return AZ_CANNOT_CONVERT;
 }

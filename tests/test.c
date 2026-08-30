@@ -10,6 +10,7 @@
 
 #include <az/az.h>
 #include <az/base.h>
+#include <az/boxed-interface.h>
 #include <az/boxed-value.h>
 #include <az/extend.h>
 #include <az/function.h>
@@ -32,7 +33,7 @@
 
 #include "unity/unity.h"
 
-static void test_types();
+static void test_compile();
 static void test_types_mt();
 static void test_to_string();
 static void test_boxed_value();
@@ -44,6 +45,7 @@ static void test_masked_field();
 static void test_masked_field_widths();
 static void test_circular_reference();
 static void test_strings_mt();
+static void test_boxed_interface_conversion();
 
 void test_hash_map(void);
 void test_hash_set(void);
@@ -62,7 +64,7 @@ main(int argc, const char *argv[])
     UNITY_BEGIN();
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "types")) {
-            RUN_TEST(test_types);
+            RUN_TEST(test_compile);
         } else if (!strcmp(argv[i], "types-mt")) {
             RUN_TEST(test_types_mt);
         } else if (!strcmp(argv[i], "to-string")) {
@@ -85,6 +87,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_circular_reference);
         } else if (!strcmp(argv[i], "strings-mt")) {
             RUN_TEST(test_strings_mt);
+        } else if (!strcmp(argv[i], "boxed-interface-conversion")) {
+            RUN_TEST(test_boxed_interface_conversion);
         } else if (!strcmp(argv[i], "hash-map")) {
             RUN_TEST(test_hash_map);
         } else if (!strcmp(argv[i], "hash-set")) {
@@ -158,7 +162,7 @@ static const TypeDef defs[] = {
 #define NUM_DEFS (sizeof(defs) / sizeof(defs[0]))
 
 static void
-test_types()
+test_compile()
 {
     az_init();
     for (int i = 1; i < NUM_DEFS; i++) {
@@ -1588,4 +1592,95 @@ test_strings_mt()
         }
         if (smt_concat[i]) az_string_unref (smt_concat[i]);
     }
+}
+
+/*
+ * Boxed interface conversion
+ *
+ * A boxed interface contains the whole instantiable object (for lifetime) and the
+ * presented interface view onto it. Converting a boxed interface to a supertype
+ * interface has to preserve the presented view, not re-resolve the target from
+ * the containing object: the keyset view of a map is a collection, but the map
+ * itself is also a collection - resolving from the map would yield the wrong view.
+ */
+
+typedef struct {
+    AZClass klass;
+    AZImplementation keys_impl;
+    AZImplementation coll_impl;
+} BIMapClass;
+
+typedef struct {
+    uint32_t keys_data;
+    uint32_t coll_data;
+} BIMapInst;
+
+static unsigned int bi_coll_type = 0;
+static unsigned int bi_keys_type = 0;
+static unsigned int bi_map_type = 0;
+
+static unsigned int
+bi_coll_get_type (void)
+{
+    if (!bi_coll_type) {
+        az_register_interface_type (&bi_coll_type, (const unsigned char *) "BIColl", AZ_TYPE_INTERFACE,
+            sizeof (AZInterfaceClass), sizeof (AZImplementation), sizeof (uint32_t), AZ_FLAG_ABSTRACT, 0, 0,
+            NULL, NULL, NULL, NULL);
+    }
+    return bi_coll_type;
+}
+
+static unsigned int
+bi_keys_get_type (void)
+{
+    if (!bi_keys_type) {
+        az_register_interface_type (&bi_keys_type, (const unsigned char *) "BIKeys", bi_coll_get_type (),
+            sizeof (AZInterfaceClass), sizeof (AZImplementation), sizeof (uint32_t), AZ_FLAG_ABSTRACT, 0, 0,
+            NULL, NULL, NULL, NULL);
+    }
+    return bi_keys_type;
+}
+
+static void
+bi_map_class_init (AZClass *klass)
+{
+    /* The map presents both the keyset view and a direct collection view */
+    az_class_declare_interface (klass, 0, bi_keys_get_type (), ARIKKEI_OFFSET (BIMapClass, keys_impl), ARIKKEI_OFFSET (BIMapInst, keys_data));
+    az_class_declare_interface (klass, 1, bi_coll_get_type (), ARIKKEI_OFFSET (BIMapClass, coll_impl), ARIKKEI_OFFSET (BIMapInst, coll_data));
+}
+
+static unsigned int
+bi_map_get_type (void)
+{
+    if (!bi_map_type) {
+        az_register_type (&bi_map_type, (const unsigned char *) "BIMap", AZ_TYPE_BLOCK, sizeof (BIMapClass), sizeof (BIMapInst),
+            AZ_FLAG_FINAL, 2, 0, bi_map_class_init, NULL, NULL);
+    }
+    return bi_map_type;
+}
+
+static void
+test_boxed_interface_conversion()
+{
+    az_init();
+    unsigned int keys_type = bi_keys_get_type ();
+    unsigned int coll_type = bi_coll_get_type ();
+    unsigned int map_type = bi_map_get_type ();
+    BIMapInst minst = { 111, 222 };
+    /* Box the map presenting the Keys view */
+    AZBoxedInterface *box = az_boxed_interface_new_from_impl_instance (AZ_IMPL_FROM_TYPE(map_type), &minst, keys_type);
+    TEST_ASSERT (box->inst == &minst.keys_data);
+    /* Keys -> Coll: the keyset view has to be preserved (not re-resolved from the map) */
+    const AZImplementation *dst_impl = NULL;
+    AZValue dst_val;
+    AZValue src;
+    src.reference = &box->reference;
+    TEST_ASSERT_EQUAL_INT (AZ_CONVERSION_EXACT,
+        az_value_convert_autobox (&dst_impl, &dst_val, AZ_BOXED_INTERFACE_IMPL, &src, coll_type, AZ_CONVERT_AUTO));
+    AZBoxedInterface *out = (AZBoxedInterface *) dst_val.reference;
+    /* Keys is a subtype of Coll: the original box is kept */
+    TEST_ASSERT (out == box);
+    TEST_ASSERT (out->inst == &minst.keys_data);
+    az_boxed_interface_unref (out);
+    az_boxed_interface_unref (box);
 }

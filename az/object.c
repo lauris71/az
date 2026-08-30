@@ -80,7 +80,7 @@ AZObject *
 az_object_new (unsigned int type)
 {
 	AZObject *object;
-	arikkei_return_val_if_fail (az_type_is_a (type, AZ_TYPE_OBJECT), NULL);
+	arikkei_return_val_if_fail (AZ_TYPE_IS_OBJECT (type), NULL);
 	object = (AZObject *) az_instance_new (type);
 	object->klass = (AZObjectClass *) az_type_get_class (type);
 	return object;

@@ -1,20 +1,4 @@
-set(CMAKE_BUILD_TYPE Debug)
-
-include(CMakePrintHelpers)
-
-cmake_print_variables(CMAKE_SOURCE_DIR)
-cmake_print_variables(PROJECT_SOURCE_DIR)
-
 find_library(MATH_LIBRARY m)
-find_library(LIBARIKKEI
-    NAMES arikkei arikkeid
-    PATHS
-        ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei/Release ${CMAKE_SOURCE_DIR}/arikkei/build/arikkei/Debug
-        ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei/Release ${CMAKE_SOURCE_DIR}/../arikkei/build/arikkei/Debug
-        ${CMAKE_SOURCE_DIR}/../../build/arikkei/arikkei ${CMAKE_SOURCE_DIR}/../../build/arikkei/arikkei/Release ${CMAKE_SOURCE_DIR}/../../build/arikkei/arikkei/Debug
-        ${CMAKE_SOURCE_DIR}/../build/arikkei/arikkei ${CMAKE_SOURCE_DIR}/../build/arikkei/arikkei/Release ${CMAKE_SOURCE_DIR}/../build/arikkei/arikkei/Debug
-        ${PROJECT_SOURCE_DIR}/../build/arikkei/arikkei ${PROJECT_SOURCE_DIR}/../build/arikkei/arikkei/Release ${PROJECT_SOURCE_DIR}/../build/arikkei/arikkei/Debug
-)
 
 add_executable(az_test
     unity/unity.c
@@ -25,9 +9,10 @@ add_executable(az_test
 
 target_compile_definitions(az_test PRIVATE UNITY_INCLUDE_DOUBLE)
 target_include_directories(az_test PRIVATE ${CMAKE_SOURCE_DIR} ..)
-target_link_directories(az_test PRIVATE ${CMAKE_SOURCE_DIR}/az)
 
-target_link_libraries(az_test PRIVATE az ${LIBARIKKEI})
+# The arikkei target (drop-in, added by the top-level CMakeLists) resolves the
+# library location, name (libarikkei/libarikkeid) and per-config subdirectory
+target_link_libraries(az_test PRIVATE az arikkei)
 
 if(MATH_LIBRARY)
     target_link_libraries(az_test PRIVATE ${MATH_LIBRARY})
@@ -43,3 +28,8 @@ add_test(NAME call-native COMMAND az_test call-native)
 add_test(NAME object-list COMMAND az_test object-list)
 add_test(NAME hash-map COMMAND az_test hash-map)
 add_test(NAME hash-set COMMAND az_test hash-set)
+add_test(NAME masked-field COMMAND az_test masked-field)
+add_test(NAME masked-field-widths COMMAND az_test masked-field-widths)
+add_test(NAME circular-reference COMMAND az_test circular-reference)
+add_test(NAME strings-mt COMMAND az_test strings-mt)
+add_test(NAME boxed-interface-conversion COMMAND az_test boxed-interface-conversion)

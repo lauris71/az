@@ -135,6 +135,11 @@ void
 az_class_publish (AZClass *klass)
 {
 	unsigned int idx = AZ_TYPE_INDEX(klass->impl.type);
+#ifdef AZ_SAFETY_CHECKS
+	/* The CONSTRUCT bit has to agree between the typecode and the class flags */
+	/* (az_instance_init_by_type/finalize_by_type gate on the typecode) */
+	arikkei_return_if_fail (!(klass->impl.type & AZ_FLAG_CONSTRUCT) == !(klass->impl.flags & AZ_FLAG_CONSTRUCT));
+#endif
 #if defined(AZ_GLOBALS_STATIC)
 #ifdef AZ_SAFETY_CHECKS
 	uintptr_t old = slot_load (idx);
@@ -173,8 +178,9 @@ az_type_reserve (unsigned int *type, const unsigned char *name, unsigned int par
 	}
 	ensure_type();
 	unsigned int idx = az_num_types++;
-	/* The typecode flags replicate the az_class_new inheritance (parent flags, ABSTRACT cleared) */
-	uint32_t typecode = idx | (((AZ_TYPE_FLAGS(parent_type) & ~AZ_FLAG_ABSTRACT) | flags) & ~AZ_TYPE_MASK);
+	/* The typecode inherits the parent typecode flags plus the registration flags */
+	/* (AZ_FLAG_ABSTRACT/AZ_FLAG_BOXED are class flags and never enter the typecode) */
+	uint32_t typecode = idx | ((parent_type | flags) & ~AZ_TYPE_MASK);
 	AZTypeDescriptor *desc = (AZTypeDescriptor *) calloc (1, sizeof (AZTypeDescriptor));
 	desc->type = typecode;
 	desc->name = name;

@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.28)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED YES)
 
+include(CMakePrintHelpers)
+
 PROJECT(az)
 
 # The MSVC variable is only set by project(), so this check must come after it
@@ -15,6 +17,21 @@ SET(CMAKE_VERBOSE_MAKEFILE ON)
 SET(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
 
 find_package(Doxygen)
+
+# arikkei is a drop-in static library, expected either nested (az/arikkei) or as a
+# sibling (toplevel_project_dir/arikkei). If the parent project already added it,
+# that target is used instead. Linking the arikkei target resolves the library
+# location, name (libarikkei/libarikkeid) and per-config subdirectory automatically.
+if(NOT TARGET arikkei)
+	if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/arikkei/CMakeLists.txt)
+		add_subdirectory(arikkei)
+	elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../arikkei/CMakeLists.txt)
+		# Outside the source tree - needs an explicit binary directory
+		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../arikkei ${CMAKE_BINARY_DIR}/arikkei)
+	else()
+		message(FATAL_ERROR "arikkei not found - expected at ${CMAKE_CURRENT_SOURCE_DIR}/arikkei or ${CMAKE_CURRENT_SOURCE_DIR}/../arikkei")
+	endif()
+endif()
 
 add_subdirectory(az)
 

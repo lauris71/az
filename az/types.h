@@ -103,11 +103,14 @@ extern "C" {
 
 #define AZ_TYPE_FROM_INDEX(i) (AZ_IMPL_FROM_TYPE(i)->type)
 
+/* Flag-based type checks: equivalent to az_type_is_a (t, AZ_TYPE_...) against the flag-defining */
+/* root type (flags are inherited by subtypes), but resolved directly from the typecode */
 #define AZ_TYPE_IS_BLOCK(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_BLOCK)
 #define AZ_TYPE_IS_VALUE(t) !(AZ_TYPE_FLAGS(t) & AZ_FLAG_BLOCK)
 #define AZ_TYPE_IS_INTERFACE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_INTERFACE)
 #define AZ_TYPE_IS_REFERENCE(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_REFERENCE)
-#define AZ_TYPE_IS_BOXED(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_BOXED)
+/* Both boxed types are final, so the typecode index identifies them exactly */
+#define AZ_TYPE_IS_BOXED(t) ((AZ_TYPE_INDEX(t) == AZ_TYPE_IDX_BOXED_VALUE) || (AZ_TYPE_INDEX(t) == AZ_TYPE_IDX_BOXED_INTERFACE))
 #define AZ_TYPE_IS_OBJECT(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_OBJECT)
 #define AZ_TYPE_IS_FINAL(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_FINAL)
 #define AZ_TYPE_IS_ABSTRACT(t) (AZ_CLASS_FLAGS(AZ_CLASS_FROM_TYPE(t)) & AZ_FLAG_ABSTRACT)
@@ -179,32 +182,32 @@ unsigned int az_type_get_parent_primitive (unsigned int type);
  * @brief Checks whether the given type is a subtype of another
  * 
  * @param type the type that is checked
- * @param test the type tested against
- * @return 1 if type is a subtype of test, 0 if not or if either type is invalid
+ * @param to_type the type tested against
+ * @return 1 if type is a subtype of to_type, 0 if not or if either type is invalid
  */
-unsigned int az_type_is_a (unsigned int type, unsigned int test);
+unsigned int az_type_is_a (unsigned int type, unsigned int to_type);
 
 /** @ingroup types
  * @brief Checks whether the given type implements an interface type
  * 
  * @param type the type that is checked
- * @param test the interface type tested against
- * @return 1 if type implements test, 0 if not or if either type is invalid
+ * @param to_type the interface type tested against
+ * @return 1 if type implements to_type, 0 if not or if either type is invalid
  */
-unsigned int az_type_implements (unsigned int type, unsigned int test);
+unsigned int az_type_implements (unsigned int type, unsigned int to_type);
 /** @ingroup types
  * @brief Checks whether a value of certain type can be assigned to a variable of given type
  * 
  * True if:
- * - type is test
- * - type implements test
- * - type is NONE and test is ANY or BLOCK
+ * - type is to_type
+ * - type implements to_type
+ * - type is NONE and to_type is ANY or BLOCK
  * 
  * @param type the type that is checked
- * @param test the type of variable to be tested against
+ * @param to_type the type of variable to be tested against
  * @return 1 if type can be assigned, 0 if not or if either type is invalid
  */
-unsigned int az_type_is_assignable_to (unsigned int type, unsigned int test);
+unsigned int az_type_is_assignable_to (unsigned int type, unsigned int to_type);
 
 #ifdef __cplusplus
 };

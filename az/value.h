@@ -13,6 +13,7 @@
 #include <arikkei/arikkei-utils.h>
 
 #include <az/class.h>
+#include <az/convert.h>
 #include <az/complex.h>
 #include <az/interface.h>
 #include <az/instance.h>
@@ -375,7 +376,7 @@ void *az_value_new_array(const AZImplementation *impl, unsigned int length);
  */
 void az_value_delete_array(const AZImplementation *impl, void *data, unsigned int length);
 
-unsigned int az_value_convert_auto (const AZImplementation **dst_impl, AZValue *dst_val, const AZImplementation **src_impl, const AZValue *src_val, unsigned int to_type);
+AZConversionResult az_value_convert_autobox (const AZImplementation **dst_impl, AZValue *dst_val, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type);
 unsigned int az_value_convert_in_place (const AZImplementation **impl, AZValue *val, unsigned int to_type);
 
 #ifdef __cplusplus

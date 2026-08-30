@@ -43,56 +43,56 @@ az_type_get_parent_primitive (unsigned int type)
 }
 
 unsigned int
-az_type_is_a (unsigned int type, unsigned int test)
+az_type_is_a (unsigned int type, unsigned int to_type)
 {
 	AZClass *klass;
 #ifdef AZ_SAFETY_CHECKS
 	ENSURE_INITIALIZED();
 	arikkei_return_val_if_fail (az_type_is_valid(type), 0);
-	arikkei_return_val_if_fail (az_type_is_valid(test), 0);
+	arikkei_return_val_if_fail (az_type_is_valid(to_type), 0);
 #endif
 	if (!type) return 0;
-	if (type == test) return 1;
+	if (type == to_type) return 1;
 
 	klass = AZ_CLASS_FROM_TYPE(type);
 	while (klass->parent) {
-		if (klass->parent->impl.type == test) return 1;
+		if (klass->parent->impl.type == to_type) return 1;
 		klass = klass->parent;
 	}
 	return 0;
 }
 
 unsigned int
-az_type_implements (unsigned int type, unsigned int test)
+az_type_implements (unsigned int type, unsigned int to_type)
 {
 	if (!type) return 0;
 #ifdef AZ_SAFETY_CHECKS
 	ENSURE_INITIALIZED();
 	arikkei_return_val_if_fail (az_type_is_valid(type), 0);
-	arikkei_return_val_if_fail (az_type_is_valid(test), 0);
-	arikkei_return_val_if_fail (AZ_TYPE_IS_INTERFACE(test), 0);
+	arikkei_return_val_if_fail (az_type_is_valid(to_type), 0);
+	arikkei_return_val_if_fail (AZ_TYPE_IS_INTERFACE(to_type), 0);
 #endif
 	if (!type) return 0;
-	return az_instance_get_interface (&AZ_CLASS_FROM_TYPE(type)->impl, NULL, test, NULL) != NULL;
+	return az_instance_get_interface (&AZ_CLASS_FROM_TYPE(type)->impl, NULL, to_type, NULL) != NULL;
 }
 
 unsigned int
-az_type_is_assignable_to (unsigned int type, unsigned int test)
+az_type_is_assignable_to (unsigned int type, unsigned int to_type)
 {
 #ifdef AZ_SAFETY_CHECKS
 	ENSURE_INITIALIZED();
 	arikkei_return_val_if_fail (!type || az_type_is_valid(type), 0);
-	arikkei_return_val_if_fail (az_type_is_valid(test), 0);
+	arikkei_return_val_if_fail (az_type_is_valid(to_type), 0);
 #endif
 	if (!type) {
 		/* None can be assigned to any */
-		if (test == AZ_TYPE_ANY) return 1;
+		if (to_type == AZ_TYPE_ANY) return 1;
 		/* None can be assigned to blocks */
-		if (AZ_TYPE_IS_BLOCK(test)) return 1;
+		if (AZ_TYPE_IS_BLOCK(to_type)) return 1;
 	}
-	if (az_type_is_a (type, test)) return 1;
-	if (AZ_TYPE_IS_INTERFACE(test)) {
-		return az_type_implements (type, test);
+	if (az_type_is_a (type, to_type)) return 1;
+	if (AZ_TYPE_IS_INTERFACE(to_type)) {
+		return az_type_implements (type, to_type);
 	}
 	return 0;
 }

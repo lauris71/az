@@ -126,7 +126,7 @@ void
 az_object_list_setup (AZObjectList *objl, unsigned int type)
 {
 	arikkei_return_if_fail (objl != NULL);
-	arikkei_return_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE) || az_type_is_a (type, AZ_TYPE_OBJECT));
+	arikkei_return_if_fail (AZ_TYPE_IS_INTERFACE (type) || AZ_TYPE_IS_OBJECT (type));
 	az_instance_init_by_type (objl, AZ_TYPE_OBJECT_LIST);
 	objl->type = type;
 }
@@ -134,7 +134,7 @@ az_object_list_setup (AZObjectList *objl, unsigned int type)
 AZObjectList *
 az_object_list_new (unsigned int type)
 {
-	arikkei_return_val_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE) || az_type_is_a (type, AZ_TYPE_OBJECT), NULL);
+	arikkei_return_val_if_fail (AZ_TYPE_IS_INTERFACE (type) || AZ_TYPE_IS_OBJECT (type), NULL);
 	AZObjectList *objl = (AZObjectList *) malloc (sizeof (AZObjectList));
 	az_object_list_setup (objl, type);
 	return objl;

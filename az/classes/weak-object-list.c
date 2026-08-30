@@ -125,7 +125,7 @@ void
 az_weak_object_list_setup (AZWeakObjectList *objl, unsigned int type)
 {
 	arikkei_return_if_fail (objl != NULL);
-	arikkei_return_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE) || az_type_is_a (type, AZ_TYPE_ACTIVE_OBJECT));
+	arikkei_return_if_fail (AZ_TYPE_IS_INTERFACE (type) || az_type_is_a (type, AZ_TYPE_ACTIVE_OBJECT));
 	az_instance_init_by_type (objl, AZ_TYPE_WEAK_OBJECT_LIST);
 	objl->type = type;
 }
@@ -133,7 +133,7 @@ az_weak_object_list_setup (AZWeakObjectList *objl, unsigned int type)
 AZWeakObjectList *
 az_weak_object_list_new (unsigned int type)
 {
-	arikkei_return_val_if_fail (az_type_is_a (type, AZ_TYPE_INTERFACE) || az_type_is_a (type, AZ_TYPE_ACTIVE_OBJECT), NULL);
+	arikkei_return_val_if_fail (AZ_TYPE_IS_INTERFACE (type) || az_type_is_a (type, AZ_TYPE_ACTIVE_OBJECT), NULL);
 	AZWeakObjectList *objl = (AZWeakObjectList *) malloc (sizeof (AZWeakObjectList));
 	az_weak_object_list_setup (objl, type);
 	return objl;

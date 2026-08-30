@@ -24,7 +24,7 @@ AZInterfaceClass *az_register_interface_type (unsigned int *type, const unsigned
 	void (*instance_finalize) (const AZImplementation *, void *))
 {
 #ifdef AZ_SAFETY_CHECKS
-	arikkei_return_val_if_fail (az_type_is_a(parent, AZ_TYPE_INTERFACE), NULL);
+	arikkei_return_val_if_fail (AZ_TYPE_IS_INTERFACE(parent), NULL);
 #endif
 	/*
 	 * Interface classes are always constructed eagerly, even when nested inside

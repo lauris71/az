@@ -278,7 +278,9 @@ az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const
 	arikkei_return_val_if_fail (key != NULL, 0);
 	AZString *str = az_string_new(key);
 	int idx = az_class_lookup_function (AZ_CLASS_FROM_IMPL(impl), impl, inst, str, sig, &def_class, &def_impl, &def_inst);
-	if (idx < 0) return 0;
+	if (idx < 0) {
+		return 0;
+	}
 	return az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(def_impl), def_impl, def_inst, idx, dst_impl, dst_val, 16, NULL);
 }
 

@@ -50,7 +50,8 @@ unsigned int az_attrib_dict_get_type (void);
 static inline const AZImplementation *
 az_attrib_dict_lookup (const AZAttribDictImplementation *attrd_impl, AZAttribDict *attrd_inst, const AZString *key, AZValue *val, unsigned int size, unsigned int *flags)
 {
-	return attrd_impl->lookup (attrd_impl, attrd_inst, key, val, size, flags);
+	const AZImplementation *impl = attrd_impl->lookup (attrd_impl, attrd_inst, key, val, size, flags);
+	return impl;
 }
 
 static inline unsigned int

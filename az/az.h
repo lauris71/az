@@ -66,11 +66,6 @@ enum AZTypeFlags {
 	 */
 	AZ_FLAG_REFERENCE = 0x04000000,
 	/**
-	 * @brief Instance is a container of another value (_AZBoxedValue) or interface (_AZBoxedInterface) type
-	 * 
-	 */
-	AZ_FLAG_BOXED = 0x08000000,
-	/**
 	 * @brief A special reference type that contains a pointer to it's class
 	 * 
 	 */
@@ -80,13 +75,6 @@ enum AZTypeFlags {
 	 * 
 	 */
 	AZ_FLAG_FINAL = 0x20000000,
-	/**
-	 * @brief Type is abstract, no instancing is allowed
-	 * 
-	 * This flag is NOT propagated to subclasses.
-	 * 
-	 */
-	AZ_FLAG_ABSTRACT = 0x40000000,
 	/**
 	 * @brief The type instances have constructor or destructor
 	 * 
@@ -119,12 +107,25 @@ enum AZTypeFlags {
  */
 #define AZ_FLAG_IMPL_IS_CLASS 0x01
 /**
+ * @brief Type is abstract, no instancing is allowed
+ *
+ * This flag is NOT propagated to subclasses.
+ */
+#define AZ_FLAG_ABSTRACT 0x02
+/**
  * @brief Instance construction should be preceded by filling memory by zeroes
  *
  * Subclasses should not clear this flag if set set by parent. If set the type can still implement
  * constructor - which can then rely on the instance being zero-filled.
  */
 #define AZ_FLAG_ZERO_MEMORY 0x04
+/**
+ * @brief Instance is a container of another value (_AZBoxedValue) or interface (_AZBoxedInterface) type
+ *
+ * Only a class marker; typecode-level checks should compare against AZ_TYPE_BOXED_VALUE /
+ * AZ_TYPE_BOXED_INTERFACE directly (see AZ_TYPE_IS_BOXED).
+ */
+#define AZ_FLAG_BOXED 0x08
 
 /* Miscellaneous info flags */
 #define AZ_FLAG_ARITHMETIC 0x100
@@ -197,7 +198,7 @@ enum AZType {
 	 * @brief The abstract base class of all types
 	 * 
 	 */
-	AZ_TYPE_ANY = AZ_TYPE_IDX_ANY | AZ_FLAG_ABSTRACT,
+	AZ_TYPE_ANY = AZ_TYPE_IDX_ANY,
 
 	/* Primitives */
 	AZ_TYPE_BOOLEAN = AZ_TYPE_IDX_BOOLEAN | AZ_FLAG_FINAL,
@@ -220,12 +221,12 @@ enum AZType {
 	 * @brief The abstract base class of all composite value types
 	 * 
 	 */
-	AZ_TYPE_STRUCT = AZ_TYPE_IDX_STRUCT | AZ_FLAG_ABSTRACT,
+	AZ_TYPE_STRUCT = AZ_TYPE_IDX_STRUCT,
 	/**
 	 * @brief The abstract base class of all block types
 	 * 
 	 */
-	AZ_TYPE_BLOCK = AZ_TYPE_IDX_BLOCK | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT,
+	AZ_TYPE_BLOCK = AZ_TYPE_IDX_BLOCK | AZ_FLAG_BLOCK,
 
 	/* Special types */
 	/**
@@ -246,16 +247,16 @@ enum AZType {
 	 * @brief An abstract base class of an instance of interface type
 	 * 
 	 */
-	AZ_TYPE_INTERFACE = AZ_TYPE_IDX_INTERFACE | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE,
+	AZ_TYPE_INTERFACE = AZ_TYPE_IDX_INTERFACE | AZ_FLAG_BLOCK | AZ_FLAG_INTERFACE,
 	AZ_TYPE_FIELD = AZ_TYPE_IDX_FIELD | AZ_FLAG_BLOCK | AZ_FLAG_FINAL,
 	AZ_TYPE_FUNCTION_SIGNATURE = AZ_TYPE_IDX_FUNCTION_SIGNATURE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL,
-	AZ_TYPE_FUNCTION = AZ_TYPE_IDX_FUNCTION | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE,
+	AZ_TYPE_FUNCTION = AZ_TYPE_IDX_FUNCTION | AZ_FLAG_BLOCK | AZ_FLAG_INTERFACE,
 	/* Predefined composite types */
 	/**
 	 * @brief A block type that implements reference counting
 	 * 
 	 */
-	AZ_TYPE_REFERENCE = AZ_TYPE_IDX_REFERENCE | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE,
+	AZ_TYPE_REFERENCE = AZ_TYPE_IDX_REFERENCE | AZ_FLAG_BLOCK | AZ_FLAG_REFERENCE | AZ_FLAG_CONSTRUCT,
 	/**
 	 * @brief An immutable reference-counted utf8 string type
 	 * 
@@ -263,21 +264,21 @@ enum AZType {
 	 * can be checked by comparing the pointers.
 	 * 
 	 */
-	AZ_TYPE_STRING = AZ_TYPE_IDX_STRING | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE,
+	AZ_TYPE_STRING = AZ_TYPE_IDX_STRING | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_CONSTRUCT,
 	/**
 	 * @brief A reference that can contain an arbitrary value-type
 	 * 
 	 * These are mostly used to fit any value type into predefined storage space
 	 * 
 	 */
-	AZ_TYPE_BOXED_VALUE = AZ_TYPE_IDX_BOXED_VALUE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED,
+	AZ_TYPE_BOXED_VALUE = AZ_TYPE_IDX_BOXED_VALUE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_CONSTRUCT,
 	/**
 	 * @brief A reference that contain a value and resolved interface of it
 	 * 
 	 * These are used to store interfaces by guaranteeing that the containing instance remains alive (and
 	 * in case of value types at the same place) during the interface lifecycle.
 	 */
-	AZ_TYPE_BOXED_INTERFACE = AZ_TYPE_IDX_BOXED_INTERFACE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED,
+	AZ_TYPE_BOXED_INTERFACE = AZ_TYPE_IDX_BOXED_INTERFACE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_REFERENCE | AZ_FLAG_CONSTRUCT,
 	/**
 	 * @brief A convenience container that stores both a value and a pointer to it's implementation
 	 * 
@@ -289,17 +290,17 @@ enum AZType {
 	 * Objects can be used without specifying their implementations.
 	 * 
 	 */
-	AZ_TYPE_OBJECT = AZ_TYPE_IDX_OBJECT | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_REFERENCE | AZ_FLAG_OBJECT,
+	AZ_TYPE_OBJECT = AZ_TYPE_IDX_OBJECT | AZ_FLAG_BLOCK | AZ_FLAG_REFERENCE | AZ_FLAG_OBJECT | AZ_FLAG_CONSTRUCT,
 	/**
 	 * @brief An abstract interface for reading serialized data
 	 * 
 	 */
-	AZ_TYPE_INPUT_STREAM = AZ_TYPE_IDX_INPUT_STREAM | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE,
+	AZ_TYPE_INPUT_STREAM = AZ_TYPE_IDX_INPUT_STREAM | AZ_FLAG_BLOCK | AZ_FLAG_INTERFACE,
 	/**
 	 * @brief An abstract interface for writing serialized data
 	 * 
 	 */
-	AZ_TYPE_OUTPUT_STREAM = AZ_TYPE_IDX_OUTPUT_STREAM | AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE
+	AZ_TYPE_OUTPUT_STREAM = AZ_TYPE_IDX_OUTPUT_STREAM | AZ_FLAG_BLOCK | AZ_FLAG_INTERFACE
 };
 
 #define AZ_TYPE_IS_ARITHMETIC(t) ((AZ_TYPE_INDEX(t) >= AZ_TYPE_IDX_INT8) && (AZ_TYPE_INDEX(t) <= AZ_TYPE_IDX_COMPLEX_DOUBLE))
