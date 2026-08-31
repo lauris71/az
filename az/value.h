@@ -67,9 +67,24 @@ struct _AZValue64 {
 };
 
 /**
+ * @brief set value to untyped null
+ *
+ * The untyped null value has zero content and is paired with a NULL implementation
+ * (AZ_TYPE_NONE).
+ *
+ * @param dst the destination value
+ */
+static inline void
+az_value_set_null (AZValue *dst)
+{
+	dst->block = NULL;
+}
+
+/**
  * @brief initialize a value location
  * 
  * For value types it calls the constructor, for block types sets pointer to null.
+ * NULL implementation initializes to untyped null.
  * 
  * @param impl the type implementation
  * @param val the destination value (uninitialized)
@@ -77,7 +92,9 @@ struct _AZValue64 {
 static inline void
 az_value_init (const AZImplementation *impl, AZValue *val)
 {
-	if (AZ_IMPL_IS_VALUE(impl)) {
+	if (!impl) {
+		az_value_set_null (val);
+	} else if (AZ_IMPL_IS_VALUE(impl)) {
 		az_instance_init_by_type(val, AZ_IMPL_TYPE(impl));
 	} else if (AZ_IMPL_IS_BLOCK(impl)) {
 		val->block = NULL;
@@ -95,7 +112,10 @@ az_value_init (const AZImplementation *impl, AZValue *val)
 static inline void
 az_value_init_by_type (AZValue *val, unsigned int type)
 {
-	if (AZ_TYPE_IS_VALUE(type)) {
+	if (!type) {
+		/* Untyped null */
+		az_value_set_null (val);
+	} else if (AZ_TYPE_IS_VALUE(type)) {
 		az_instance_init_by_type(val, type);
 	} else if (AZ_TYPE_IS_BLOCK(type)) {
 		val->block = NULL;
@@ -146,6 +166,7 @@ az_value_clear (const AZImplementation *impl, AZValue *val)
  * @brief transfer a value to a new location
  * 
  * Move data from initialized src to uninitialized dst. After the operation src will be uninitialized.
+ * If src implementation is NULL dst is set to untyped null.
  * 
  * @param impl the src implementation
  * @param dst the destination (uninitialized)
@@ -154,8 +175,14 @@ az_value_clear (const AZImplementation *impl, AZValue *val)
 static inline void
 az_value_transfer (const AZImplementation *impl, AZValue *dst, const AZValue *src)
 {
-	if (impl && az_class_value_size(AZ_CLASS_FROM_IMPL(impl))) {
-		memcpy (dst, src, az_class_value_size(AZ_CLASS_FROM_IMPL(impl)));
+	if (dst == src) return;   /* Self-transfer is a no-op */
+	if (impl) {
+		if (az_class_value_size(AZ_CLASS_FROM_IMPL(impl))) {
+			memcpy (dst, src, az_class_value_size(AZ_CLASS_FROM_IMPL(impl)));
+		}
+	} else {
+		/* Untyped null */
+		az_value_set_null (dst);
 	}
 }
 
@@ -178,6 +205,7 @@ const AZImplementation *az_value_transfer_autobox(const AZImplementation *impl, 
  * @brief copy a value to a new location
  * 
  * Copy data from initialized src to uninitialized dst. After the operation src will reamin intact.
+ * If src implementation is NULL dst is set to untyped null.
  * 
  * @param impl the src implemntation
  * @param dst the destination (uninitialized)
@@ -186,6 +214,9 @@ const AZImplementation *az_value_transfer_autobox(const AZImplementation *impl, 
 static inline void
 az_value_copy (const AZImplementation *impl, AZValue *dst, const AZValue *src)
 {
+	/* Self-copy is a caller error: after copy the caller is free to clear src, which
+	 * would lose the only reference. We cannot do anything else, so warn and no-op */
+	arikkei_return_if_fail (dst != src);
 	if (impl) {
 		if (az_class_value_size(AZ_CLASS_FROM_IMPL(impl))) {
 			memcpy (dst, src, az_class_value_size(AZ_CLASS_FROM_IMPL(impl)));
@@ -193,6 +224,9 @@ az_value_copy (const AZImplementation *impl, AZValue *dst, const AZValue *src)
 		if (AZ_IMPL_IS_REFERENCE(impl)) {
 			if (src->reference) az_reference_ref (src->reference);
 		}
+	} else {
+		/* Untyped null */
+		az_value_set_null (dst);
 	}
 }
 
@@ -376,7 +410,40 @@ void *az_value_new_array(const AZImplementation *impl, unsigned int length);
  */
 void az_value_delete_array(const AZImplementation *impl, void *data, unsigned int length);
 
-AZConversionResult az_value_convert_autobox (const AZImplementation **dst_impl, AZValue *dst_val, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type);
+/**
+ * @brief convert a value to another type
+ *
+ * Like az_value_convert_autobox, but ignores boxing: boxed values and boxed
+ * interfaces are treated as plain reference types (no unboxing at input, no
+ * boxing at output).
+ *
+ * @param dst_impl the destination implementation (out)
+ * @param dst_val the destination value (uninitialized)
+ * @param src_impl the source implementation (NULL for untyped null)
+ * @param src_val the source value
+ * @param to_type the target type
+ * @param conversion_type the maximum allowed conversion category
+ * @return the conversion result (AZ_CONVERSION_EXACT/ROUNDED/CLAMPED/FAILED)
+ */
+AZConversionResult az_value_convert (const AZImplementation **dst_impl, AZValue *dst_val, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type);
+
+/**
+ * @brief convert a value to another type, boxing/unboxing if needed
+ *
+ * Boxed values are treated transparently (unboxed at input). Boxed interfaces keep
+ * the presented view. Nothing is converted to AZ_TYPE_BOXED_VALUE (a boxed value is
+ * a storage detail created when the content does not fit into dst, never a target).
+ *
+ * @param dst_impl the destination implementation (out)
+ * @param dst_val the destination value (uninitialized)
+ * @param dst_size the size of the destination value storage
+ * @param src_impl the source implementation (NULL for untyped null)
+ * @param src_val the source value
+ * @param to_type the target type
+ * @param conversion_type the maximum allowed conversion category
+ * @return the conversion result (AZ_CONVERSION_EXACT/ROUNDED/CLAMPED/FAILED)
+ */
+AZConversionResult az_value_convert_autobox (const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type);
 unsigned int az_value_convert_in_place (const AZImplementation **impl, AZValue *val, unsigned int to_type);
 
 #ifdef __cplusplus

@@ -26,8 +26,14 @@ az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *inst)
 {
 	AZClass *klass;
 #ifdef AZ_SAFETY_CHECKS
-	arikkei_return_if_fail (impl != 0);
 	arikkei_return_if_fail (dst != NULL);
+#endif
+	if (!impl) {
+		/* Untyped null */
+		az_value_set_null (dst);
+		return;
+	}
+#ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (inst != NULL);
 #endif
 	klass = AZ_CLASS_FROM_IMPL(impl);
@@ -60,6 +66,8 @@ unsigned int
 az_value_equals (const AZImplementation *impl, const AZValue *lhs, const AZValue *rhs)
 {
 	AZClass *klass;
+	/* Untyped nulls (and the same block) are equal */
+	if (!impl) return lhs->block == rhs->block;
 	if (AZ_IMPL_IS_BLOCK(impl)) {
 		return lhs->block == rhs->block;
 	} else if (AZ_IMPL_IS_VALUE(impl)) {
@@ -105,8 +113,8 @@ void az_value_delete_array(const AZImplementation *impl, void *data, unsigned in
 	arikkei_aligned_free(data);
 }
 
-AZConversionResult
-az_value_convert_autobox (const AZImplementation **dst_impl, AZValue *dst_val, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type)
+static AZConversionResult
+az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type, unsigned int autobox)
 {
 	/* Nothing can be converted to None */
 	if (!to_type) return AZ_CONVERSION_FAILED;
@@ -126,16 +134,37 @@ az_value_convert_autobox (const AZImplementation **dst_impl, AZValue *dst_val, c
 		return AZ_CONVERSION_FAILED;
 	}
 	unsigned int src_type = AZ_IMPL_TYPE(src_impl);
-	/* Identity and supertypes of the (possibly boxed) value itself (Any, Reference, ...) */
+	if (autobox) {
+		/* Boxed values are treated transparently: unboxed at input; if the content fits
+		 * into dst it is copied directly, otherwise az_value_copy_autobox re-boxes it.
+		 * A boxed value can only hold a struct and a struct is converted to its
+		 * supertype automatically, so the plain supertype check below suffices */
+		if (src_type == AZ_TYPE_BOXED_VALUE) {
+			AZBoxedValue *box = (AZBoxedValue *) src_val->reference;
+			src_impl = &box->klass->impl;
+			src_val = &box->val;
+			src_type = AZ_CLASS_TYPE(box->klass);
+		}
+		/* Nothing is converted to AZ_TYPE_BOXED_VALUE: a boxed value is a storage detail
+		 * created by az_value_copy_autobox when the content does not fit, never a
+		 * conversion target (no struct converts to boxed value) */
+	}
+	/* Same type or supertype (with autobox also the box types themselves: Any, Reference, ...) */
 	if (az_type_is_a (src_type, to_type)) {
-		*dst_impl = src_impl;
-		az_value_copy (src_impl, dst_val, src_val);
+		if (autobox) {
+			*dst_impl = az_value_copy_autobox (src_impl, dst_val, src_val, dst_size);
+		} else {
+			az_value_copy (src_impl, dst_val, src_val);
+			*dst_impl = src_impl;
+		}
 		return AZ_CONVERSION_EXACT;
 	}
-	if (src_type == AZ_TYPE_BOXED_INTERFACE) {
+	if (autobox && (src_type == AZ_TYPE_BOXED_INTERFACE)) {
 		/*
-		 * A boxed interface contains the whole instantiable object (val) for lifetime
-		 * reasons, plus the currently presented interface view (impl, inst) onto it.
+		 * A boxed interface is a storage detail: its type is the contained interface
+		 * type, the value inside is just the stored container (kept alive for the
+		 * interface lifecycle). Only the interface is converted, never the value.
+		 *
 		 * The target interface has to be resolved from the presented view, NOT from
 		 * the contained value: the view may be narrower (e.g. the keyset of a map is
 		 * a collection, while the map itself is also a collection).
@@ -164,31 +193,16 @@ az_value_convert_autobox (const AZImplementation **dst_impl, AZValue *dst_val, c
 				}
 			}
 		}
-		/* Fall back to converting the contained value */
-		src_impl = box->val.impl;
-		src_val = &box->val.v;
-		src_type = AZ_IMPL_TYPE(src_impl);
+		/* The contained value is never converted */
+		return AZ_CONVERSION_FAILED;
 	}
-	/* Boxed values are unboxed at input; a boxed value can only hold a struct and a
-	 * struct is converted to its supertype automatically, so the plain supertype
-	 * check below suffices */
-	if (src_type == AZ_TYPE_BOXED_VALUE) {
-		AZBoxedValue *box = (AZBoxedValue *) src_val->reference;
-		src_impl = &box->klass->impl;
-		src_val = &box->val;
-		src_type = AZ_CLASS_TYPE(box->klass);
-	}
-	/* Anything can be converted to the same or supertype of the content (this includes Any) */
-	if (az_type_is_a (src_type, to_type)) {
-		*dst_impl = src_impl;
-		az_value_copy (src_impl, dst_val, src_val);
-		return AZ_CONVERSION_EXACT;
-	}
-	/* Anything can be converted to implemented interface */
-	if (AZ_TYPE_IS_INTERFACE(to_type) && az_type_implements (src_type, to_type)) {
-		dst_val->reference = (AZReference *) az_boxed_interface_new_from_impl_value (src_impl, src_val, to_type);
-		*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BOXED_INTERFACE);
-		return AZ_CONVERSION_EXACT;
+	if (autobox) {
+		/* Anything can be converted to implemented interface */
+		if (AZ_TYPE_IS_INTERFACE(to_type) && az_type_implements (src_type, to_type)) {
+			dst_val->reference = (AZReference *) az_boxed_interface_new_from_impl_value (src_impl, src_val, to_type);
+			*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BOXED_INTERFACE);
+			return AZ_CONVERSION_EXACT;
+		}
 	}
 	/* Arithmetic types */
 	if (AZ_TYPE_IS_ARITHMETIC (to_type) && AZ_TYPE_IS_ARITHMETIC (src_type)) {
@@ -219,6 +233,19 @@ az_value_convert_autobox (const AZImplementation **dst_impl, AZValue *dst_val, c
 	}
 	/* Nothing else can be converted */
 	return AZ_CONVERSION_FAILED;
+}
+
+AZConversionResult
+az_value_convert (const AZImplementation **dst_impl, AZValue *dst_val, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type)
+{
+	/* No boxing: boxed values and boxed interfaces are plain reference types */
+	return az_value_convert_internal (dst_impl, dst_val, 0, src_impl, src_val, to_type, conversion_type, 0);
+}
+
+AZConversionResult
+az_value_convert_autobox (const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type)
+{
+	return az_value_convert_internal (dst_impl, dst_val, dst_size, src_impl, src_val, to_type, conversion_type, 1);
 }
 
 unsigned int

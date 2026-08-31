@@ -21,6 +21,12 @@ typedef struct _AZReferenceClass AZBoxedInterfaceClass;
 extern "C" {
 #endif
 
+/**
+ * @brief A reference type that holds an interface together with the containing instance
+ * 
+ * These are used to enforce the lifecycle of interface values. Plain interfaces will become invalid as soon as
+ * the containing instance is destroyed. Thus storing these in containers is prone to use-after-free bugs.
+ */
 struct _AZBoxedInterface {
 	AZReference reference;
 	const AZImplementation *impl;
@@ -31,6 +37,17 @@ struct _AZBoxedInterface {
 
 extern AZBoxedInterfaceClass AZBoxedInterfaceKlass;
 
+/**
+ * @brief Create a boxed interface from the containing instance and resolved interface implementation/instance
+ * 
+ * The containing instance has to be block.
+ * 
+ * @param impl The containing implementation
+ * @param inst The containing instance
+ * @param if_impl The interface implementation
+ * @param if_inst The interface instance
+ * @return A boxed interface 
+ */
 AZBoxedInterface *az_boxed_interface_new (const AZImplementation *impl, void *inst, const AZImplementation *if_impl, void *if_inst);
 AZBoxedInterface *az_boxed_interface_new_from_impl_value (const AZImplementation *impl, const AZValue *val, unsigned int type);
 AZBoxedInterface *az_boxed_interface_new_from_impl_value_autobox (const AZImplementation *impl, const AZValue *val, unsigned int type);

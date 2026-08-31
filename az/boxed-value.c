@@ -125,6 +125,9 @@ az_value_init_autobox(const AZImplementation *impl, AZValue *dst, unsigned int s
 		} else {
 			dst->block = NULL;
 		}
+	} else {
+		/* Untyped null */
+		az_value_set_null (dst);
 	}
 	return impl;
 }
@@ -132,22 +135,49 @@ az_value_init_autobox(const AZImplementation *impl, AZValue *dst, unsigned int s
 const AZImplementation *
 az_value_transfer_autobox(const AZImplementation *impl, AZValue *dst, AZValue *src, unsigned int size)
 {
+	if (dst == src) {
+		/* In-place size normalization: the result obeys the size argument
+		 * (all structs <= size are in plain form, bigger ones are boxed) */
+		if (impl) {
+			AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
+			if (AZ_CLASS_IS_VALUE(klass) && (klass->instance_size > size)) {
+				/* Big value does not fit - box it in place */
+				dst->block = az_boxed_value_new_from_val (klass, src);
+				return AZ_BOXED_VALUE_IMPL;
+			}
+			if ((klass == (AZClass *) &AZBoxedValueKlass) && (((AZBoxedValue *) src->block)->klass->instance_size <= size)) {
+				/* Boxed content that fits - unbox to plain form in place */
+				AZBoxedValue *boxed = (AZBoxedValue *) src->block;
+				const AZImplementation *content_impl = &boxed->klass->impl;
+				az_value_copy (content_impl, dst, &boxed->val);
+				az_boxed_value_unref (boxed);
+				return content_impl;
+			}
+		}
+		/* Self-transfer is otherwise a no-op */
+		return impl;
+	}
 	if (impl) {
 		AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 		if (AZ_CLASS_IS_VALUE(klass) && (klass->instance_size > size)) {
 			// Value type that does not fit into dst, box
 			dst->block = az_boxed_value_new_from_val(klass, src);
+			/* Clear the source value with its own implementation */
+			az_value_clear(&klass->impl, src);
 			impl = AZ_BOXED_VALUE_IMPL;
-			az_value_clear(impl, src);
 		} else if ((klass == (AZClass *) &AZBoxedValueKlass) && (((AZBoxedValue *) src->block)->klass->instance_size <= size)) {
 			// Boxed value that fits into dst, unbox
 			AZBoxedValue *boxed = (AZBoxedValue *) src->block;
 			impl = &boxed->klass->impl;
 			az_value_copy(impl, dst, &boxed->val);
-			az_value_clear(impl, src);
+			/* Release the box (the content was moved out) */
+			az_boxed_value_unref (boxed);
 		} else {
 			az_value_transfer(impl, dst, src);
 		}
+	} else {
+		/* Untyped null */
+		az_value_set_null (dst);
 	}
 	return impl;
 }
@@ -155,6 +185,8 @@ az_value_transfer_autobox(const AZImplementation *impl, AZValue *dst, AZValue *s
 const AZImplementation *
 az_value_copy_autobox(const AZImplementation *impl, AZValue *dst, const AZValue *src, unsigned int size)
 {
+	/* Self-copy is a caller error (a copy must leave src intact) - warn and no-op */
+	arikkei_return_val_if_fail (dst != src, impl);
 	if (impl) {
 		AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 		if (impl && AZ_CLASS_IS_VALUE(klass) && (klass->instance_size > size)) {
@@ -169,6 +201,9 @@ az_value_copy_autobox(const AZImplementation *impl, AZValue *dst, const AZValue 
 		} else {
 			az_value_copy(impl, dst, src);
 		}
+	} else {
+		/* Untyped null */
+		az_value_set_null (dst);
 	}
 	return impl;
 }
@@ -184,6 +219,9 @@ az_value_set_from_inst_autobox(const AZImplementation *impl, AZValue *dst, unsig
 		} else {
 			az_value_set_from_inst(impl, dst, inst);
 		}
+	} else {
+		/* Untyped null */
+		az_value_set_null (dst);
 	}
 	return impl;
 }

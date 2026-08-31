@@ -1676,7 +1676,7 @@ test_boxed_interface_conversion()
     AZValue src;
     src.reference = &box->reference;
     TEST_ASSERT_EQUAL_INT (AZ_CONVERSION_EXACT,
-        az_value_convert_autobox (&dst_impl, &dst_val, AZ_BOXED_INTERFACE_IMPL, &src, coll_type, AZ_CONVERT_AUTO));
+        az_value_convert_autobox (&dst_impl, &dst_val, sizeof (dst_val), AZ_BOXED_INTERFACE_IMPL, &src, coll_type, AZ_CONVERT_AUTO));
     AZBoxedInterface *out = (AZBoxedInterface *) dst_val.reference;
     /* Keys is a subtype of Coll: the original box is kept */
     TEST_ASSERT (out == box);
