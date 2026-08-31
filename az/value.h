@@ -444,7 +444,20 @@ AZConversionResult az_value_convert (const AZImplementation **dst_impl, AZValue 
  * @return the conversion result (AZ_CONVERSION_EXACT/ROUNDED/CLAMPED/FAILED)
  */
 AZConversionResult az_value_convert_autobox (const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type);
-unsigned int az_value_convert_in_place (const AZImplementation **impl, AZValue *val, unsigned int to_type);
+
+/**
+ * @brief convert a value in place (dst == src), no boxing
+ *
+ * Like az_value_convert, but the value is converted in place.
+ */
+AZConversionResult az_value_convert_in_place (const AZImplementation **impl, AZValue *val, unsigned int to_type, AZConversionType conversion_type);
+
+/**
+ * @brief convert a value in place (dst == src), boxing if needed
+ *
+ * Like az_value_convert_autobox, but the value is converted in place.
+ */
+AZConversionResult az_value_convert_in_place_autobox (const AZImplementation **impl, AZValue *val, unsigned int size, unsigned int to_type, AZConversionType conversion_type);
 
 #ifdef __cplusplus
 };

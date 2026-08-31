@@ -156,7 +156,7 @@ az_function_convert_args_in_place (const AZFunctionImplementation *impl, void *i
 	const AZFunctionSignature *sig = az_function_get_signature(impl, inst);
 	/* fixme: Not sure whether converting this is meaningful or not */
 	for (i = 0; i < sig->n_args; i++) {
-		if (!az_value_convert_in_place (&arg_impls[i], arg_vals[i], sig->arg_types[i])) return 0;
+		if (az_value_convert_in_place (&arg_impls[i], arg_vals[i], sig->arg_types[i], AZ_CONVERT_CONDITIONAL) == AZ_CONVERSION_FAILED) return 0;
 	}
 	return 1;
 }

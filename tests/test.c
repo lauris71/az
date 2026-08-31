@@ -368,18 +368,34 @@ static void
 test_boxed_value()
 {
     az_init();
+    /* Boxed values only hold values bigger than 16 bytes - register a big struct */
+    typedef struct { double v[4]; } BigVal;
+    static unsigned int big_type = 0;
+    if (!big_type) {
+        az_register_type(&big_type, (const unsigned char *) "BigVal", AZ_TYPE_STRUCT, sizeof(AZClass), sizeof(BigVal), AZ_FLAG_FINAL, 0, 0, NULL, NULL, NULL);
+    }
+    AZClass *big_klass = AZ_CLASS_FROM_TYPE(big_type);
+    /* Small value (fits everywhere) is never boxed */
     AZValue val0, val1;
     val0.cdouble_v = (AZComplexDouble) {1.0, -1.0};
     const AZImplementation *impl = az_value_copy_autobox(&AZComplexDoubleKlass.impl, &val1, &val0, 16);
     TEST_ASSERT(impl == &AZComplexDoubleKlass.impl);
-    impl = az_value_copy_autobox(impl, &val0, &val1, 8);
-    TEST_ASSERT(impl == &AZBoxedValueKlass.klass.impl);
-    impl = az_value_copy_autobox(impl, &val1, &val0, 8);
-    TEST_ASSERT(impl == &AZBoxedValueKlass.klass.impl);
-    impl = az_value_copy_autobox(impl, &val0, &val1, 16);
-    TEST_ASSERT(impl == &AZComplexDoubleKlass.impl);
-    TEST_ASSERT(val0.cdouble_v.r == 1.0);
-    TEST_ASSERT(val0.cdouble_v.i == -1.0);
+    TEST_ASSERT(val1.cdouble_v.r == 1.0 && val1.cdouble_v.i == -1.0);
+    /* Big value is boxed into a small destination and unboxed back */
+    AZValue big_src;
+    az_value_init(&big_klass->impl, &big_src);
+    ((BigVal *) &big_src)->v[0] = 3.0;
+    ((BigVal *) &big_src)->v[3] = -7.0;
+    AZValue big_dst;
+    impl = az_value_copy_autobox(&big_klass->impl, &big_dst, &big_src, 16);
+    TEST_ASSERT(impl == AZ_BOXED_VALUE_IMPL);
+    TEST_ASSERT(big_dst.block != NULL);
+    /* Copy back out of the box into a full-size value */
+    AZValue64 big_back;
+    impl = az_value_copy_autobox(AZ_BOXED_VALUE_IMPL, &big_back.value, &big_dst, 64);
+    TEST_ASSERT(impl == &big_klass->impl);
+    TEST_ASSERT(((BigVal *) &big_back)->v[0] == 3.0 && ((BigVal *) &big_back)->v[3] == -7.0);
+    az_boxed_value_unref((AZBoxedValue *) big_dst.block);
 }
 
 static void
@@ -433,7 +449,7 @@ test_array_list()
         AZClass *klass = az_register_type(&types[i], name, AZ_TYPE_STRUCT, sizeof(AZClass), instance_size, AZ_FLAG_FINAL, 0, 0, NULL, NULL, NULL);
         TEST_ASSERT(klass->instance_size == instance_size);
     }
-    AZArrayList *alist = az_array_list_new(AZ_TYPE_ANY, 8);
+    AZArrayList *alist = az_array_list_new(AZ_TYPE_ANY, 16);
     for (unsigned int i = 0; i < 10; i++) {
         uint32_t inst = i;
         TEST_ASSERT(az_array_list_append(alist, &AZUint32Klass.impl, &inst));
@@ -445,8 +461,8 @@ test_array_list()
         TEST_ASSERT(val.uint32_v == i);
     }
     uint8_t buf[256] = {0};
-    /* Trsy lists with element size 8...64 */
-    for (unsigned int s = 8; s <= 64; s = s << 1) {
+    /* Trsy lists with element size 16...64 */
+    for (unsigned int s = 16; s <= 64; s = s << 1) {
         /* Create new list with value_size s */
         alist = az_array_list_new(AZ_TYPE_ANY, s);
         /* Fill it with objects 0..9 */

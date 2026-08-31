@@ -114,10 +114,14 @@ void az_value_delete_array(const AZImplementation *impl, void *data, unsigned in
 }
 
 static AZConversionResult
-az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type, unsigned int autobox)
+az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type, unsigned int autobox, unsigned int transfer)
 {
+	/* The box to release after the content has been converted/moved out (transfer only) */
+	AZBoxedValue *value_box = NULL;
 	/* Nothing can be converted to None */
 	if (!to_type) return AZ_CONVERSION_FAILED;
+	/* The value storage is never smaller than AZValue */
+	arikkei_return_val_if_fail (!autobox || dst_size >= AZ_VALUE_MAX_SIZE, AZ_CONVERSION_FAILED);
 	/* None is converted to typed null (the value carries the target type) */
 	/* fixme: temporarily automatic, should require AZ_CONVERT_EXPLICIT (has to be fixed in Aosora first) */
 	if (!src_impl) {
@@ -144,6 +148,7 @@ az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, 
 			src_impl = &box->klass->impl;
 			src_val = &box->val;
 			src_type = AZ_CLASS_TYPE(box->klass);
+			if (transfer) value_box = box;
 		}
 		/* Nothing is converted to AZ_TYPE_BOXED_VALUE: a boxed value is a storage detail
 		 * created by az_value_copy_autobox when the content does not fit, never a
@@ -151,7 +156,18 @@ az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, 
 	}
 	/* Same type or supertype (with autobox also the box types themselves: Any, Reference, ...) */
 	if (az_type_is_a (src_type, to_type)) {
-		if (autobox) {
+		if (transfer) {
+			if (value_box) {
+				/* Move the content out of the box if it fits, release the box */
+				if (AZ_CLASS_FROM_IMPL(src_impl)->instance_size <= dst_size) {
+					az_value_transfer (src_impl, dst_val, src_val);
+					az_boxed_value_unref (value_box);
+					*dst_impl = src_impl;
+				}
+				/* else: does not fit - keep the box, nothing changes */
+			}
+			/* plain values: nothing to do */
+		} else if (autobox) {
 			*dst_impl = az_value_copy_autobox (src_impl, dst_val, src_val, dst_size);
 		} else {
 			az_value_copy (src_impl, dst_val, src_val);
@@ -175,7 +191,7 @@ az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, 
 			unsigned int if_type = AZ_CLASS_TYPE(AZ_CLASS_FROM_IMPL(box->impl));
 			if (az_type_is_a (if_type, to_type)) {
 				/* The presented interface is already a subtype of to_type - keep the box */
-				az_boxed_interface_ref (box);
+				if (!transfer) az_boxed_interface_ref (box);
 				dst_val->reference = &box->reference;
 				*dst_impl = src_impl;
 				return AZ_CONVERSION_EXACT;
@@ -187,6 +203,8 @@ az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, 
 				if (sub_impl) {
 					/* Re-box the original containing value (lifecycle) with the resolved interface */
 					AZBoxedInterface *new_box = az_boxed_interface_new (box->val.impl, az_value_get_inst (box->val.impl, &box->val.v), sub_impl, sub_inst);
+					/* On transfer the old box is consumed */
+					if (transfer) az_boxed_interface_unref (box);
 					dst_val->reference = &new_box->reference;
 					*dst_impl = src_impl;
 					return AZ_CONVERSION_EXACT;
@@ -196,20 +214,43 @@ az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, 
 		/* The contained value is never converted */
 		return AZ_CONVERSION_FAILED;
 	}
-	if (autobox) {
-		/* Anything can be converted to implemented interface */
-		if (AZ_TYPE_IS_INTERFACE(to_type) && az_type_implements (src_type, to_type)) {
-			dst_val->reference = (AZReference *) az_boxed_interface_new_from_impl_value (src_impl, src_val, to_type);
+	/* Anything can be converted to implemented interface */
+	if (AZ_TYPE_IS_INTERFACE(to_type) && az_type_implements (src_type, to_type)) {
+		if (autobox) {
+			AZBoxedInterface *new_box = az_boxed_interface_new_from_impl_value (src_impl, src_val, to_type);
+			if (transfer) {
+				/* The slot's old content is consumed by the box */
+				az_value_clear (src_impl, (AZValue *) src_val);
+				if (value_box) az_boxed_value_unref (value_box);
+			}
+			dst_val->reference = &new_box->reference;
 			*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BOXED_INTERFACE);
 			return AZ_CONVERSION_EXACT;
 		}
+		/* Plain (borrowed) interface: the caller has to keep an additional reference
+		 * to the containing instance alive; on transfer the slot's own reference is
+		 * consumed (no hidden leaked reference) */
+		void *sub_inst;
+		const AZImplementation *sub_impl = az_instance_get_interface (src_impl, az_value_get_inst (src_impl, src_val), to_type, &sub_inst);
+		if (!sub_impl) return AZ_CONVERSION_FAILED;
+		if (transfer && AZ_IMPL_IS_REFERENCE(src_impl) && src_val->reference) {
+			/* The caller must hold an additional reference (the slot's is consumed) */
+			//arikkei_return_val_if_fail (src_val->reference->refcount >= 2, AZ_CONVERSION_FAILED);
+			az_reference_unref ((AZReferenceClass *) src_impl, src_val->reference);
+		}
+		*dst_impl = sub_impl;
+		dst_val->block = sub_inst;
+		return AZ_CONVERSION_EXACT;
 	}
 	/* Arithmetic types */
 	if (AZ_TYPE_IS_ARITHMETIC (to_type) && AZ_TYPE_IS_ARITHMETIC (src_type)) {
 		if (az_primitive_can_convert (to_type, src_type) <= conversion_type) {
 			AZClass *to_klass = AZ_CLASS_FROM_TYPE(to_type);
+			/* In-place safe (az_convert_arithmetic_type allows to_val == from_val) */
+			AZConversionResult res = (AZConversionResult) az_convert_arithmetic_type (to_type, dst_val, src_type, src_val);
 			*dst_impl = &to_klass->impl;
-			return (AZConversionResult) az_convert_arithmetic_type (to_type, dst_val, src_type, src_val);
+			if (value_box) az_boxed_value_unref (value_box);
+			return res;
 		}
 		return AZ_CONVERSION_FAILED;
 	}
@@ -218,16 +259,19 @@ az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, 
 		if ((src_type == AZ_TYPE_UINT64) && (to_type == AZ_TYPE_POINTER)) {
 			*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_POINTER);
 			dst_val->pointer_v = (void *) (uintptr_t) src_val->uint64_v;
+			if (value_box) az_boxed_value_unref (value_box);
 			return AZ_CONVERSION_EXACT;
 		}
 		if ((src_type == AZ_TYPE_POINTER) && (to_type == AZ_TYPE_UINT64)) {
 			*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_UINT64);
 			dst_val->uint64_v = (uint64_t) (uintptr_t) src_val->pointer_v;
+			if (value_box) az_boxed_value_unref (value_box);
 			return AZ_CONVERSION_EXACT;
 		}
 		if (AZ_TYPE_IS_BLOCK(src_type) && (to_type == AZ_TYPE_POINTER)) {
 			*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_POINTER);
 			dst_val->pointer_v = src_val->block;
+			if (value_box) az_boxed_value_unref (value_box);
 			return AZ_CONVERSION_EXACT;
 		}
 	}
@@ -239,49 +283,25 @@ AZConversionResult
 az_value_convert (const AZImplementation **dst_impl, AZValue *dst_val, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type)
 {
 	/* No boxing: boxed values and boxed interfaces are plain reference types */
-	return az_value_convert_internal (dst_impl, dst_val, 0, src_impl, src_val, to_type, conversion_type, 0);
+	return az_value_convert_internal (dst_impl, dst_val, 0, src_impl, src_val, to_type, conversion_type, 0, 0);
 }
 
 AZConversionResult
 az_value_convert_autobox (const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type)
 {
-	return az_value_convert_internal (dst_impl, dst_val, dst_size, src_impl, src_val, to_type, conversion_type, 1);
+	return az_value_convert_internal (dst_impl, dst_val, dst_size, src_impl, src_val, to_type, conversion_type, 1, 0);
 }
 
-unsigned int
-az_value_convert_in_place (const AZImplementation **impl, AZValue *val, unsigned int to_type)
+AZConversionResult
+az_value_convert_in_place (const AZImplementation **impl, AZValue *val, unsigned int to_type, AZConversionType conversion_type)
 {
-	/* Nothing can be converted to None */
-	if (!to_type) return 0;
-	AZClass* to_klass = az_type_get_class (to_type);
-	/* None can be converted to null reference */
-	if (!*impl) {
-		if ((to_type == AZ_TYPE_ANY) || (to_klass->impl.flags & AZ_FLAG_BLOCK)) {
-			*impl = NULL;
-			val->reference = NULL;
-			return 1;
-		}
-		return 0;
-	}
-	/* Anything can be converted to supertype (this includes Any) */
-	if (az_type_is_a (AZ_IMPL_TYPE(*impl), to_type)) {
-		return 1;
-	}
-	/* Anything can be converted to implemented interface */
-	if ((to_klass->impl.flags & AZ_FLAG_INTERFACE) && az_type_implements (AZ_IMPL_TYPE(*impl), to_type)) {
-		val->reference = (AZReference *) az_boxed_interface_new_from_impl_value (*impl, val, to_type);
-		*impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BOXED_INTERFACE);
-		return 1;
-	}
-	/* Arithmetic types */
-	if (AZ_TYPE_IS_ARITHMETIC (to_type) && AZ_TYPE_IS_ARITHMETIC (AZ_IMPL_TYPE(*impl))) {
-		if (az_primitive_can_convert (to_type, AZ_IMPL_TYPE(*impl)) <= AZ_CONVERT_CONDITIONAL) {
-			az_convert_arithmetic_type (to_type, val, AZ_IMPL_TYPE(*impl), val);
-			*impl = &to_klass->impl;
-			return 1;
-		}
-		return 0;
-	}
-	/* Nothing else can be converted */
-	return 0;
+	/* In-place conversion (dst == src), no boxing */
+	return az_value_convert_internal (impl, val, 0, *impl, val, to_type, conversion_type, 0, 1);
+}
+
+AZConversionResult
+az_value_convert_in_place_autobox (const AZImplementation **impl, AZValue *val, unsigned int size, unsigned int to_type, AZConversionType conversion_type)
+{
+	/* In-place conversion (dst == src), boxing if needed */
+	return az_value_convert_internal (impl, val, size, *impl, val, to_type, conversion_type, 1, 1);
 }

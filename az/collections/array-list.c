@@ -106,6 +106,8 @@ az_array_list_new(unsigned int el_type, unsigned int val_size)
 {
 	AZArrayList *alist = az_instance_new(AZ_TYPE_ARRAY_LIST);
 	alist->element_type = el_type;
+	/* Element slots are never smaller than AZValue (16 bytes) */
+	if (val_size < AZ_VALUE_MAX_SIZE) val_size = AZ_VALUE_MAX_SIZE;
 	alist->val_size = (val_size + 0x7) & 0xfffffff8;
 	return alist;
 }

@@ -75,6 +75,8 @@ az_boxed_value_new(const AZClass *klass)
 {
 	arikkei_return_val_if_fail (klass != NULL, NULL);
 	arikkei_return_val_if_fail (AZ_CLASS_IS_VALUE(klass), NULL);
+	/* Boxed values only hold big values (fundamental types are never boxed) */
+	arikkei_return_val_if_fail (klass->instance_size > AZ_VALUE_MAX_SIZE, NULL);
 	unsigned int ext_size = (klass->instance_size > 16) ? klass->instance_size - 16 : 0;
 	AZBoxedValue *boxed = (AZBoxedValue *) malloc (sizeof (AZBoxedValue) + ext_size);
 	az_instance_init_by_type (boxed, AZ_TYPE_BOXED_VALUE);
@@ -88,6 +90,8 @@ az_boxed_value_new_from_inst (const AZClass *klass, void *inst)
 {
 	arikkei_return_val_if_fail (klass != NULL, NULL);
 	arikkei_return_val_if_fail (AZ_CLASS_IS_VALUE(klass), NULL);
+	/* Boxed values only hold big values (fundamental types are never boxed) */
+	arikkei_return_val_if_fail (klass->instance_size > AZ_VALUE_MAX_SIZE, NULL);
 	unsigned int ext_size = (klass->instance_size > 16) ? klass->instance_size - 16 : 0;
 	AZBoxedValue *boxed = (AZBoxedValue *) malloc (sizeof (AZBoxedValue) + ext_size);
 	az_instance_init_by_type (boxed, AZ_TYPE_BOXED_VALUE);
@@ -101,6 +105,8 @@ az_boxed_value_new_from_val (const AZClass *klass, const AZValue *val)
 {
 	arikkei_return_val_if_fail (klass != NULL, NULL);
 	arikkei_return_val_if_fail (AZ_CLASS_IS_VALUE(klass), NULL);
+	/* Boxed values only hold big values (fundamental types are never boxed) */
+	arikkei_return_val_if_fail (klass->instance_size > AZ_VALUE_MAX_SIZE, NULL);
 	unsigned int ext_size = (klass->instance_size > 16) ? klass->instance_size - 16 : 0;
 	AZBoxedValue *boxed = (AZBoxedValue *) malloc (sizeof (AZBoxedValue) + ext_size);
 	az_instance_init_by_type (boxed, AZ_TYPE_BOXED_VALUE);
