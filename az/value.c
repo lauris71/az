@@ -235,7 +235,7 @@ az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, 
 		if (!sub_impl) return AZ_CONVERSION_FAILED;
 		if (transfer && AZ_IMPL_IS_REFERENCE(src_impl) && src_val->reference) {
 			/* The caller must hold an additional reference (the slot's is consumed) */
-			//arikkei_return_val_if_fail (src_val->reference->refcount >= 2, AZ_CONVERSION_FAILED);
+			arikkei_return_val_if_fail (src_val->reference->refcount >= 2, AZ_CONVERSION_FAILED);
 			az_reference_unref ((AZReferenceClass *) src_impl, src_val->reference);
 		}
 		*dst_impl = sub_impl;
