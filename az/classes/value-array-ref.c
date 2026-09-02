@@ -101,7 +101,7 @@ az_value_array_ref_new (unsigned int length)
 }
 
 void
-az_value_array_ref_set_element (AZValueArrayRef *varef, unsigned int idx, const AZImplementation *impl, AZValue* value)
+az_value_array_ref_set_element_from_val (AZValueArrayRef *varef, unsigned int idx, const AZImplementation *impl, AZValue* value)
 {
-	az_value_array_set_element (&varef->varray, idx, impl, value);
+	az_value_array_set_element_from_val (&varef->varray, idx, impl, value);
 }

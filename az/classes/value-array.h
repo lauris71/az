@@ -29,6 +29,15 @@ struct _AZValueArrayEntry {
 	};
 };
 
+/**
+ * @brief A compact dynamic array of values of any type.
+ * 
+ * It keeps a list of entries that either:
+ * - Store the value inline if the value size <= 8 bytes
+ * - Reference a value in data pool if value size > 8 bytes
+ * 
+ * The data buffer is composed of AZValue 'slots', each large value taking one or more slots.
+ */
 struct _AZValueArray {
 	unsigned int type;
 	unsigned int size;
@@ -49,7 +58,39 @@ extern AZValueArrayClass *az_value_array_class;
 unsigned int az_value_array_get_type (void);
 
 void az_value_array_set_length (AZValueArray *varray, unsigned int length);
-void az_value_array_set_element (AZValueArray *varray, unsigned int idx, const AZImplementation *impl, const AZValue *val);
+const AZImplementation *az_value_array_get_element(AZValueArray *varray, unsigned int idx, AZValue *val, unsigned int size);
+/**
+ * @brief Set an array element.
+ * 
+ * @param varray The value array to modify.
+ * @param idx The index of the element to set.
+ * @param impl The implementation type of the value.
+ * @param inst Pointer to the instance data.
+ */
+void az_value_array_set_element(AZValueArray *varray, unsigned int idx, const AZImplementation *impl, void *inst);
+/**
+ * @brief Copy an array element from a value.
+ * 
+ * If the value is boxed, unbox automatically before copying.
+ * 
+ * @param varray The value array to modify.
+ * @param idx The index of the element to set.
+ * @param impl The implementation type of the value.
+ * @param val Pointer to the value.
+ */
+void az_value_array_set_element_from_val(AZValueArray *varray, unsigned int idx, const AZImplementation *impl, const AZValue *val);
+/**
+ * @brief Move an array element from a value.
+ * 
+ * Transfers ownership of the value from the source to the array,
+ * leaving the source value in an uninitalized state.
+ * If the value is boxed, unbox automatically before transferring.
+ * 
+ * @param varray The value array to modify.
+ * @param idx The index of the element to set.
+ * @param impl The implementation type of the value.
+ * @param val Pointer to the value.
+ */
 void az_value_array_transfer_element (AZValueArray *varray, unsigned int idx, const AZImplementation *impl, const AZValue *val);
 
 #ifdef __cplusplus

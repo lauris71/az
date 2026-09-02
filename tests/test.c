@@ -30,6 +30,7 @@
 #include <az/classes/array-object.h>
 #include <az/collections/hash-map.h>
 #include <az/collections/hash-set.h>
+#include <az/classes/value-array.h>
 
 #include "unity/unity.h"
 
@@ -37,18 +38,19 @@ static void test_compile();
 static void test_types_mt();
 static void test_to_string();
 static void test_boxed_value();
-static void test_array_list();
 static void test_array();
-static void test_call_native();
 static void test_object_list();
 static void test_masked_field();
 static void test_masked_field_widths();
 static void test_circular_reference();
 static void test_strings_mt();
 static void test_boxed_interface_conversion();
+static void test_value_array();
 
+void test_array_list();
 void test_hash_map(void);
 void test_hash_set(void);
+void test_call_native();
 
 void setUp(void) {
     // set stuff up here
@@ -89,6 +91,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_strings_mt);
         } else if (!strcmp(argv[i], "boxed-interface-conversion")) {
             RUN_TEST(test_boxed_interface_conversion);
+        } else if (!strcmp(argv[i], "value-array")) {
+            RUN_TEST(test_value_array);
         } else if (!strcmp(argv[i], "hash-map")) {
             RUN_TEST(test_hash_map);
         } else if (!strcmp(argv[i], "hash-set")) {
@@ -399,110 +403,6 @@ test_boxed_value()
 }
 
 static void
-verify_list(AZArrayList *alist, const unsigned int idx[], const unsigned int types[])
-{
-    void *coll_inst;
-    const AZCollectionImplementation *coll_impl = (AZCollectionImplementation *) az_instance_get_interface((AZImplementation *) AZArrayListKlass, alist, AZ_TYPE_COLLECTION, &coll_inst);
-    TEST_ASSERT(coll_impl == &AZArrayListKlass->list_impl.collection_impl);
-    TEST_ASSERT(coll_inst == alist);
-    unsigned int size = az_collection_get_size(coll_impl, coll_inst);
-    TEST_ASSERT(size == alist->list.collection.size);
-    for (unsigned int i = 0; i < size; i++) {
-        uint8_t buf[256];
-        memset(buf, (char) idx[i], 256);
-        AZClass *klass = AZ_CLASS_FROM_TYPE(types[idx[i]]);
-        AZValue val;
-        const AZImplementation *impl = az_list_get_element(&AZArrayListKlass->list_impl, alist, i, &val, 16);
-        if (klass->instance_size <= 16) {
-            TEST_ASSERT(impl == &klass->impl);
-            if (!klass->instance_size) continue;
-            TEST_ASSERT(az_value_equals(&klass->impl, &val, (const AZValue *) buf));
-        } else {
-            TEST_ASSERT(impl == &AZBoxedValueKlass.klass.impl);
-            AZBoxedValue *boxed = (AZBoxedValue *) val.block;
-            TEST_ASSERT(boxed->klass == klass);
-            TEST_ASSERT(az_value_equals(&boxed->klass->impl, &boxed->val, (const AZValue *) buf));
-        }
-    }
-}
-
-static void
-print_list(AZArrayList *alist, FILE *ofs)
-{
-    fprintf(stdout, "List [val_size=%d length=%" PRIu64 "]:", alist->val_size, alist->list.collection.size);
-    for (unsigned int i = 0; i < alist->list.collection.size; i++) {
-        AZArrayListEntry *entry = az_array_list_get_entry(alist, i);
-        fprintf (stdout, " %d", (entry->impl) ? AZ_IMPL_TYPE(entry->impl) : 0);
-    }
-    fprintf(stdout, "\n");
-}
-
-static void
-test_array_list()
-{
-    unsigned int types[10];
-    az_init();
-    for (unsigned int i = 0; i < 10; i++) {
-        unsigned int instance_size = 4 * i;
-        uint8_t name[32];
-        snprintf((char *) name, 32, "struct_%d", instance_size);
-        AZClass *klass = az_register_type(&types[i], name, AZ_TYPE_STRUCT, sizeof(AZClass), instance_size, AZ_FLAG_FINAL, 0, 0, NULL, NULL, NULL);
-        TEST_ASSERT(klass->instance_size == instance_size);
-    }
-    AZArrayList *alist = az_array_list_new(AZ_TYPE_ANY, 16);
-    for (unsigned int i = 0; i < 10; i++) {
-        uint32_t inst = i;
-        TEST_ASSERT(az_array_list_append(alist, &AZUint32Klass.impl, &inst));
-    }
-    for (unsigned int i = 0; i < 10; i++) {
-        AZValue val;
-        const AZImplementation *impl = az_list_get_element(&AZArrayListKlass->list_impl, alist, i, &val, 16);
-        TEST_ASSERT(impl == &AZUint32Klass.impl);
-        TEST_ASSERT(val.uint32_v == i);
-    }
-    uint8_t buf[256] = {0};
-    /* Trsy lists with element size 16...64 */
-    for (unsigned int s = 16; s <= 64; s = s << 1) {
-        /* Create new list with value_size s */
-        alist = az_array_list_new(AZ_TYPE_ANY, s);
-        /* Fill it with objects 0..9 */
-        for (unsigned int i = 0; i < 10; i++) {
-            memset(buf, (char) i, 256);
-            TEST_ASSERT(az_array_list_append(alist, AZ_IMPL_FROM_TYPE(types[i]), &buf));
-        }
-        //print_list(alist, stdout);
-        /* Verify */
-        unsigned int *idx = (unsigned int[]) {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-        verify_list(alist, idx, types);
-        /* Insert 9..0 into position 5 */
-        for (unsigned int i = 0; i < 10; i++) {
-            memset(buf, (char) i, 256);
-            TEST_ASSERT(az_array_list_insert(alist, 5, AZ_IMPL_FROM_TYPE(types[i]), &buf));
-        }
-        //print_list(alist, stdout);
-        /* Verify */
-        idx = (unsigned int[]) {0, 1, 2, 3, 4, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 5, 6, 7, 8, 9};
-        verify_list(alist, idx, types);
-        /* Delete positions 1,3,5...*/
-        for (unsigned int i = 0; i < 10; i++) {
-            az_array_list_remove(alist, i + 1);
-        }
-        //print_list(alist, stdout);
-        idx = (unsigned int[]) {0, 2, 4, 8, 6, 4, 2, 0, 6, 8};
-        verify_list(alist, idx, types);
-        /* Replace */
-        for (unsigned int i = 0; i < 10; i++) {
-            memset(buf, (char) (9 - i), 256);
-            az_array_list_set_element(alist, i, AZ_IMPL_FROM_TYPE(types[9 - i]), &buf);
-        }
-        //print_list(alist, stdout);
-        idx = (unsigned int[]) {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
-        verify_list(alist, idx, types);
-        az_array_list_delete(alist);
-    }
-}
-
-static void
 test_array()
 {
     uint32_t b32[1000];
@@ -526,357 +426,6 @@ test_array()
     /* Empty array */
     AZArray empty = {0};
     check_to_string((const AZImplementation *) impl, &empty, "[]");
-}
-
-/*
- * az_function_call_native (ARM64)
- */
-
-static int32_t native_add_i32 (int32_t a, int32_t b)
-{
-    return a + b;
-}
-
-static float native_add_f (float a, float b)
-{
-    return a + b;
-}
-
-static double native_add_d (double a, double b)
-{
-    return a + b;
-}
-
-static int64_t native_mixed (int32_t a, double b, int64_t c, float d)
-{
-    return a + (int64_t) b + c + (int64_t) d;
-}
-
-static AZComplexFloat native_add_cf (AZComplexFloat a, AZComplexFloat b)
-{
-    AZComplexFloat r;
-    r.r = a.r + b.r;
-    r.i = a.i + b.i;
-    return r;
-}
-
-static AZComplexDouble native_add_cd (AZComplexDouble a, AZComplexDouble b)
-{
-    AZComplexDouble r;
-    r.r = a.r + b.r;
-    r.i = a.i + b.i;
-    return r;
-}
-
-/* More than 8 general purpose arguments (stack spill) */
-static int64_t native_sum10 (int64_t a, int64_t b, int64_t c, int64_t d, int64_t e, int64_t f, int64_t g, int64_t h, int64_t i, int64_t j)
-{
-    return a + 2 * b + 3 * c + 4 * d + 5 * e + 6 * f + 7 * g + 8 * h + 9 * i + 10 * j;
-}
-
-/* More than 8 FP arguments (stack spill) */
-static double native_sum10d (double a, double b, double c, double d, double e, double f, double g, double h, double i, double j)
-{
-    return a + b + c + d + e + f + g + h + i + j;
-}
-
-/* HFA does not fit into the remaining FP registers and goes to the stack */
-static double native_7d_cf (double a, double b, double c, double d, double e, double f, double g, AZComplexFloat h)
-{
-    return a + b + c + d + e + f + g + h.r + h.i;
-}
-
-static void *native_id_ptr (void *p)
-{
-    return p;
-}
-
-static const AZImplementation *nf_arg_impl;
-static const void *nf_arg_inst;
-
-static int64_t native_nonfinal_arg (const AZImplementation *impl, const void *inst)
-{
-    return (impl == nf_arg_impl && inst == nf_arg_inst) ? 7 : 0;
-}
-
-static void *nf_ret_ptr;
-
-static const AZImplementation *native_ret_nonfinal_block (void **ret)
-{
-    *ret = nf_ret_ptr;
-    return AZ_IMPL_FROM_TYPE (AZ_TYPE_STRING);
-}
-
-static const AZImplementation *native_ret_any_value (void *ret)
-{
-    *(int32_t *) ret = 4242;
-    return AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32);
-}
-
-static void native_make_fval (void *ret)
-{
-    AZFunctionValue *fv = (AZFunctionValue *) ret;
-    fv->signature = (AZFunctionSignature *) (uintptr_t) 0xdeadbeef;
-    fv->invoke = NULL;
-}
-
-static uint64_t native_fval_sig (const AZFunctionValue *fv)
-{
-    return (uint64_t) (uintptr_t) fv->signature;
-}
-
-static unsigned int
-call_native (void (*func) (void), unsigned int ret_type, unsigned int n_args, const unsigned int *arg_types, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation **arg_impls, const AZValue **arg_vals)
-{
-    AZFunctionSignature32 sig32;
-    sig32.ret_type = ret_type;
-    sig32.n_args = n_args;
-    if (n_args) memcpy (sig32.arg_types, arg_types, n_args * sizeof (unsigned int));
-    return az_function_call_native (func, &sig32.signature, ret_impl, ret_val, arg_impls, arg_vals);
-}
-
-static void
-test_call_native()
-{
-    const AZImplementation *ret_impl;
-    AZValue64 ret_val;
-
-    az_init();
-
-    /* int32 (int32, int32) */
-    {
-        unsigned int types[2] = {AZ_TYPE_INT32, AZ_TYPE_INT32};
-        const AZImplementation *impls[2] = {AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32), AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32)};
-        AZValue a, b;
-        const AZValue *vals[2] = {&a, &b};
-        a.int32_v = 17;
-        b.int32_v = 25;
-        ret_impl = NULL;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_add_i32, AZ_TYPE_INT32, 2, types, &ret_impl, &ret_val, impls, vals));
-        TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32));
-        TEST_ASSERT_EQUAL_INT32 (42, ret_val.value.int32_v);
-    }
-    /* float (float, float) */
-    {
-        unsigned int types[2] = {AZ_TYPE_FLOAT, AZ_TYPE_FLOAT};
-        const AZImplementation *impls[2] = {AZ_IMPL_FROM_TYPE (AZ_TYPE_FLOAT), AZ_IMPL_FROM_TYPE (AZ_TYPE_FLOAT)};
-        AZValue a, b;
-        const AZValue *vals[2] = {&a, &b};
-        a.float_v = 1.5f;
-        b.float_v = 2.25f;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_add_f, AZ_TYPE_FLOAT, 2, types, &ret_impl, &ret_val, impls, vals));
-        TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_FLOAT));
-        TEST_ASSERT_EQUAL_FLOAT (3.75f, ret_val.value.float_v);
-    }
-    /* double (double, double) */
-    {
-        unsigned int types[2] = {AZ_TYPE_DOUBLE, AZ_TYPE_DOUBLE};
-        const AZImplementation *impls[2] = {AZ_IMPL_FROM_TYPE (AZ_TYPE_DOUBLE), AZ_IMPL_FROM_TYPE (AZ_TYPE_DOUBLE)};
-        AZValue a, b;
-        const AZValue *vals[2] = {&a, &b};
-        a.double_v = 1.5;
-        b.double_v = 2.25;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_add_d, AZ_TYPE_DOUBLE, 2, types, &ret_impl, &ret_val, impls, vals));
-        TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_DOUBLE));
-        TEST_ASSERT_EQUAL_DOUBLE (3.75, ret_val.value.double_v);
-    }
-    /* int64 (int32, double, int64, float) - mixed GPR/FPR allocation */
-    {
-        unsigned int types[4] = {AZ_TYPE_INT32, AZ_TYPE_DOUBLE, AZ_TYPE_INT64, AZ_TYPE_FLOAT};
-        const AZImplementation *impls[4] = {AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32), AZ_IMPL_FROM_TYPE (AZ_TYPE_DOUBLE), AZ_IMPL_FROM_TYPE (AZ_TYPE_INT64), AZ_IMPL_FROM_TYPE (AZ_TYPE_FLOAT)};
-        AZValue a, b, c, d;
-        const AZValue *vals[4] = {&a, &b, &c, &d};
-        a.int32_v = 1;
-        b.double_v = 2.7;
-        c.int64_v = 3;
-        d.float_v = 4.9f;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_mixed, AZ_TYPE_INT64, 4, types, &ret_impl, &ret_val, impls, vals));
-        TEST_ASSERT_EQUAL_INT64 (10, ret_val.value.int64_v);
-    }
-    /* complex float (complex float, complex float) - HFA arguments and return */
-    {
-        unsigned int types[2] = {AZ_TYPE_COMPLEX_FLOAT, AZ_TYPE_COMPLEX_FLOAT};
-        const AZImplementation *impls[2] = {AZ_IMPL_FROM_TYPE (AZ_TYPE_COMPLEX_FLOAT), AZ_IMPL_FROM_TYPE (AZ_TYPE_COMPLEX_FLOAT)};
-        AZValue a, b;
-        const AZValue *vals[2] = {&a, &b};
-        a.cfloat_v.r = 1.0f;
-        a.cfloat_v.i = 2.0f;
-        b.cfloat_v.r = 3.0f;
-        b.cfloat_v.i = 4.0f;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_add_cf, AZ_TYPE_COMPLEX_FLOAT, 2, types, &ret_impl, &ret_val, impls, vals));
-        TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_COMPLEX_FLOAT));
-        TEST_ASSERT_EQUAL_FLOAT (4.0f, ret_val.value.cfloat_v.r);
-        TEST_ASSERT_EQUAL_FLOAT (6.0f, ret_val.value.cfloat_v.i);
-    }
-    /* complex double (complex double, complex double) - HFA arguments and return */
-    {
-        unsigned int types[2] = {AZ_TYPE_COMPLEX_DOUBLE, AZ_TYPE_COMPLEX_DOUBLE};
-        const AZImplementation *impls[2] = {AZ_IMPL_FROM_TYPE (AZ_TYPE_COMPLEX_DOUBLE), AZ_IMPL_FROM_TYPE (AZ_TYPE_COMPLEX_DOUBLE)};
-        AZValue a, b;
-        const AZValue *vals[2] = {&a, &b};
-        a.cdouble_v.r = 1.5;
-        a.cdouble_v.i = 2.5;
-        b.cdouble_v.r = 3.25;
-        b.cdouble_v.i = 4.75;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_add_cd, AZ_TYPE_COMPLEX_DOUBLE, 2, types, &ret_impl, &ret_val, impls, vals));
-        TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_COMPLEX_DOUBLE));
-        TEST_ASSERT_EQUAL_DOUBLE (4.75, ret_val.value.cdouble_v.r);
-        TEST_ASSERT_EQUAL_DOUBLE (7.25, ret_val.value.cdouble_v.i);
-    }
-    /* int64 (10 x int64) - GPR stack spill */
-    {
-        unsigned int types[10];
-        const AZImplementation *impls[10];
-        AZValue v[10];
-        const AZValue *vals[10];
-        for (int k = 0; k < 10; k++) {
-            types[k] = AZ_TYPE_INT64;
-            impls[k] = AZ_IMPL_FROM_TYPE (AZ_TYPE_INT64);
-            v[k].int64_v = k + 1;
-            vals[k] = &v[k];
-        }
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_sum10, AZ_TYPE_INT64, 10, types, &ret_impl, &ret_val, impls, vals));
-        TEST_ASSERT_EQUAL_INT64 (385, ret_val.value.int64_v);
-    }
-    /* double (10 x double) - FPR stack spill */
-    {
-        unsigned int types[10];
-        const AZImplementation *impls[10];
-        AZValue v[10];
-        const AZValue *vals[10];
-        for (int k = 0; k < 10; k++) {
-            types[k] = AZ_TYPE_DOUBLE;
-            impls[k] = AZ_IMPL_FROM_TYPE (AZ_TYPE_DOUBLE);
-            v[k].double_v = k + 1;
-            vals[k] = &v[k];
-        }
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_sum10d, AZ_TYPE_DOUBLE, 10, types, &ret_impl, &ret_val, impls, vals));
-        TEST_ASSERT_EQUAL_DOUBLE (55.0, ret_val.value.double_v);
-    }
-    /* double (7 x double, complex float) - HFA passed on the stack */
-    {
-        unsigned int types[8];
-        const AZImplementation *impls[8];
-        AZValue v[8];
-        const AZValue *vals[8];
-        for (int k = 0; k < 7; k++) {
-            types[k] = AZ_TYPE_DOUBLE;
-            impls[k] = AZ_IMPL_FROM_TYPE (AZ_TYPE_DOUBLE);
-            v[k].double_v = k + 1;
-            vals[k] = &v[k];
-        }
-        types[7] = AZ_TYPE_COMPLEX_FLOAT;
-        impls[7] = AZ_IMPL_FROM_TYPE (AZ_TYPE_COMPLEX_FLOAT);
-        v[7].cfloat_v.r = 8.0f;
-        v[7].cfloat_v.i = 9.0f;
-        vals[7] = &v[7];
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_7d_cf, AZ_TYPE_DOUBLE, 8, types, &ret_impl, &ret_val, impls, vals));
-        TEST_ASSERT_EQUAL_DOUBLE (45.0, ret_val.value.double_v);
-    }
-    /* string (string) - final block argument, returned by pointer */
-    {
-        AZString *str = az_string_new ((const unsigned char *) "hello");
-        unsigned int types[1] = {AZ_TYPE_STRING};
-        const AZImplementation *impls[1] = {AZ_IMPL_FROM_TYPE (AZ_TYPE_STRING)};
-        AZValue a;
-        const AZValue *vals[1] = {&a};
-        a.block = str;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_id_ptr, AZ_TYPE_STRING, 1, types, &ret_impl, &ret_val, impls, vals));
-        TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_STRING));
-        TEST_ASSERT (ret_val.value.block == str);
-        az_string_unref (str);
-    }
-    /* int64 (block) - non-final argument [impl, pointer] */
-    {
-        AZString *str = az_string_new ((const unsigned char *) "hello");
-        unsigned int types[1] = {AZ_TYPE_BLOCK};
-        const AZImplementation *impls[1] = {AZ_IMPL_FROM_TYPE (AZ_TYPE_STRING)};
-        AZValue a;
-        const AZValue *vals[1] = {&a};
-        a.block = str;
-        nf_arg_impl = impls[0];
-        nf_arg_inst = str;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_nonfinal_arg, AZ_TYPE_INT64, 1, types, &ret_impl, &ret_val, impls, vals));
-        TEST_ASSERT_EQUAL_INT64 (7, ret_val.value.int64_v);
-        az_string_unref (str);
-    }
-    /* block () - non-final block return, impl returned, block written through hidden argument */
-    {
-        AZString *str = az_string_new ((const unsigned char *) "hello");
-        nf_ret_ptr = str;
-        ret_impl = NULL;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_ret_nonfinal_block, AZ_TYPE_BLOCK, 0, NULL, &ret_impl, &ret_val, NULL, NULL));
-        TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_STRING));
-        TEST_ASSERT (ret_val.value.block == str);
-        az_string_unref (str);
-    }
-    /* any () - non-final value return, impl returned, struct written to hidden storage */
-    {
-        ret_impl = NULL;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_ret_any_value, AZ_TYPE_ANY, 0, NULL, &ret_impl, &ret_val, NULL, NULL));
-        TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32));
-        TEST_ASSERT_EQUAL_INT32 (4242, ret_val.value.int32_v);
-    }
-    /* FunctionValue () - final value return, void, struct written to hidden storage */
-    {
-        unsigned int fv_type = az_function_value_get_type();
-        ret_impl = NULL;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_make_fval, fv_type, 0, NULL, &ret_impl, &ret_val, NULL, NULL));
-        TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (fv_type));
-        TEST_ASSERT (((AZFunctionValue *) &ret_val.value)->signature == (AZFunctionSignature *) (uintptr_t) 0xdeadbeef);
-        TEST_ASSERT (((AZFunctionValue *) &ret_val.value)->invoke == NULL);
-    }
-    /* uint64 (FunctionValue) - final value argument, passed by pointer */
-    {
-        unsigned int fv_type = az_function_value_get_type();
-        unsigned int types[1] = {fv_type};
-        const AZImplementation *impls[1] = {AZ_IMPL_FROM_TYPE (fv_type)};
-        AZValue a;
-        const AZValue *vals[1] = {&a};
-        AZFunctionValue *fv = (AZFunctionValue *) &a;
-        fv->signature = (AZFunctionSignature *) (uintptr_t) 0xdeadbeef;
-        fv->invoke = NULL;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_fval_sig, AZ_TYPE_UINT64, 1, types, &ret_impl, &ret_val, impls, vals));
-        TEST_ASSERT_EQUAL_UINT64 (0xdeadbeef, ret_val.value.uint64_v);
-    }
-    /* AZFunctionNative - native function invoked through the AZFunction interface */
-    {
-        unsigned int fn_type = az_function_native_get_type();
-        unsigned int arg_types[2] = {AZ_TYPE_INT32, AZ_TYPE_INT32};
-        AZFunctionSignature *sig = az_function_signature_new (0, AZ_TYPE_INT32, 2, arg_types);
-        AZFunctionNative fnat;
-        const AZImplementation *f_impl;
-        void *f_inst;
-        const AZImplementation *impls[2] = {AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32), AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32)};
-        AZValue a, b;
-        const AZValue *vals[2] = {&a, &b};
-        az_function_native_setup (&fnat, sig, (void (*) (void)) native_add_i32);
-        a.int32_v = 17;
-        b.int32_v = 25;
-        ret_impl = NULL;
-        memset (&ret_val, 0, sizeof (AZValue64));
-        f_impl = az_instance_get_interface_from_type (fn_type, &fnat, AZ_TYPE_FUNCTION, &f_inst);
-        TEST_ASSERT (f_impl != NULL);
-        TEST_ASSERT (az_function_invoke ((const AZFunctionImplementation *) f_impl, f_inst, impls, vals, &ret_impl, &ret_val, NULL));
-        TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32));
-        TEST_ASSERT_EQUAL_INT32 (42, ret_val.value.int32_v);
-        az_function_signature_delete (sig);
-    }
 }
 
 /*
@@ -1699,4 +1248,135 @@ test_boxed_interface_conversion()
     TEST_ASSERT (out->inst == &minst.keys_data);
     az_boxed_interface_unref (out);
     az_boxed_interface_unref (box);
+}
+
+/*
+ * AZValueArray: a dynamic array of arbitrary values (subtypes of the pre-set type).
+ * Values <= 8 bytes are stored inline in the entry array, bigger values in a
+ * separate data pool in units of 16-byte (AZValue) blocks.
+ */
+
+/* Struct types of different sizes for the test */
+typedef struct { uint32_t marker; uint8_t data[252]; } VAStruct;
+
+static unsigned int va_types[5] = {0, 0, 0, 0, 0};
+
+/* sizes: 4, 8 (inline), 16, 24, 40 (data pool: 1, 2, 3 blocks) */
+static const unsigned int va_sizes[5] = {4, 8, 16, 24, 40};
+
+static unsigned int
+va_type_get (unsigned int i)
+{
+    if (!va_types[i]) {
+        uint8_t name[32];
+        snprintf ((char *) name, 32, "VAStruct%u", va_sizes[i]);
+        az_register_type (&va_types[i], name, AZ_TYPE_STRUCT, sizeof (AZClass), va_sizes[i], AZ_FLAG_FINAL, 0, 0, NULL, NULL, NULL);
+    }
+    return va_types[i];
+}
+
+/* Fill a struct with an index-dependent pattern */
+static void
+va_fill (AZValue *v, unsigned int size, unsigned int seed)
+{
+    uint8_t *p = (uint8_t *) v;
+    for (unsigned int i = 0; i < size; i++) p[i] = (uint8_t) (seed + i);
+}
+
+static unsigned int
+va_check (AZValue *v, unsigned int size, unsigned int seed)
+{
+    uint8_t *p = (uint8_t *) v;
+    for (unsigned int i = 0; i < size; i++) {
+        if (p[i] != (uint8_t) (seed + i)) return 0;
+    }
+    return 1;
+}
+
+/* Read an element and verify its content */
+static void
+va_verify_element (AZValueArray *va, unsigned int idx, unsigned int type_idx, unsigned int seed)
+{
+    void *list_inst;
+    const AZImplementation *list_impl = az_instance_get_interface (AZ_IMPL_FROM_TYPE(AZ_TYPE_VALUE_ARRAY), va, AZ_TYPE_LIST, &list_inst);
+    const AZImplementation *impl;
+    AZValue64 val;
+    impl = az_list_get_element ((const AZListImplementation *) list_impl, list_inst, idx, &val.value, sizeof (AZValue64));
+    TEST_ASSERT (impl == AZ_IMPL_FROM_TYPE(va_type_get (type_idx)));
+    TEST_ASSERT (va_check (&val.value, va_sizes[type_idx], seed));
+}
+
+static void
+test_value_array()
+{
+    az_init();
+    az_value_array_get_type ();
+    AZValueArray *va = (AZValueArray *) az_instance_new (AZ_TYPE_VALUE_ARRAY);
+    az_value_array_set_length (va, 8);
+
+    /* Fill with inline values (4 and 8 bytes) */
+    for (unsigned int i = 0; i < 8; i++) {
+        AZValue64 v;
+        va_fill (&v.value, va_sizes[i % 2], i);
+        az_value_array_set_element_from_val (va, i, AZ_IMPL_FROM_TYPE(va_type_get (i % 2)), &v.value);
+    }
+    for (unsigned int i = 0; i < 8; i++) {
+        va_verify_element (va, i, i % 2, i);
+    }
+
+    /* Replace with big values (16/24/40 bytes -> data pool) */
+    for (unsigned int i = 0; i < 8; i++) {
+        AZValue64 v;
+        unsigned int t = 2 + (i % 3);
+        va_fill (&v.value, va_sizes[t], 100 + i);
+        az_value_array_set_element_from_val (va, i, AZ_IMPL_FROM_TYPE(va_type_get (t)), &v.value);
+    }
+    /* Every big value must read back its own content */
+    for (unsigned int i = 0; i < 8; i++) {
+        va_verify_element (va, i, 2 + (i % 3), 100 + i);
+    }
+
+    /* Mix: replace some big with small and vice versa */
+    AZValue64 s0; va_fill (&s0.value, 4, 50);
+    az_value_array_set_element_from_val (va, 1, AZ_IMPL_FROM_TYPE(va_type_get (0)), &s0.value);   /* big -> small */
+    AZValue64 s1; va_fill (&s1.value, 40, 60);
+    az_value_array_set_element_from_val (va, 4, AZ_IMPL_FROM_TYPE(va_type_get (4)), &s1.value);   /* big -> bigger */
+    AZValue64 s2; va_fill (&s2.value, 8, 70);
+    az_value_array_set_element_from_val (va, 2, AZ_IMPL_FROM_TYPE(va_type_get (1)), &s2.value);   /* big -> small */
+    /* Final state: idx0=S16(100), idx1=S4(50), idx2=S8(70), idx3=S16(103), idx4=S40(60), idx5=S40(105), idx6=S16(106), idx7=S24(107) */
+    va_verify_element (va, 0, 2, 100);
+    va_verify_element (va, 1, 0, 50);
+    va_verify_element (va, 2, 1, 70);
+    va_verify_element (va, 3, 2, 103);
+    va_verify_element (va, 4, 4, 60);
+    va_verify_element (va, 5, 4, 105);
+    va_verify_element (va, 6, 2, 106);
+    va_verify_element (va, 7, 3, 107);
+
+    /* Remove elements from the middle/end */
+    az_value_array_set_length (va, 5);
+    TEST_ASSERT_EQUAL_UINT (5, va->list.collection.size);
+    va_verify_element (va, 0, 2, 100);
+    va_verify_element (va, 1, 0, 50);
+    va_verify_element (va, 2, 1, 70);
+    va_verify_element (va, 3, 2, 103);
+    va_verify_element (va, 4, 4, 60);
+
+    /* Grow again and refill */
+    az_value_array_set_length (va, 10);
+    TEST_ASSERT_EQUAL_UINT (10, va->list.collection.size);
+    for (unsigned int i = 5; i < 10; i++) {
+        AZValue64 v;
+        unsigned int t = i % 5;
+        va_fill (&v.value, va_sizes[t], 200 + i);
+        az_value_array_set_element_from_val (va, i, AZ_IMPL_FROM_TYPE(va_type_get (t)), &v.value);
+    }
+    for (unsigned int i = 5; i < 10; i++) {
+        va_verify_element (va, i, i % 5, 200 + i);
+    }
+    /* The survivors are intact */
+    va_verify_element (va, 0, 2, 100);
+    va_verify_element (va, 4, 4, 60);
+
+    az_instance_delete (AZ_TYPE_VALUE_ARRAY, va);
 }

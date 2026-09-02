@@ -33,7 +33,7 @@ unsigned int az_value_array_ref_get_type (void);
 
 AZValueArrayRef *az_value_array_ref_new (unsigned int length);
 
-void az_value_array_ref_set_element (AZValueArrayRef *varef, unsigned int idx, const AZImplementation *impl, AZValue* value);
+void az_value_array_ref_set_element_from_val(AZValueArrayRef *varef, unsigned int idx, const AZImplementation *impl, AZValue* value);
 
 #ifdef __cplusplus
 };

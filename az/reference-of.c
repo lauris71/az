@@ -58,7 +58,7 @@ az_reference_of_get_type (unsigned int instance_type)
 		/* Only value types; the instance typecode is passed as data and resolved at
 		 * class construction (sizes and name are derived there), so reserving the
 		 * composite type does not force construction of the instance type */
-		az_register_composite_type (&subtypes[AZ_TYPE_INDEX(instance_type)], (const unsigned char *) "ReferenceOf", AZ_TYPE_ABSTRACT_REFERENCE_OF, sizeof (AZReferenceOfClass), sizeof (AZReferenceOf), 0,
+		az_register_composite_type (&subtypes[AZ_TYPE_INDEX(instance_type)], (const unsigned char *) "ReferenceOf", AZ_TYPE_ABSTRACT_REFERENCE_OF, sizeof (AZReferenceOfClass), sizeof (AZReferenceOf), AZ_FLAG_FINAL,
 			0, 0,
 			(void (*) (AZClass *, void *)) reference_of_class_init,
 			(void (*) (const AZImplementation *, void *)) reference_of_instance_init,

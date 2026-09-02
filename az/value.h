@@ -207,7 +207,7 @@ const AZImplementation *az_value_transfer_autobox(const AZImplementation *impl, 
  * Copy data from initialized src to uninitialized dst. After the operation src will reamin intact.
  * If src implementation is NULL dst is set to untyped null.
  * 
- * @param impl the src implemntation
+ * @param impl the src implementation
  * @param dst the destination (uninitialized)
  * @param src the source value
  */

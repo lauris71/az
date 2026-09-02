@@ -5,6 +5,8 @@ add_executable(az_test
     test.c
     hash-map.c
     hash-set.c
+    call-native.c
+    array-list.c
 )
 
 target_compile_definitions(az_test PRIVATE UNITY_INCLUDE_DOUBLE)
@@ -33,3 +35,4 @@ add_test(NAME masked-field-widths COMMAND az_test masked-field-widths)
 add_test(NAME circular-reference COMMAND az_test circular-reference)
 add_test(NAME strings-mt COMMAND az_test strings-mt)
 add_test(NAME boxed-interface-conversion COMMAND az_test boxed-interface-conversion)
+add_test(NAME value-array COMMAND az_test value-array)
