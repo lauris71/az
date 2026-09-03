@@ -30,15 +30,20 @@ struct _AZValueArrayEntry {
 };
 
 /**
- * @brief A compact dynamic array of values of any type.
- * 
+ * @brief A compact dynamic array of values of any type (reference-counted).
+ *
  * It keeps a list of entries that either:
  * - Store the value inline if the value size <= 8 bytes
  * - Reference a value in data pool if value size > 8 bytes
- * 
+ *
  * The data buffer is composed of AZValue 'slots', each large value taking one or more slots.
+ *
+ * Being a reference type, instances are heap-allocated and shared by
+ * az_reference_ref/az_reference_unref; ownership in an AZValue is a proper
+ * counted reference.
  */
 struct _AZValueArray {
+	AZReference reference;
 	unsigned int type;
 	unsigned int size;
 	unsigned int data_size;
@@ -48,14 +53,24 @@ struct _AZValueArray {
 };
 
 struct _AZValueArrayClass {
-	AZClass klass;
+	AZReferenceClass reference_klass;
 	AZListImplementation list_impl;
 	unsigned int default_size;
 };
 
-extern AZValueArrayClass *az_value_array_class;
-
 unsigned int az_value_array_get_type (void);
+
+/**
+ * @brief Create a new value array with the given length
+ *
+ * The new elements are empty (NULL implementation); set them with
+ * az_value_array_set_element and friends.
+ *
+ * @param length the initial element count
+ * @return a new reference-counted array; the caller owns the reference and
+ * releases it with az_reference_unref
+ */
+AZValueArray *az_value_array_new (unsigned int length);
 
 void az_value_array_set_length (AZValueArray *varray, unsigned int length);
 const AZImplementation *az_value_array_get_element(AZValueArray *varray, unsigned int idx, AZValue *val, unsigned int size);

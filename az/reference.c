@@ -119,17 +119,19 @@ reference_instance_init (AZReferenceClass *klass, void *instance)
 	((AZReference *) instance)->refcount = 1;
 }
 
-AZReferenceClass AZReferenceKlass = {
-	{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_REFERENCE},
-	&AZBlockKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "reference",
-	7, sizeof(AZReferenceClass), sizeof(AZReference),
-	NULL,
-	(void (*) (const AZImplementation *, void *)) reference_instance_init, NULL,
-	NULL, NULL, az_any_to_string,
-	NULL, NULL},
-	NULL, NULL
+AZ_CLASS_ALIGN AZReferenceClass AZReferenceKlass = {
+	.klass = {
+		.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_REFERENCE },
+		.parent = &AZBlockKlass,
+		.name = (const uint8_t *) "reference",
+		.alignment = 7,
+		.class_size = sizeof(AZReferenceClass),
+		.instance_size = sizeof(AZReference),
+		.instance_init = (void (*) (const AZImplementation *, void *)) reference_instance_init,
+		.to_string = az_any_to_string
+	},
+	.drop = NULL,
+	.dispose = NULL
 };
 
 void

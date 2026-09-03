@@ -65,53 +65,45 @@ class_to_string (const AZImplementation* impl, void *inst, unsigned char *buf, u
 	return pos;
 }
 
-AZClass AZStructKlass = {
-	{AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_STRUCT},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "struct",
-	3, sizeof(AZClass), 0,
-	NULL,
-	NULL, NULL,
-	NULL, NULL, az_any_to_string,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZStructKlass = {
+	.impl = { .flags = AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_STRUCT },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "struct",
+	.alignment = 3,
+	.class_size = sizeof(AZClass),
+	.instance_size = 0,
+	.to_string = az_any_to_string
 };
 
-AZClass AZBlockKlass = {
-	{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BLOCK},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "block",
-	7, sizeof(AZClass), 0,
-	NULL,
-	NULL, NULL,
-	NULL, NULL, az_any_to_string,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZBlockKlass = {
+	.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_BLOCK },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "block",
+	.alignment = 7,
+	.class_size = sizeof(AZClass),
+	.instance_size = 0,
+	.to_string = az_any_to_string
 };
 
-AZClass AZImplKlass = {
-	{AZ_FLAG_BLOCK | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_IMPLEMENTATION},
-	&AZBlockKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "implementation",
-	7, sizeof(AZClass), sizeof(AZImplementation),
-	NULL,
-	NULL, NULL,
-	NULL, NULL, impl_to_string,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZImplKlass = {
+	.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_IMPLEMENTATION },
+	.parent = &AZBlockKlass,
+	.name = (const uint8_t *) "implementation",
+	.alignment = 7,
+	.class_size = sizeof(AZClass),
+	.instance_size = sizeof(AZImplementation),
+	.to_string = impl_to_string
 };
 
-AZClass AZClassKlass = {
-	{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_CLASS},
-	&AZImplKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "class",
+AZ_CLASS_ALIGN AZClass AZClassKlass = {
+	.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_CLASS },
+	.parent = &AZImplKlass,
+	.name = (const uint8_t *) "class",
 	/* Class is variable size */
-	7, sizeof(AZClass), 0,
-	NULL,
-	NULL, NULL,
-	NULL, NULL, class_to_string,
-	NULL, NULL
+	.alignment = 7,
+	.class_size = sizeof(AZClass),
+	.instance_size = 0,
+	.to_string = class_to_string
 };
 
 void

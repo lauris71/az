@@ -18,6 +18,19 @@ typedef struct _AZInstanceAllocator AZInstanceAllocator;
 extern "C" {
 #endif
 
+/*
+ * Class allocations (heap and static) are aligned to the cache line boundary
+ * and their allocation size is rounded up to a multiple of it, so the hot
+ * prefix of a class never straddles two lines and two classes never share
+ * a line tail.
+ */
+#define AZ_CLASS_ALIGNMENT 64
+#ifdef __cplusplus
+	#define AZ_CLASS_ALIGN alignas(AZ_CLASS_ALIGNMENT)
+#else
+	#define AZ_CLASS_ALIGN _Alignas(AZ_CLASS_ALIGNMENT)
+#endif
+
 /**
  * @brief Superclass of all implementations and classes
  * 
@@ -54,17 +67,39 @@ struct _AZImplementation {
 #define AZ_IMPL_IS_BLOCK(i) (!AZ_IMPL_IS_CLASS(i) || ((i)->flags &  AZ_FLAG_BLOCK))
 #define AZ_IMPL_IS_VALUE(i) (AZ_IMPL_IS_CLASS(i) && !((i)->flags & AZ_FLAG_BLOCK))
 #define AZ_IMPL_IS_REFERENCE(i) (AZ_IMPL_IS_CLASS(i) && ((i)->flags & AZ_FLAG_REFERENCE))
-#define AZ_IMPL_IS_BOXED_VALUE(i) ((i) == &AZBoxedValueKlass.klass.impl))
-#define AZ_IMPL_IS_BOXED_INTERFACE(i) ((i) == &AZBoxedInterfaceKlass.klass.impl))
+#define AZ_IMPL_IS_BOXED_VALUE(i) ((i) == &AZBoxedValueKlass.klass.impl)
+#define AZ_IMPL_IS_BOXED_INTERFACE(i) ((i) == &AZBoxedInterfaceKlass.klass.impl)
+
+/*
+ * Value type (struct) requirements
+ *
+ * Value instances are copied with plain memcpy and compared with memcmp
+ * (az_value_copy/az_value_transfer/az_value_equals) and are cleared without
+ * running any destructor (az_value_clear). Therefore a value class:
+ *
+ * - has to be trivially copiable: the instance may not own references and may
+ *   not contain internal pointers (pointers into itself or to owned memory);
+ * - must not rely on a destructor: anything stored as a value (AZValue,
+ *   AZPackedValue, container elements) never gets instance_finalize run on it.
+ *
+ * The requirements are inherited by interface implementations: a value class
+ * may only implement interfaces whose instance data is itself trivially
+ * copiable and destructor-free (the interface instance region is embedded in
+ * the value instance and gets the same treatment). az_class_declare_interface
+ * warns about interface finalizers; the trivially-copiable part cannot be
+ * checked mechanically and is the class author's responsibility.
+ */
 
 #define AZ_CLASS_TYPE(c) ((c)->impl.type)
 #define AZ_CLASS_FLAGS(c) ((c)->impl.flags)
+/* These mirror AZ_TYPE_IS_*(AZ_CLASS_TYPE(c)) exactly */
 #define AZ_CLASS_IS_ABSTRACT(c) ((c)->impl.flags & AZ_FLAG_ABSTRACT)
-#define AZ_CLASS_IS_BLOCK(c) !((c)->impl.flags & AZ_FLAG_BLOCK)
+#define AZ_CLASS_IS_BLOCK(c) ((c)->impl.flags & AZ_FLAG_BLOCK)
 #define AZ_CLASS_IS_VALUE(c) !((c)->impl.flags & AZ_FLAG_BLOCK)
-#define AZ_CLASS_IS_REFERENCE(c) !((c)->impl.flags & AZ_FLAG_REFERENCE)
-#define AZ_CLASS_IS_BOXED_VALUE(c) ((c) == &AZBoxedValueKlass))
-#define AZ_CLASS_IS_BOXED_INTERFACE(c) ((c) == &AZBoxedInterfaceKlass))
+#define AZ_CLASS_IS_REFERENCE(c) ((c)->impl.flags & AZ_FLAG_REFERENCE)
+#define AZ_CLASS_IS_OBJECT(c) ((c)->impl.flags & AZ_FLAG_OBJECT)
+#define AZ_CLASS_IS_BOXED_VALUE(c) ((c) == (const AZClass *) &AZBoxedValueKlass)
+#define AZ_CLASS_IS_BOXED_INTERFACE(c) ((c) == (const AZClass *) &AZBoxedInterfaceKlass)
 #define AZ_CLASS_IS_INTERFACE(c) ((c)->impl.flags & AZ_FLAG_INTERFACE)
 
 #define AZ_CLASS_IS_FINAL(c) ((c)->impl.flags & AZ_FLAG_FINAL)
@@ -85,6 +120,25 @@ struct _AZInstanceAllocator {
 	void (*free) (AZClass *klass, void *location);
 	void (*free_array) (AZClass *klass, void *location, unsigned int n_elements);
 };
+
+/*
+ * The class allocator table. Custom allocators are rare, so classes hold a
+ * uint8 index into this table (allocator_idx) instead of a pointer;
+ * index 0 is the default (malloc/free) allocator.
+ *
+ * Allocators are registered during class construction (az_class_new), i.e.
+ * under the registry lock, and are immutable afterwards; the entry is written
+ * before the class is published, so lock-free class readers see a valid entry.
+ */
+#define AZ_MAX_CLASS_ALLOCATORS 256
+extern const AZInstanceAllocator *az_class_allocators[AZ_MAX_CLASS_ALLOCATORS];
+/**
+ * @brief Register a class allocator
+ *
+ * @param allocator the allocator (has to stay valid for the program lifetime)
+ * @return the allocator index for AZClass::allocator_idx (0 on error/exhaustion)
+ */
+unsigned int az_class_register_allocator (const AZInstanceAllocator *allocator);
 
 /*
  * Class construction and circular type references
@@ -110,85 +164,102 @@ struct _AZClass {
 	AZImplementation impl;
 	/**
 	 * @brief Pointer to the parent class
-	 * 
+	 *
 	 */
 	AZClass *parent;
 
 	/**
 	 * @brief The number of interfaces declared in this class
-	 * 
+	 *
 	 */
-	uint16_t n_ifaces_self;
+	uint8_t n_ifaces_self;
+	/**
+	 * @brief the alignment mask: 0 (1), 1 (2), 3 (4), 7 (8), 15 (16), 31 (32), 63 (64) or 127 (128)
+	 *
+	 */
+	uint8_t alignment;
 	/**
 	 * @brief The number of interfaces implemented in this class
-	 * 
+	 *
 	 * The sum of interfaces declared in given class, in all it's parent classes,
 	 * in all it's interfaces and in the parent classes of interfaces.
-	 * 
+	 *
 	 */
 	uint16_t n_ifaces_all;
 	/**
 	 * @brief The number of properties declared in this class
-	 * 
+	 *
 	 */
 	uint16_t n_props_self;
 	/**
-	 * @brief Alignment filler
-	 * 
+	 * @brief Index into the class delegate table (0 = no delegation)
+	 *
+	 * Delegation is an opt-in, cold-path feature (e.g. AZReferenceOf forwards
+	 * interface and property queries to the contained type); the delegate
+	 * holds the rarely used virtuals so they do not grow the class.
 	 */
-	uint16_t _filler;
+	uint8_t delegate_idx;
+	/**
+	 * @brief Index into the class allocator table (0 = default malloc/free)
+	 *
+	 * Custom allocators are rare (a single variant for a class subtree at
+	 * most), so they are kept in a side table instead of a per-class pointer.
+	 */
+	uint8_t allocator_idx;
 	union {
 		/**
-		 * @brief Interface declarations if (n_ifaces_self + n_ifaces_all) <= 2
-		 * 
+		 * @brief The interface list if n_ifaces_all <= 2
+		 *
 		 */
 		AZIFEntry ifaces[2];
-		struct {
-			/**
-			 * @brief Interface declarations of this class
-			 * 
-			 */
-			AZIFEntry *ifaces_self;
-			/**
-			 * @brief Interface declarations of this class, all it's parents and sub-interfaces
-			 * 
-			 * Listed in ascending order (fist all declared interfaces with their sub-interfaces, then the interfaces of parent class...)
-			 * 
-			 */
-			AZIFEntry *ifaces_all;
-		};
+		/**
+		 * @brief The interface list if n_ifaces_all > 2
+		 *
+		 * All interfaces of this class: the declarations of this class first,
+		 * then their transitive closures, then the parent class interfaces.
+		 *
+		 */
+		AZIFEntry *ifaces_all;
 	};
 
 	AZField *props_self;
 
 	/**
-	 * @brief The name of this class for convenience (not used by the library)
-	 * 
+	 * @brief The size of the instance of this type
+	 *
 	 */
-	const uint8_t *name;
-	/**
-	 * @brief the alignment mask: 0 (1), 1 (2), 3 (4), 7 (8) or 15 (16)
-	 * 
-	 */
-	uint16_t alignment;
+	uint32_t instance_size;
 	/**
 	 * @brief The size of the class structure
-	 * 
+	 *
 	 */
 	uint16_t class_size;
 	/**
-	 * @brief The size of the instance of this type 
-	 * 
+	 * @brief Reserved for future use
+	 *
 	 */
-	uint32_t instance_size;
+	uint16_t _reserved;
+
+	/* ---- End of the first (hot) 64 bytes ---- */
 
 	/**
-	 * @brief Memory allocator
-	 * 
-	 * This being NULL means that the default allocators (malloc/free) are used
-	 * 
-	 */
-	AZInstanceAllocator *allocator;
+	* @brief Get property value
+	* @param impl An implementation of query instance
+	* @param inst A query instance
+	* @param idx An index of the property as declared in query class
+	* @param prop_impl The returned implementation
+	* @param prop_val The returned value
+	* @param ctx The execution context
+	* @return 1 on success, 0 on error
+	*
+	* Get indexed property of the instance.
+	* Property is returned by value.
+	* Any and non-final value type properties should accept NULL value to read exact type
+	*/
+	unsigned int (*get_property) (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
+	/* Property is set by instance */
+	/* Returns 1 on success, 0 if property cannot be set */
+	unsigned int (*set_property) (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
 
 	/* Constructors and destructors */
 	void (*instance_init) (const AZImplementation *impl, void *inst);
@@ -217,69 +288,45 @@ struct _AZClass {
 	unsigned int (*to_string) (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen);
 
 	/**
-	* @brief Get property value
-	* @param impl An implementation of query instance
-	* @param inst A query instance
-	* @param idx An index of the property as declared in query class
-	* @param prop_impl The returned implementation
-	* @param prop_val The returned value
-	* @param ctx The execution context
-	* @return 1 on success, 0 on error
-	*
-	* Get indexed property of the instance.
-	* Property is returned by value.
-	* Any and non-final value type properties should accept NULL value to read exact type
-	*/
-	unsigned int (*get_property) (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
-	/* Property is set by instance */
-	/* Returns 1 on success, 0 if property cannot be set */
-	unsigned int (*set_property) (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
+	 * @brief The name of this class for convenience (not used by the library)
+	 *
+	 */
+	const uint8_t *name;
 };
 
 /*
- * We trade some branching for cache locality here
+ * Interface list storage
  *
- * n_ifaces_self == n_ifaces_all:
- *   n_ifaces_self <= 2 : self, all = ifaces[0..1]
- *   n_ifaces_self > 2 : self, all = ifaces_self
- * n_ifaces_self < n_ifaces_all:
- * 	 n_ifaces_self == 0:
- *     n_ifaces_all <= 2 : all = ifaces[0..1]
- *     n_ifaces_all > 2 : all = ifaces_all
- *   n_ifaces_self == 1:
- *     n_ifaces_all == 2 : self, all = ifaces[0..1]
- *     n_ifaces_all > 2 : self = ifaces[0], all = ifaces_all
- *   n_ifaces_self > 1 : self = ifaces_self, all = ifaces_all
+ * The interface declarations of a class are always the first n_ifaces_self
+ * entries of the full interface list, so a single array serves both:
+ *
+ *   n_ifaces_all <= 2 : the list is inline in klass->ifaces
+ *   n_ifaces_all > 2  : the list is the heap array klass->ifaces_all
+ *
+ * A class with no own declarations shares the inherited list content (the
+ * union is copied from the parent class and n_ifaces_all is inherited).
+ *
+ * Rejected declarations (e.g. circular interface implementation) keep their
+ * slots in the list with type == 0 and are skipped during iteration.
  */
+
+static inline const AZIFEntry *
+az_class_ifaces_all(const AZClass *klass)
+{
+	return (klass->n_ifaces_all <= 2) ? klass->ifaces : klass->ifaces_all;
+}
 
 static inline const AZIFEntry *
 az_class_ifaces_self(const AZClass *klass)
 {
-	if (klass->n_ifaces_self == klass->n_ifaces_all) {
-		return (klass->n_ifaces_self <= 2) ? &klass->ifaces[0] : &klass->ifaces_self[0];
-	} else {
-		return (klass->n_ifaces_self <= 1) ? &klass->ifaces[0] : &klass->ifaces_self[0];
-	}
+	/* The self declarations are the first n_ifaces_self entries of the full list */
+	return az_class_ifaces_all(klass);
 }
 
 static inline const AZIFEntry *
 az_class_iface_self(const AZClass *klass, uint16_t idx)
 {
 	return az_class_ifaces_self(klass) + idx;
-}
-
-static inline const AZIFEntry *
-az_class_ifaces_all(const AZClass *klass)
-{
-	if (klass->n_ifaces_self == klass->n_ifaces_all) {
-		return (klass->n_ifaces_self <= 2) ? &klass->ifaces[0] : &klass->ifaces_all[0];
-	} else {
-		if (klass->n_ifaces_self <= 1) {
-			return (klass->n_ifaces_all <= 2) ? &klass->ifaces[0] : &klass->ifaces_all[0];
-		} else {
-			return &klass->ifaces_all[0];
-		}
-	}
 }
 
 static inline const AZIFEntry *
@@ -323,6 +370,19 @@ az_class_parent(const AZClass *klass) {
  */
 int az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
 int az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
+
+/**
+ * @brief Print class registry statistics to stdout
+ *
+ * Prints the distribution of classes by category (struct/block/interface/
+ * reference/object), flags, interface list sizes, property counts, class and
+ * instance sizes and alignments. Intended for evaluating class layout and
+ * access-pattern optimizations.
+ *
+ * Lazily registered types whose classes have not been constructed yet are
+ * counted separately and never constructed by this function.
+ */
+void az_classes_print_stats (void);
 
 #ifdef __cplusplus
 };

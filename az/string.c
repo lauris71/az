@@ -173,18 +173,23 @@ string_dispose (AZReferenceClass *klass, AZReference *ref)
 	AZ_STRING_UNLOCK();
 }
 
-AZStringClass AZStringKlass = {
-	{{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_STRING},
-	&AZReferenceKlass.klass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "string",
-	7, sizeof(AZStringClass), 0,
-	NULL,
-	NULL, NULL,
-	serialize_string, deserialize_string, string_to_string,
-	NULL, NULL},
-	string_drop, string_dispose},
-	{0}
+AZ_CLASS_ALIGN AZStringClass AZStringKlass = {
+	.reference_class = {
+		.klass = {
+			.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_STRING },
+			.parent = &AZReferenceKlass.klass,
+			.name = (const uint8_t *) "string",
+			.alignment = 7,
+			.class_size = sizeof(AZStringClass),
+			.instance_size = 0,
+			.serialize = serialize_string,
+			.deserialize = deserialize_string,
+			.to_string = string_to_string
+		},
+		.drop = string_drop,
+		.dispose = string_dispose
+	},
+	.chr2str = {0}
 };
 
 void

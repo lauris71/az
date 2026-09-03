@@ -39,17 +39,18 @@ AZInterfaceClass *az_register_interface_type (unsigned int *type, const unsigned
 		impl_size, implementation_init, 1);
 }
 
-AZInterfaceClass AZInterfaceKlass = {
-	{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INTERFACE},
-	&AZBlockKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "interface",
-	3, sizeof(AZInterfaceClass), 0,
-	NULL,
-	NULL, NULL,
-	NULL, NULL, az_any_to_string,
-	NULL, NULL},
-	sizeof(AZImplementation), NULL
+AZ_CLASS_ALIGN AZInterfaceClass AZInterfaceKlass = {
+	.klass = {
+		.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_INTERFACE },
+		.parent = &AZBlockKlass,
+		.name = (const uint8_t *) "interface",
+		.alignment = 3,
+		.class_size = sizeof(AZInterfaceClass),
+		.instance_size = 0,
+		.to_string = az_any_to_string
+	},
+	.implementation_size = sizeof(AZImplementation),
+	.implementation_init = NULL
 };
 
 void
@@ -68,10 +69,13 @@ implementation_init_recursive (AZInterfaceClass *ifclass, AZImplementation *impl
 	/* Init subimplementations */
 	const AZIFEntry *ifentry = az_class_ifaces_self(&ifclass->klass);
 	for (uint16_t i = 0; i < ifclass->klass.n_ifaces_self; i++) {
-		AZInterfaceClass *sub_class = (AZInterfaceClass *) AZ_CLASS_FROM_TYPE(ifentry->type);
-		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
-		sub_impl->type = ifentry->type;
-		implementation_init_recursive (sub_class, sub_impl);
+		/* The declaration may have been rejected (e.g. circular interface implementation) */
+		if (ifentry->type) {
+			AZInterfaceClass *sub_class = (AZInterfaceClass *) AZ_CLASS_FROM_TYPE(ifentry->type);
+			AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
+			sub_impl->type = ifentry->type;
+			implementation_init_recursive (sub_class, sub_impl);
+		}
 		ifentry += 1;
 	}
 	/* Implementation itself */

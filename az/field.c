@@ -16,16 +16,14 @@
 #include <az/packed-value.h>
 #include <az/private.h>
 
-AZClass AZFieldKlass = {
-	{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FIELD},
-	&AZBlockKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "field",
-	7, sizeof(AZClass), sizeof(AZField),
-	NULL,
-	NULL, NULL,
-	NULL, NULL, az_any_to_string,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZFieldKlass = {
+	.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_FIELD },
+	.parent = &AZBlockKlass,
+	.name = (const uint8_t *) "field",
+	.alignment = 7,
+	.class_size = sizeof(AZClass),
+	.instance_size = sizeof(AZField),
+	.to_string = az_any_to_string
 };
 
 void

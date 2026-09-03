@@ -44,17 +44,19 @@ boxed_interface_to_string (const AZImplementation *impl, void *inst, unsigned ch
 	return pos;
 }
 
-AZBoxedInterfaceClass AZBoxedInterfaceKlass = {
-	{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOXED_INTERFACE},
-	&AZReferenceKlass.klass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "boxed interface",
-	7, sizeof(AZBoxedInterfaceClass), 0,
-	NULL,
-	NULL, NULL,
-	serialize_boxed_interface, NULL, boxed_interface_to_string,
-	NULL, NULL},
-	NULL, NULL
+AZ_CLASS_ALIGN AZBoxedInterfaceClass AZBoxedInterfaceKlass = {
+	.klass = {
+		.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_BOXED_INTERFACE },
+		.parent = &AZReferenceKlass.klass,
+		.name = (const uint8_t *) "boxed interface",
+		.alignment = 7,
+		.class_size = sizeof(AZBoxedInterfaceClass),
+		.instance_size = 0,
+		.serialize = serialize_boxed_interface,
+		.to_string = boxed_interface_to_string
+	},
+	.drop = NULL,
+	.dispose = NULL
 };
 
 void

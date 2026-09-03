@@ -148,9 +148,14 @@ az_value_init_by_type_autobox(AZValue *dst, unsigned int size, unsigned int type
 
 /**
  * @brief clear an value location
- * 
+ *
  * Remove reference hold by the value for reference types. After the operation the val is in uninitialized state.
- * 
+ *
+ * Note: for value types this is a no-op - no destructor is ever run on a value
+ * stored in an AZValue. Hence value classes must be trivially copiable and must
+ * not rely on instance_finalize (see "Value type (struct) requirements" in
+ * class.h).
+ *
  * @param impl the value implementation
  * @param val the value to be cleared
  */
@@ -203,10 +208,15 @@ const AZImplementation *az_value_transfer_autobox(const AZImplementation *impl, 
 
 /**
  * @brief copy a value to a new location
- * 
+ *
  * Copy data from initialized src to uninitialized dst. After the operation src will reamin intact.
  * If src implementation is NULL dst is set to untyped null.
- * 
+ *
+ * Note: value types are copied with plain memcpy - no constructor or copy
+ * fixup is run, so value classes must be trivially copiable (no owned
+ * references, no internal pointers - see "Value type (struct) requirements"
+ * in class.h).
+ *
  * @param impl the src implementation
  * @param dst the destination (uninitialized)
  * @param src the source value

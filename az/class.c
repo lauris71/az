@@ -11,6 +11,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(_WIN32)
+#include <malloc.h>
+#endif
+
 #include <arikkei/arikkei-strlib.h>
 
 #include <az/base.h>
@@ -23,6 +27,20 @@
 #include <az/string.h>
 
 static unsigned char zero_val[16] = { 0 };
+
+/* Index 0 is the default (malloc/free) allocator */
+const AZInstanceAllocator *az_class_allocators[AZ_MAX_CLASS_ALLOCATORS] = { NULL };
+static unsigned int az_num_class_allocators = 1;
+
+unsigned int
+az_class_register_allocator (const AZInstanceAllocator *allocator)
+{
+	arikkei_return_val_if_fail (allocator != NULL, 0);
+	arikkei_return_val_if_fail (az_num_class_allocators < AZ_MAX_CLASS_ALLOCATORS, 0);
+	unsigned int idx = az_num_class_allocators++;
+	az_class_allocators[idx] = allocator;
+	return idx;
+}
 
 /* Method implementations */
 static unsigned int impl_call_setStaticProperty (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
@@ -98,8 +116,15 @@ az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int 
 #endif
 	arikkei_return_val_if_fail (!AZ_TYPE_IS_FINAL(parent_type), 0);
 
-	AZClass *klass = (AZClass *) malloc (class_size);
-	memset (klass, 0, class_size);
+	/* Classes are cache-line aligned and padded so they never share line tails */
+	unsigned int alloc_size = (class_size + AZ_CLASS_ALIGNMENT - 1) & ~(unsigned int) (AZ_CLASS_ALIGNMENT - 1);
+#if defined(_WIN32)
+	AZClass *klass = (AZClass *) _aligned_malloc (alloc_size, AZ_CLASS_ALIGNMENT);
+#else
+	AZClass *klass = (AZClass *) aligned_alloc (AZ_CLASS_ALIGNMENT, alloc_size);
+#endif
+	arikkei_return_val_if_fail (klass != NULL, NULL);
+	memset (klass, 0, alloc_size);
 	if (parent_type) {
 		/* The parent class is constructed on demand */
 		AZClass *parent_class = az_type_get_class (parent_type);
@@ -139,15 +164,20 @@ az_class_new_with_value (AZClass *klass)
 void
 az_class_set_num_interfaces (AZClass *klass, unsigned int n_ifaces)
 {
+	arikkei_return_if_fail (n_ifaces <= UINT8_MAX);
 	klass->n_ifaces_self = n_ifaces;
 	if (n_ifaces > 2) {
+		/* Temporary storage for the declarations; az_class_post_init either
+		 * reuses it as the full interface list or frees it again */
+		klass->ifaces_all = (AZIFEntry *) malloc(n_ifaces * sizeof(AZIFEntry));
+#ifdef VERBOSE
 		static unsigned int n_allocations = 0, allocated = 0;
-		klass->ifaces_self = (AZIFEntry *) malloc(n_ifaces * sizeof(AZIFEntry));
 		n_allocations += 1;
 		allocated += n_ifaces;
 		fprintf(stderr, "az_class_set_num_interfaces(): Allocated %u (%u %u)\n", n_ifaces, n_allocations, allocated);
+#endif
 #ifdef AZ_SAFETY_CHECKS
-        memset (klass->ifaces_self, 0, n_ifaces * sizeof (AZIFEntry));
+        memset (klass->ifaces_all, 0, n_ifaces * sizeof (AZIFEntry));
 #endif
 	} else {
 #ifdef AZ_SAFETY_CHECKS
@@ -179,7 +209,31 @@ az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type,
 			(const char *) klass->name, type);
 		return;
 	}
-	AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[idx] : &klass->ifaces_self[idx];
+#ifdef AZ_SAFETY_CHECKS
+	/*
+	 * Value type instances are memcpy'd and cleared without destruction, so a value
+	 * class may only implement interfaces whose instance state is destructor-free
+	 * (see "Value type (struct) requirements" in class.h)
+	 */
+	if (!(klass->impl.flags & AZ_FLAG_BLOCK)) {
+		if (iface_class->instance_finalize) {
+			fprintf (stderr, "az_class_declare_interface: value class %s implements interface %s"
+				" which has a finalizer; value instances are memcpy'd and never destructed\n",
+				(const char *) klass->name, (const char *) iface_class->name);
+		}
+		for (unsigned int i = 0; i < iface_class->n_ifaces_all; i++) {
+			const AZIFEntry *sub_entry = az_class_iface_all (iface_class, i);
+			if (!sub_entry->type) continue;
+			AZClass *sub_class = AZ_CLASS_FROM_TYPE (sub_entry->type);
+			if (sub_class->instance_finalize) {
+				fprintf (stderr, "az_class_declare_interface: value class %s implements interface %s"
+					" whose super-interface %s has a finalizer; value instances are memcpy'd and never destructed\n",
+					(const char *) klass->name, (const char *) iface_class->name, (const char *) sub_class->name);
+			}
+		}
+	}
+#endif
+	AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[idx] : &klass->ifaces_all[idx];
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (!ifentry->type);
 #endif
@@ -191,15 +245,32 @@ az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type,
 	}
 }
 
+#define noVERBOSE
+
 void
 az_class_post_init (AZClass *klass)
 {
 	unsigned int i;
+	/*
+	 * Until this point the self interface declarations live in the inline array
+	 * (n_ifaces_self <= 2) or in a temporary heap array pointed to by ifaces_all
+	 * (n_ifaces_self > 2). The full list cannot be built earlier because its
+	 * size is only known once the transitive closures are counted below.
+	 */
+	AZIFEntry *self = (klass->n_ifaces_self <= 2) ? klass->ifaces : klass->ifaces_all;
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (!(klass->alignment & (klass->alignment + 1)));
+	/*
+	 * Value type instances are memcpy'd and cleared without destruction, so a
+	 * value class must not rely on a finalizer (see "Value type (struct)
+	 * requirements" in class.h)
+	 */
+	if (!(klass->impl.flags & (AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT)) && klass->instance_finalize) {
+		fprintf (stderr, "az_class_post_init: value class %s has a finalizer;"
+			" value instances are memcpy'd and never destructed\n", (const char *) klass->name);
+	}
 	for (i = 0; i < klass->n_ifaces_self; i++) {
-		AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[i] : &klass->ifaces_self[i];
-		if (!ifentry->type) {
+		if (!self[i].type) {
 			fprintf (stderr, "az_class_post_init: Klass %s interface %u is not defined\n", klass->name, i);
 		}
 	}
@@ -210,85 +281,65 @@ az_class_post_init (AZClass *klass)
 	}
 #endif
 	if (klass->n_ifaces_self) {
-		/* Count all interfaces */
-		/* Initially n_ifaces_all has the value from parent class */
-		for (i = 0; i < klass->n_ifaces_self; i++) {
-			AZIFEntry *ifentry = (klass->n_ifaces_self <= 2) ? &klass->ifaces[i] : &klass->ifaces_self[i];
-			/* The declaration may have been rejected (e.g. circular interface implementation) */
-			if (!ifentry->type) continue;
-			AZClass *iface_class = AZ_CLASS_FROM_TYPE(ifentry->type);
-			klass->n_ifaces_all += (1 + iface_class->n_ifaces_all);
-		}
 		/*
-		* n_ifaces_self == n_ifaces_all:
-		*   n_ifaces_self <= 2 : self, all = ifaces[0..1]
-		*   n_ifaces_self > 2 : self, all = ifaces_self
-		* n_ifaces_self < n_ifaces_all:
-		* 	 n_ifaces_self == 0:
-		*     n_ifaces_all <= 2 : all = ifaces[0..1]
-		*     n_ifaces_all > 2 : all = ifaces_all
-		*   n_ifaces_self == 1:
-		*     n_ifaces_all == 2 : self, all = ifaces[0..1]
-		*     n_ifaces_all > 2 : self = ifaces[0], all = ifaces_all
-		*   n_ifaces_self > 1 : self = ifaces_self, all = ifaces_all
-		*/
-		if (klass->n_ifaces_self == klass->n_ifaces_all) {
-			/* Share interface definitions */
-			if (klass->n_ifaces_self > 2) {
-				klass->ifaces_all = klass->ifaces_self;
+		 * Count all interfaces (n_ifaces_all has the parent value initially).
+		 * Rejected declarations (type == 0) keep their slot in the list but do
+		 * not contribute a transitive closure.
+		 */
+		for (i = 0; i < klass->n_ifaces_self; i++) {
+			klass->n_ifaces_all += 1;
+			if (self[i].type) {
+				AZClass *iface_class = AZ_CLASS_FROM_TYPE(self[i].type);
+				klass->n_ifaces_all += iface_class->n_ifaces_all;
 			}
+		}
+		AZIFEntry *ifaces;
+		if (klass->n_ifaces_all <= 2) {
+			/* The full list fits inline; self is inline too (n_ifaces_all >= n_ifaces_self) */
+			ifaces = klass->ifaces;
+		} else if ((klass->n_ifaces_self > 2) && (klass->n_ifaces_all == klass->n_ifaces_self)) {
+			/* No transitives and no inherited interfaces: the temporary array is the full list */
+			ifaces = self;
 		} else {
-			if (klass->n_ifaces_self == 2) {
-				/* Have to move self interfaces */
-				static unsigned int n_allocations = 0, allocated = 0;
-				AZIFEntry *ifaces = (AZIFEntry *) malloc(klass->n_ifaces_self * sizeof(AZIFEntry));
-				n_allocations += 1;
-				allocated += klass->n_ifaces_self;
-				fprintf(stderr, "az_class_post_init(): Allocated self %u (%u %u)\n", klass->n_ifaces_self, n_allocations, allocated);
-				memcpy(ifaces, klass->ifaces, 2 * sizeof(AZIFEntry));
-				klass->ifaces_self = ifaces;
-			}
-			AZIFEntry *ifaces;
-			if ((klass->n_ifaces_self == 1) && (klass->n_ifaces_all <= 2)) {
-				ifaces = klass->ifaces;
-			} else {
-				static unsigned int n_allocations = 0, allocated = 0;
-				klass->ifaces_all = (AZIFEntry *) malloc(klass->n_ifaces_all * sizeof(AZIFEntry));
-				n_allocations += 1;
-				allocated += klass->n_ifaces_all;
-				fprintf(stderr, "az_class_post_init(): Allocated all %u (%u %u)\n", klass->n_ifaces_all, n_allocations, allocated);
-				ifaces = klass->ifaces_all;
-			}
-			unsigned int idx = 0;
+#ifdef VERBOSE
+			static unsigned int n_allocations = 0, allocated = 0;
+			n_allocations += 1;
+			allocated += klass->n_ifaces_all;
+			fprintf(stderr, "az_class_post_init(): Allocated all %u (%u %u)\n", klass->n_ifaces_all, n_allocations, allocated);
+#endif
+			ifaces = (AZIFEntry *) malloc(klass->n_ifaces_all * sizeof(AZIFEntry));
 			/*
 			 * A class may implement the same interface multiple times: directly and
 			 * transitively through other interfaces. Direct (self) declarations come
 			 * first so they win the az_instance_get_interface lookup.
 			 */
-			for (i = 0; i < klass->n_ifaces_self; i++) {
-				const AZIFEntry *self_entry = az_class_iface_self(klass, i);
-				/* The declaration may have been rejected (e.g. circular interface implementation) */
-				if (!self_entry->type) continue;
-				ifaces[idx] = *self_entry;
+			memcpy (ifaces, self, klass->n_ifaces_self * sizeof (AZIFEntry));
+		}
+		unsigned int idx = klass->n_ifaces_self;
+		/* Transitive closures: the offsets have to be composed with the self entry's */
+		for (i = 0; i < klass->n_ifaces_self; i++) {
+			/* Rejected declarations have no closure */
+			if (!ifaces[i].type) continue;
+			AZClass *iface_class = AZ_CLASS_FROM_TYPE(ifaces[i].type);
+			for (unsigned int j = 0; j < iface_class->n_ifaces_all; j++) {
+				const AZIFEntry *sub_entry = az_class_iface_all(iface_class, j);
+				ifaces[idx].type = sub_entry->type;
+				ifaces[idx].impl_offset = ifaces[i].impl_offset + sub_entry->impl_offset;
+				ifaces[idx].inst_offset = ifaces[i].inst_offset + sub_entry->inst_offset;
 				idx += 1;
 			}
-			/* Transitive closures: the offsets have to be composed with the self entry's */
-			for (i = 0; i < klass->n_ifaces_self; i++) {
-				const AZIFEntry *self_entry = az_class_iface_self(klass, i);
-				if (!self_entry->type) continue;
-				AZClass *iface_class = AZ_CLASS_FROM_TYPE(self_entry->type);
-				for (unsigned int j = 0; j < iface_class->n_ifaces_all; j++) {
-					const AZIFEntry *sub_entry = az_class_iface_all(iface_class, j);
-					ifaces[idx].type = sub_entry->type;
-					ifaces[idx].impl_offset = self_entry->impl_offset + sub_entry->impl_offset;
-					ifaces[idx].inst_offset = self_entry->inst_offset + sub_entry->inst_offset;
-					idx += 1;
-				}
-			}
-			/* Parent offsets are class-absolute (the parent is embedded at offset 0) */
+		}
+		/* Parent offsets are class-absolute (the parent is embedded at offset 0) */
+		if (klass->parent) {
 			memcpy (&ifaces[idx], az_class_iface_all(klass->parent, 0), klass->parent->n_ifaces_all * sizeof (AZIFEntry));
 		}
+		if (ifaces != self) {
+			/* Release the temporary declaration array */
+			if (klass->n_ifaces_self > 2) free (self);
+			if (ifaces != klass->ifaces) klass->ifaces_all = ifaces;
+		}
 	}
+#ifdef VERBOSE
 	if (klass->n_ifaces_all) {
 		fprintf (stderr, "Class %s\n", klass->name);
 		fprintf (stderr, "  Self %u\n", klass->n_ifaces_self);
@@ -302,6 +353,7 @@ az_class_post_init (AZClass *klass)
 			fprintf (stderr, "    %d: type %d\n", i, ifentry->type);
 		}
 	}
+#endif
 }
 
 void

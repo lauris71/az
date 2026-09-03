@@ -14,17 +14,18 @@
 
 #include <az/io/input-stream.h>
 
-AZInterfaceClass AZInputStreamKlass = {
-	{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INPUT_STREAM},
-	&AZInterfaceKlass.klass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "input stream",
-	3, sizeof(AZInterfaceKlass), 0,
-	NULL,
-	NULL, NULL,
-	NULL, NULL, az_any_to_string,
-	NULL, NULL},
-	sizeof(AZInputStreamImplementation), NULL
+AZ_CLASS_ALIGN AZInterfaceClass AZInputStreamKlass = {
+	.klass = {
+		.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_INPUT_STREAM },
+		.parent = &AZInterfaceKlass.klass,
+		.name = (const uint8_t *) "input stream",
+		.alignment = 3,
+		.class_size = sizeof(AZInterfaceKlass),
+		.instance_size = 0,
+		.to_string = az_any_to_string
+	},
+	.implementation_size = sizeof(AZInputStreamImplementation),
+	.implementation_init = NULL
 };
 
 void

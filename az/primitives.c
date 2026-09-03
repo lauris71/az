@@ -320,190 +320,185 @@ any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, co
 
 static unsigned char zero_val[16] = { 0 };
 
-AZClass AZAnyKlass = {
-	{AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_ANY},
-	NULL,
-	/* Num interfaces, num props, ifaces, props */
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "any",
-	0, sizeof(AZClass), 0,
-	/* Allocator */
-	NULL,
-	/* Instance init/finalize */
-	NULL, NULL,
-	/* Serialize/deserialize/to_string */
-	NULL, NULL, az_any_to_string,
-	any_get_property, NULL
+AZ_CLASS_ALIGN AZClass AZAnyKlass = {
+	.impl = { .flags = AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_ANY },
+	.parent = NULL,
+	.name = (const uint8_t *) "any",
+	.alignment = 0,
+	.class_size = sizeof(AZClass),
+	.instance_size = 0,
+	.to_string = az_any_to_string,
+	.get_property = any_get_property
 };
 
 //unsigned int AnyType[] = { AZ_TYPE_ANY };
 
-AZClass AZBooleanKlass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOOLEAN},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "boolean",
-	3, sizeof(AZClass), 4,
-	NULL,
-	NULL, NULL,
-	serialize_boolean, deserialize_boolean, boolean_to_string,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZBooleanKlass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_BOOLEAN },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "boolean",
+	.alignment = 3,
+	.class_size = sizeof(AZClass),
+	.instance_size = 4,
+	.serialize = serialize_boolean,
+	.deserialize = deserialize_boolean,
+	.to_string = boolean_to_string
 };
 
-AZClass AZInt8Klass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT8},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "int8",
-	0, sizeof(AZClass), 1,
-	NULL,
-	NULL, NULL,
-	serialize_int, deserialize_int, int_to_string_any,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZInt8Klass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_INT8 },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "int8",
+	.alignment = 0,
+	.class_size = sizeof(AZClass),
+	.instance_size = 1,
+	.serialize = serialize_int,
+	.deserialize = deserialize_int,
+	.to_string = int_to_string_any
 };
 
-AZClass AZUint8Klass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT8},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "uint8",
-	0, sizeof(AZClass), 1,
-	NULL,
-	NULL, NULL,
-	serialize_int, deserialize_int, int_to_string_any,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZUint8Klass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_UINT8 },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "uint8",
+	.alignment = 0,
+	.class_size = sizeof(AZClass),
+	.instance_size = 1,
+	.serialize = serialize_int,
+	.deserialize = deserialize_int,
+	.to_string = int_to_string_any
 };
 
-AZClass AZInt16Klass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT16},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "int16",
-	1, sizeof(AZClass), 2,
-	NULL,
-	NULL, NULL,
-	serialize_int, deserialize_int, int_to_string_any,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZInt16Klass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_INT16 },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "int16",
+	.alignment = 1,
+	.class_size = sizeof(AZClass),
+	.instance_size = 2,
+	.serialize = serialize_int,
+	.deserialize = deserialize_int,
+	.to_string = int_to_string_any
 };
 
-AZClass AZUint16Klass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT16},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "uint16",
-	1, sizeof(AZClass), 2,
-	NULL,
-	NULL, NULL,
-	serialize_int, deserialize_int, int_to_string_any,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZUint16Klass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_UINT16 },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "uint16",
+	.alignment = 1,
+	.class_size = sizeof(AZClass),
+	.instance_size = 2,
+	.serialize = serialize_int,
+	.deserialize = deserialize_int,
+	.to_string = int_to_string_any
 };
 
-AZClass AZInt32Klass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT32},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "int32",
-	3, sizeof(AZClass), 4,
-	NULL,
-	NULL, NULL,
-	serialize_int, deserialize_int, int_to_string_any,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZInt32Klass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_INT32 },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "int32",
+	.alignment = 3,
+	.class_size = sizeof(AZClass),
+	.instance_size = 4,
+	.serialize = serialize_int,
+	.deserialize = deserialize_int,
+	.to_string = int_to_string_any
 };
 
-AZClass AZUint32Klass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT32},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "uint32",
-	3, sizeof(AZClass), 4,
-	NULL,
-	NULL, NULL,
-	serialize_int, deserialize_int, int_to_string_any,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZUint32Klass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_UINT32 },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "uint32",
+	.alignment = 3,
+	.class_size = sizeof(AZClass),
+	.instance_size = 4,
+	.serialize = serialize_int,
+	.deserialize = deserialize_int,
+	.to_string = int_to_string_any
 };
 
-AZClass AZInt64Klass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_INT64},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "int64",
-	7, sizeof(AZClass), 8,
-	NULL,
-	NULL, NULL,
-	serialize_int, deserialize_int, int_to_string_any,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZInt64Klass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_INT64 },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "int64",
+	.alignment = 7,
+	.class_size = sizeof(AZClass),
+	.instance_size = 8,
+	.serialize = serialize_int,
+	.deserialize = deserialize_int,
+	.to_string = int_to_string_any
 };
 
-AZClass AZUint64Klass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT64},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "uint64",
-	7, sizeof(AZClass), 8,
-	NULL,
-	NULL, NULL,
-	serialize_int, deserialize_int, int_to_string_any,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZUint64Klass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_INTEGRAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_UINT64 },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "uint64",
+	.alignment = 7,
+	.class_size = sizeof(AZClass),
+	.instance_size = 8,
+	.serialize = serialize_int,
+	.deserialize = deserialize_int,
+	.to_string = int_to_string_any
 };
 
-AZClass AZFloatKlass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_FLOAT},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "float",
-	3, sizeof(AZClass), 4,
-	NULL,
-	NULL, NULL,
-	serialize_int, deserialize_int, float_to_string,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZFloatKlass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_FLOAT },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "float",
+	.alignment = 3,
+	.class_size = sizeof(AZClass),
+	.instance_size = 4,
+	.serialize = serialize_int,
+	.deserialize = deserialize_int,
+	.to_string = float_to_string
 };
 
-AZClass AZDoubleKlass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_DOUBLE},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "double",
-	7, sizeof(AZClass), 8,
-	NULL,
-	NULL, NULL,
-	serialize_int, deserialize_int, double_to_string,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZDoubleKlass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_DOUBLE },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "double",
+	.alignment = 7,
+	.class_size = sizeof(AZClass),
+	.instance_size = 8,
+	.serialize = serialize_int,
+	.deserialize = deserialize_int,
+	.to_string = double_to_string
 };
 
-AZClass AZComplexFloatKlass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_FLOAT},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "complex float",
-	7, sizeof(AZClass), 8,
-	NULL,
-	NULL, NULL,
-	serialize_complex_float, deserialize_complex_float, complex_float_to_string,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZComplexFloatKlass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_COMPLEX_FLOAT },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "complex float",
+	.alignment = 7,
+	.class_size = sizeof(AZClass),
+	.instance_size = 8,
+	.serialize = serialize_complex_float,
+	.deserialize = deserialize_complex_float,
+	.to_string = complex_float_to_string
 };
 
-AZClass AZComplexDoubleKlass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_COMPLEX_DOUBLE},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "complex double",
-	7, sizeof(AZClass), 16,
-	NULL,
-	NULL, NULL,
-	serialize_complex_double, deserialize_complex_double, complex_double_to_string,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZComplexDoubleKlass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_ARITHMETIC | AZ_FLAG_SIGNED | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_COMPLEX_DOUBLE },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "complex double",
+	.alignment = 7,
+	.class_size = sizeof(AZClass),
+	.instance_size = 16,
+	.serialize = serialize_complex_double,
+	.deserialize = deserialize_complex_double,
+	.to_string = complex_double_to_string
 };
 
-AZClass AZPointerKlass = {
-	{AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_POINTER},
-	&AZAnyKlass,
-	0, 0, 0, 0, {0}, NULL,
-	(const uint8_t *) "pointer",
-	7, sizeof(AZClass), 8,
-	NULL,
-	NULL, NULL,
-	serialize_int, deserialize_int, pointer_to_string,
-	NULL, NULL
+AZ_CLASS_ALIGN AZClass AZPointerKlass = {
+	.impl = { .flags = AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_POINTER },
+	.parent = &AZAnyKlass,
+	.name = (const uint8_t *) "pointer",
+	.alignment = 7,
+	.class_size = sizeof(AZClass),
+	.instance_size = 8,
+	.serialize = serialize_int,
+	.deserialize = deserialize_int,
+	.to_string = pointer_to_string
 };
 
 static AZClass *primitive_classes[] = {

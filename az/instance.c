@@ -42,11 +42,14 @@ az_instance_init_recursive (const AZClass *klass, const AZImplementation *impl, 
 	/* Interfaces */
 	const AZIFEntry *ifentry = az_class_iface_self(klass, 0);
 	for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
-		AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
-		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
-		void *sub_inst = (void *) ((char *) inst + ifentry->inst_offset);
-		if (!zeroed && (sub_class->impl.flags & AZ_FLAG_ZERO_MEMORY)) memset (sub_inst, 0, sub_class->instance_size);
-		az_instance_init_recursive (sub_class, sub_impl, sub_inst, zeroed || (sub_class->impl.flags & AZ_FLAG_ZERO_MEMORY));
+		/* The declaration may have been rejected (e.g. circular interface implementation) */
+		if (ifentry->type) {
+			AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
+			AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
+			void *sub_inst = (void *) ((char *) inst + ifentry->inst_offset);
+			if (!zeroed && (sub_class->impl.flags & AZ_FLAG_ZERO_MEMORY)) memset (sub_inst, 0, sub_class->instance_size);
+			az_instance_init_recursive (sub_class, sub_impl, sub_inst, zeroed || (sub_class->impl.flags & AZ_FLAG_ZERO_MEMORY));
+		}
 		ifentry += 1;
 	}
 	/* Instance itself */
@@ -68,10 +71,13 @@ az_instance_finalize_recursive (const AZClass *klass, const AZImplementation *im
 	if (klass->instance_finalize) klass->instance_finalize (impl, inst);
 	const AZIFEntry *ifentry = az_class_iface_self(klass, 0);
 	for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
-		AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
-		AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
-		void *sub_inst = (void *) ((char *) inst + ifentry->inst_offset);
-		az_instance_finalize_recursive (sub_class, sub_impl, sub_inst);
+		/* The declaration may have been rejected (e.g. circular interface implementation) */
+		if (ifentry->type) {
+			AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
+			AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
+			void *sub_inst = (void *) ((char *) inst + ifentry->inst_offset);
+			az_instance_finalize_recursive (sub_class, sub_impl, sub_inst);
+		}
 		ifentry += 1;
 	}
 	if (klass->parent && (AZ_TYPE_INDEX(AZ_CLASS_TYPE(klass->parent)) >= AZ_NUM_FUNDAMENTAL_TYPES)) {
@@ -119,8 +125,9 @@ az_instance_new (unsigned int type)
 	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_ABSTRACT), NULL);
 	arikkei_return_val_if_fail(klass->instance_size > 0, NULL);
 	void *inst;
-	if (klass->allocator && klass->allocator->allocate) {
-		inst = klass->allocator->allocate (klass);
+	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
+	if (allocator && allocator->allocate) {
+		inst = allocator->allocate (klass);
 	} else {
 		inst = malloc(klass->instance_size);
 	}
@@ -140,8 +147,9 @@ az_instance_new_array (unsigned int type, unsigned int n_elements)
 	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_ABSTRACT), NULL);
 	arikkei_return_val_if_fail(klass->instance_size > 0, NULL);
 	void *elements;
-	if (klass->allocator && klass->allocator->allocate_array) {
-		elements = klass->allocator->allocate_array (klass, n_elements);
+	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
+	if (allocator && allocator->allocate_array) {
+		elements = allocator->allocate_array (klass, n_elements);
 	} else {
 		elements = malloc(n_elements * AZ_CLASS_ELEMENT_SIZE(klass));
 	}
@@ -162,8 +170,9 @@ az_instance_delete (unsigned int type, void *instance)
 #endif
 	AZClass *klass = az_type_get_class (type);
 	az_instance_finalize_recursive (klass, &klass->impl, instance);
-	if (klass->allocator && klass->allocator->free) {
-		klass->allocator->free (klass, instance);
+	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
+	if (allocator && allocator->free) {
+		allocator->free (klass, instance);
 	} else {
 		free (instance);
 	}
@@ -181,8 +190,9 @@ az_instance_delete_array (unsigned int type, void *elements, unsigned int neleme
 		void *instance = (char *) elements + i * AZ_CLASS_ELEMENT_SIZE(klass);
 		az_instance_finalize_recursive (klass, &klass->impl, instance);
 	}
-	if (klass->allocator && klass->allocator->free_array) {
-		klass->allocator->free_array (klass, elements, nelements);
+	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
+	if (allocator && allocator->free_array) {
+		allocator->free_array (klass, elements, nelements);
 	} else {
 		free (elements);
 	}

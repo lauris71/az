@@ -28,27 +28,26 @@ enum {
 	NUM_PROPERTIES
 };
 
-AZObjectClass AZObjectKlass = {
-	{{{AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_OBJECT | AZ_FLAG_ZERO_MEMORY | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_OBJECT},
-			&AZReferenceKlass.klass,
-			0, 0, 0, 0,
-			/* ifaces / ifaces_self, ifaces_all */
-			{0},
-			/* props_self */
-			NULL,
-			(const uint8_t *) "object",
-			7, sizeof(AZObjectClass), sizeof(AZObject),
-			NULL,
+AZ_CLASS_ALIGN AZObjectClass AZObjectKlass = {
+	.reference_klass = {
+		.klass = {
+			.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_OBJECT | AZ_FLAG_ZERO_MEMORY | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_OBJECT },
+			.parent = &AZReferenceKlass.klass,
+			.name = (const uint8_t *) "object",
+			.alignment = 7,
+			.class_size = sizeof(AZObjectClass),
+			.instance_size = sizeof(AZObject),
 			/* instance_init, instance_finalize */
-			(void (*) (const AZImplementation *, void *)) object_init, NULL,
+			.instance_init = (void (*) (const AZImplementation *, void *)) object_init,
 			/* serialize, deserialize, to_string */
-			NULL, NULL, az_any_to_string,
-			/* get_property, set_property */
-			NULL, NULL},
+			.to_string = az_any_to_string
+		},
 		/* drop, dispose */
-		NULL, object_dispose},
+		.drop = NULL,
+		.dispose = object_dispose
+	},
 	/* shutdown */
-	NULL
+	.shutdown = NULL
 };
 
 void

@@ -41,27 +41,24 @@ boxed_value_finalize (AZBoxedValueClass *klass, AZBoxedValue *boxed)
 }
 #endif
 
-AZBoxedValueClass AZBoxedValueKlass = {
-	{{AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, AZ_TYPE_BOXED_VALUE},
-	&AZReferenceKlass.klass,
-	0, 0, 0, 0,
-	/* ifaces / ifaces_self, ifaces_all */
-	{0},
-	/* props_self */
-	NULL,
-	(const uint8_t *) "boxed value",
-	7, sizeof(AZBoxedValueClass), 0,
-	NULL,
-	/* instance_init, instance_finalize */
+AZ_CLASS_ALIGN AZBoxedValueClass AZBoxedValueKlass = {
+	.klass = {
+		.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_BOXED_VALUE },
+		.parent = &AZReferenceKlass.klass,
+		.name = (const uint8_t *) "boxed value",
+		.alignment = 7,
+		.class_size = sizeof(AZBoxedValueClass),
+		.instance_size = 0,
+		/* instance_init, instance_finalize */
 #ifdef DEBUG_BOXED_VALUE
-	(void (*) (const AZImplementation *, void *)) boxed_value_init, (void (*) (const AZImplementation *, void *)) boxed_value_finalize,
-#else
-	NULL, NULL,
+		.instance_init = (void (*) (const AZImplementation *, void *)) boxed_value_init,
+		.instance_finalize = (void (*) (const AZImplementation *, void *)) boxed_value_finalize,
 #endif
-	serialize_boxed_value, NULL, boxed_value_to_string,
-	/* get_property, set_property */
-	NULL, NULL},
-	NULL, NULL
+		.serialize = serialize_boxed_value,
+		.to_string = boxed_value_to_string
+	},
+	.drop = NULL,
+	.dispose = NULL
 };
 
 void

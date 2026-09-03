@@ -32,15 +32,26 @@ struct _AZInterfaceClass {
 	AZClass klass;
 	/**
 	 * @brief The size of the implementation
-	 * 
+	 *
 	 */
 	unsigned int implementation_size;
 	/**
 	 * @brief The implementation constructor
-	 * 
+	 *
 	 */
 	void (*implementation_init) (AZImplementation *impl);
 };
+
+/*
+ * Note on interface instance state and value types: an interface instance
+ * region is embedded directly in the implementing instance (AZIFEntry
+ * inst_offset), so it inherits the lifecycle of the containing type. When the
+ * containing type is a value type, the region is copied with memcpy and never
+ * destructed (see "Value type (struct) requirements" in class.h); such
+ * interfaces must therefore have trivially copiable, destructor-free instance
+ * state. Interfaces with instance_init/instance_finalize (e.g. AZHashMap,
+ * which owns a heap table) may only be implemented by block/reference types.
+ */
 
 extern AZInterfaceClass AZInterfaceKlass;
 

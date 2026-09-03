@@ -322,3 +322,117 @@ az_type_is_valid_deferred (uint32_t type)
 		mtx_unlock(&mutex);
 	}
 #endif
+
+/* The trailing-ones mask of the instance alignment (0 = 1 byte ... 127 = 128 bytes) */
+static unsigned int
+az_alignment_bucket (uint8_t alignment)
+{
+	unsigned int k = 0;
+	while ((k < 7) && (alignment & (1u << k))) k += 1;
+	return k;
+}
+
+void
+az_classes_print_stats (void)
+{
+#ifdef AZ_SAFETY_CHECKS
+	ENSURE_INITIALIZED();
+#endif
+	unsigned int n_classes = 0, n_reserved = 0, n_fundamental = 0;
+	unsigned int n_struct = 0, n_block = 0, n_iface = 0, n_ref = 0, n_obj = 0;
+	unsigned int n_abstract = 0, n_final = 0, n_zero_memory = 0, n_construct = 0;
+	unsigned int n_init = 0, n_finalize = 0;
+	unsigned int n_self_ifaces = 0, n_inherited_ifaces = 0;
+	unsigned int n_props = 0;
+	unsigned int n_struct_gt16 = 0, n_struct_gt64 = 0;
+	unsigned int n_custom_allocator = 0, n_custom_delegate = 0;
+	unsigned int max_ifaces_self = 0, max_ifaces_all = 0, max_props = 0;
+	unsigned int max_class_size = 0, max_instance_size = 0;
+	const AZClass *max_class_size_class = NULL, *max_instance_size_class = NULL;
+	uint64_t sum_class_size = 0, sum_ifaces_all = 0, sum_props = 0;
+	unsigned int n_class_le64 = 0, n_class_le128 = 0, n_class_gt128 = 0;
+	unsigned int iface_hist[4] = { 0 }; /* n_ifaces_all: 0, 1, 2, >2 */
+	unsigned int align_hist[8] = { 0 }; /* instance alignment 1 << k */
+	for (unsigned int i = 0; i < az_num_types; i++) {
+		uintptr_t p = slot_load (i);
+		if (!p) continue;
+		/* Tagged (LSB set) slot: reserved but not constructed yet */
+		if (p & 1) {
+			n_reserved += 1;
+			continue;
+		}
+		const AZClass *klass = (const AZClass *) p;
+		uint32_t flags = klass->impl.flags;
+		n_classes += 1;
+		if (i < AZ_NUM_FUNDAMENTAL_TYPES) n_fundamental += 1;
+		/* Categories are exclusive by priority: iface > object > reference > block > struct */
+		if (flags & AZ_FLAG_INTERFACE) {
+			n_iface += 1;
+		} else if (flags & AZ_FLAG_OBJECT) {
+			n_obj += 1;
+		} else if (flags & AZ_FLAG_REFERENCE) {
+			n_ref += 1;
+		} else if (flags & AZ_FLAG_BLOCK) {
+			n_block += 1;
+		} else if (!(flags & AZ_FLAG_ABSTRACT)) {
+			unsigned int vsize = az_class_value_size (klass);
+			n_struct += 1;
+			if (vsize > 16) n_struct_gt16 += 1;
+			if (vsize > 64) n_struct_gt64 += 1;
+			if (klass->instance_size > max_instance_size) {
+				max_instance_size = klass->instance_size;
+				max_instance_size_class = klass;
+			}
+		}
+		if (flags & AZ_FLAG_ABSTRACT) n_abstract += 1;
+		if (flags & AZ_FLAG_FINAL) n_final += 1;
+		if (flags & AZ_FLAG_ZERO_MEMORY) n_zero_memory += 1;
+		if (flags & AZ_FLAG_CONSTRUCT) n_construct += 1;
+		if (klass->instance_init) n_init += 1;
+		if (klass->instance_finalize) n_finalize += 1;
+		if (klass->n_ifaces_self) n_self_ifaces += 1;
+		if (klass->n_ifaces_all > klass->n_ifaces_self) n_inherited_ifaces += 1;
+		if (klass->n_props_self) n_props += 1;
+		if (klass->allocator_idx) n_custom_allocator += 1;
+		if (klass->delegate_idx) n_custom_delegate += 1;
+		if (klass->n_ifaces_self > max_ifaces_self) max_ifaces_self = klass->n_ifaces_self;
+		if (klass->n_ifaces_all > max_ifaces_all) max_ifaces_all = klass->n_ifaces_all;
+		if (klass->n_props_self > max_props) max_props = klass->n_props_self;
+		if (klass->class_size > max_class_size) {
+			max_class_size = klass->class_size;
+			max_class_size_class = klass;
+		}
+		sum_class_size += klass->class_size;
+		sum_ifaces_all += klass->n_ifaces_all;
+		sum_props += klass->n_props_self;
+		if (klass->class_size <= 64) {
+			n_class_le64 += 1;
+		} else if (klass->class_size <= 128) {
+			n_class_le128 += 1;
+		} else {
+			n_class_gt128 += 1;
+		}
+		iface_hist[(klass->n_ifaces_all > 2) ? 3 : klass->n_ifaces_all] += 1;
+		align_hist[az_alignment_bucket (klass->alignment)] += 1;
+	}
+	fprintf (stdout, "az class statistics\n");
+	fprintf (stdout, "  classes: %u (%u fundamental, %u registered but not constructed)\n", n_classes, n_fundamental, n_reserved);
+	fprintf (stdout, "  categories: %u structs, %u blocks, %u interfaces, %u references, %u objects\n", n_struct, n_block, n_iface, n_ref, n_obj);
+	fprintf (stdout, "  struct value sizes: %u > 16 bytes, %u > 64 bytes\n", n_struct_gt16, n_struct_gt64);
+	fprintf (stdout, "  flags: %u abstract, %u final, %u zero-memory, %u construct\n", n_abstract, n_final, n_zero_memory, n_construct);
+	fprintf (stdout, "  lifecycle: %u instance_init, %u instance_finalize\n", n_init, n_finalize);
+	fprintf (stdout, "  interfaces: %u with self, %u with inherited/transitive (all > self)\n", n_self_ifaces, n_inherited_ifaces);
+	fprintf (stdout, "  iface list sizes: 0: %u, 1: %u, 2: %u, >2 (heap): %u\n", iface_hist[0], iface_hist[1], iface_hist[2], iface_hist[3]);
+	fprintf (stdout, "  iface entries: %llu total, max self %u, max all %u\n", (unsigned long long) sum_ifaces_all, max_ifaces_self, max_ifaces_all);
+	fprintf (stdout, "  properties: %u classes, %llu total fields, max %u per class\n", n_props, (unsigned long long) sum_props, max_props);
+	fprintf (stdout, "  class size: max %u", max_class_size);
+	if (max_class_size_class) fprintf (stdout, " (%s)", max_class_size_class->name);
+	fprintf (stdout, ", avg %u, <=64: %u, 65..128: %u, >128: %u\n",
+		(n_classes) ? (unsigned int) (sum_class_size / n_classes) : 0, n_class_le64, n_class_le128, n_class_gt128);
+	fprintf (stdout, "  instance size: max %u", max_instance_size);
+	if (max_instance_size_class) fprintf (stdout, " (%s)", max_instance_size_class->name);
+	fprintf (stdout, "\n");
+	fprintf (stdout, "  instance alignment: 1: %u, 2: %u, 4: %u, 8: %u, 16: %u, 32: %u, 64: %u, 128: %u\n",
+		align_hist[0], align_hist[1], align_hist[2], align_hist[3], align_hist[4], align_hist[5], align_hist[6], align_hist[7]);
+	fprintf (stdout, "  custom allocators: %u, delegates: %u\n", n_custom_allocator, n_custom_delegate);
+}

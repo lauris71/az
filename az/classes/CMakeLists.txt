@@ -8,7 +8,6 @@ SET(SOURCES
     packed-value-array.c packed-value-array.h
     static-array-of.c static-array-of.h
     value-array.c value-array.h
-    value-array-ref.c value-array-ref.h
     weak-object-list.c weak-object-list.h)
 
 list(TRANSFORM SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)

@@ -1311,8 +1311,9 @@ test_value_array()
 {
     az_init();
     az_value_array_get_type ();
-    AZValueArray *va = (AZValueArray *) az_instance_new (AZ_TYPE_VALUE_ARRAY);
-    az_value_array_set_length (va, 8);
+    AZValueArray *va = az_value_array_new (8);
+    TEST_ASSERT_EQUAL_UINT (8, va->list.collection.size);
+    TEST_ASSERT_EQUAL_UINT (1, va->reference.refcount);
 
     /* Fill with inline values (4 and 8 bytes) */
     for (unsigned int i = 0; i < 8; i++) {
@@ -1377,6 +1378,23 @@ test_value_array()
     /* The survivors are intact */
     va_verify_element (va, 0, 2, 100);
     va_verify_element (va, 4, 4, 60);
+
+    /* It is a proper reference type now: refcounted and storable in AZValue */
+    TEST_ASSERT (AZ_CLASS_IS_REFERENCE(AZ_CLASS_FROM_TYPE(AZ_TYPE_VALUE_ARRAY)));
+    az_reference_ref ((AZReference *) va);
+    TEST_ASSERT_EQUAL_UINT (2, va->reference.refcount);
+    /* Store into an AZValue: takes a counted reference */
+    AZValue stored;
+    az_value_set_from_inst (AZ_IMPL_FROM_TYPE(AZ_TYPE_VALUE_ARRAY), &stored, va);
+    TEST_ASSERT_EQUAL_UINT (3, va->reference.refcount);
+    /* Drop our reference; the value keeps the array alive */
+    az_reference_unref ((AZReferenceClass *) AZ_CLASS_FROM_TYPE(AZ_TYPE_VALUE_ARRAY), (AZReference *) va);
+    TEST_ASSERT_EQUAL_UINT (2, va->reference.refcount);
+    /* Content is intact through the shared reference */
+    va_verify_element (va, 0, 2, 100);
+    /* Clearing the value releases its reference */
+    az_value_clear (AZ_IMPL_FROM_TYPE(AZ_TYPE_VALUE_ARRAY), &stored);
+    TEST_ASSERT_EQUAL_UINT (1, va->reference.refcount);
 
     az_instance_delete (AZ_TYPE_VALUE_ARRAY, va);
 }

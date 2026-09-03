@@ -28,8 +28,6 @@ static unsigned int value_array_contains (const AZCollectionImplementation *coll
 /* AZList implementation */
 static const AZImplementation *value_array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
-AZValueArrayClass *az_value_array_class = NULL;
-
 unsigned int
 az_value_array_get_type (void)
 {
@@ -38,7 +36,7 @@ az_value_array_get_type (void)
 	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!type) {
-		az_register_type (&type, (const unsigned char *) "AZValueArray", AZ_TYPE_BLOCK, sizeof (AZValueArrayClass), sizeof (AZValueArray), AZ_FLAG_FINAL,
+		az_register_type (&type, (const unsigned char *) "AZValueArray", AZ_TYPE_REFERENCE, sizeof (AZValueArrayClass), sizeof (AZValueArray), AZ_FLAG_FINAL,
 			1, 0,
 			(void (*) (AZClass *)) value_array_class_init,
 			(void (*) (const AZImplementation *, void *)) value_array_init,
@@ -49,10 +47,17 @@ az_value_array_get_type (void)
 	return t;
 }
 
+AZValueArray *
+az_value_array_new (unsigned int length)
+{
+	AZValueArray *varray = (AZValueArray *) az_instance_new (AZ_TYPE_VALUE_ARRAY);
+	az_value_array_set_length (varray, length);
+	return varray;
+}
+
 static void
 value_array_class_init (AZValueArrayClass *klass)
 {
-	az_value_array_class = klass;
 	klass->default_size = 4;
 	az_class_declare_interface ((AZClass*) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZValueArrayClass, list_impl), ARIKKEI_OFFSET(AZValueArray, list));
 	klass->list_impl.collection_impl.get_element_type = value_array_get_element_type;
@@ -66,6 +71,7 @@ value_array_init (AZValueArrayClass *klass, AZValueArray *varray)
 	varray->type = AZ_TYPE_ANY;
 	varray->size = klass->default_size;
 	varray->data_size = 0;
+	varray->list.collection.size = 0;
 	varray->values = (AZValueArrayEntry *) malloc (varray->size * sizeof (AZValueArrayEntry));
 	varray->data = NULL;
 }
