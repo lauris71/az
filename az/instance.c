@@ -255,16 +255,19 @@ const AZImplementation *
 az_instance_get_interface (const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst)
 {
 	arikkei_return_val_if_fail (impl != NULL, NULL);
-	if (impl == AZ_BOXED_INTERFACE_IMPL) {
-		AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
-		impl = boxed->impl;
-		inst = boxed->inst;
+	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
+	/* Delegating classes (boxed values/interfaces, references) answer for their content first */
+	if (klass->delegate_idx) {
+		const AZClassDelegate *delegate = az_class_delegates[klass->delegate_idx];
+		if (delegate->get_interface) {
+			const AZImplementation *result = delegate->get_interface (klass, impl, inst, if_type, if_inst);
+			if (result) return result;
+		}
 	}
 	if (az_type_is_a (AZ_IMPL_TYPE(impl), if_type)) {
 		if (if_inst) *if_inst = inst;
 		return impl;
 	}
-	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 	const AZIFEntry *ifentry = az_class_iface_all(klass, 0);
 	for (uint16_t i = 0; i < klass->n_ifaces_all; i++) {
 		if (az_type_is_a(ifentry->type, if_type)) {

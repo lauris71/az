@@ -31,6 +31,7 @@
 #include <az/collections/hash-map.h>
 #include <az/collections/hash-set.h>
 #include <az/classes/value-array.h>
+#include <az/classes/static-array-of.h>
 
 #include "unity/unity.h"
 
@@ -46,6 +47,7 @@ static void test_circular_reference();
 static void test_strings_mt();
 static void test_boxed_interface_conversion();
 static void test_value_array();
+static void test_delegation();
 
 void test_array_list();
 void test_hash_map(void);
@@ -93,6 +95,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_boxed_interface_conversion);
         } else if (!strcmp(argv[i], "value-array")) {
             RUN_TEST(test_value_array);
+        } else if (!strcmp(argv[i], "delegation")) {
+            RUN_TEST(test_delegation);
         } else if (!strcmp(argv[i], "hash-map")) {
             RUN_TEST(test_hash_map);
         } else if (!strcmp(argv[i], "hash-set")) {
@@ -1397,4 +1401,91 @@ test_value_array()
     TEST_ASSERT_EQUAL_UINT (1, va->reference.refcount);
 
     az_instance_delete (AZ_TYPE_VALUE_ARRAY, va);
+}
+
+/* Delegation test helpers: collect the enumerated interface views */
+typedef struct {
+    unsigned int count;
+    unsigned int types[8];
+    unsigned int levels[8];
+    const AZImplementation *impls[8];
+    void *insts[8];
+} IfaceList;
+
+static unsigned int
+collect_iface_cb (const AZImplementation *iface_impl, void *iface_inst, unsigned int if_type, unsigned int level, void *data)
+{
+    IfaceList *list = (IfaceList *) data;
+    if (list->count < 8) {
+        list->types[list->count] = if_type;
+        list->levels[list->count] = level;
+        list->impls[list->count] = iface_impl;
+        list->insts[list->count] = iface_inst;
+    }
+    list->count += 1;
+    return 1;
+}
+
+static unsigned int
+count_prop_cb (const AZClass *def_class, unsigned int prop_idx, const AZImplementation *impl, void *inst, void *data)
+{
+    unsigned int *count = (unsigned int *) data;
+    *count += 1;
+    return 1;
+}
+
+static void
+test_delegation (void)
+{
+    az_init ();
+
+    unsigned int sarr_type = az_static_array_of_get_type (AZ_TYPE_INT32);
+    unsigned int ref_type = az_reference_of_get_type (sarr_type);
+
+    /* Type-level: the reference claims the contained type's interfaces */
+    TEST_ASSERT (az_type_implements (ref_type, AZ_TYPE_ARRAY));
+    TEST_ASSERT (az_type_implements (ref_type, AZ_TYPE_LIST));
+    TEST_ASSERT (az_type_implements (ref_type, AZ_TYPE_COLLECTION));
+    /* The reference itself declares no interfaces */
+    TEST_ASSERT_EQUAL_UINT (0, AZ_CLASS_FROM_TYPE(ref_type)->n_ifaces_self);
+    /* Type-level get_interface returns the content's implementation */
+    TEST_ASSERT (az_instance_get_interface (AZ_IMPL_FROM_TYPE (ref_type), NULL, AZ_TYPE_ARRAY, NULL) != NULL);
+
+    /* Instance-level: use the delegated List view to drive the contained array */
+    AZReferenceOf *ref = az_reference_of_new (sarr_type);
+    AZStaticArrayOf *sarr = (AZStaticArrayOf *) az_reference_of_get_instance ((AZReferenceOfClass *) AZ_CLASS_FROM_TYPE (ref_type), ref);
+    int32_t values[3] = { 17, 23, 42 };
+    sarr->array.values = values;
+    sarr->array.list.collection.size = 3;
+
+    void *list_inst = NULL;
+    const AZImplementation *list_impl = az_instance_get_interface (AZ_IMPL_FROM_TYPE (ref_type), ref, AZ_TYPE_LIST, &list_inst);
+    TEST_ASSERT (list_impl != NULL);
+    TEST_ASSERT (list_inst != NULL);
+    /* The list view resolves to the contained array and reads through it */
+    TEST_ASSERT_EQUAL_UINT64 (3, az_collection_get_size ((const AZCollectionImplementation *) list_impl, (AZCollection *) list_inst));
+    for (unsigned int i = 0; i < 3; i++) {
+        const AZImplementation *elem_impl;
+        AZValue val;
+        elem_impl = az_list_get_element ((const AZListImplementation *) list_impl, list_inst, i, &val, sizeof (val));
+        TEST_ASSERT (elem_impl == AZ_IMPL_FROM_TYPE(AZ_TYPE_INT32));
+        TEST_ASSERT_EQUAL_INT32 (values[i], val.int32_v);
+    }
+
+    /* Interface enumeration through the reference: Array(0), then List(1), Collection(2) */
+    IfaceList ifaces = { 0 };
+    TEST_ASSERT_EQUAL_UINT (1, az_instance_foreach_interface (AZ_IMPL_FROM_TYPE (ref_type), ref, collect_iface_cb, &ifaces));
+    TEST_ASSERT_EQUAL_UINT (3, ifaces.count);
+    TEST_ASSERT (ifaces.types[0] == AZ_TYPE_ARRAY && ifaces.levels[0] == 0);
+    TEST_ASSERT (ifaces.types[1] == AZ_TYPE_LIST && ifaces.levels[1] == 1);
+    TEST_ASSERT (ifaces.types[2] == AZ_TYPE_COLLECTION && ifaces.levels[2] == 2);
+    /* The enumerated List view is the same location get_interface returns */
+    TEST_ASSERT (ifaces.insts[1] == list_inst);
+
+    /* Property enumeration runs through the delegate (any-class props come from the content) */
+    unsigned int n_props = 0;
+    TEST_ASSERT_EQUAL_UINT (1, az_instance_foreach_property (AZ_IMPL_FROM_TYPE (ref_type), ref, count_prop_cb, &n_props));
+    TEST_ASSERT (n_props > 0);
+
+    az_instance_delete (ref_type, ref);
 }

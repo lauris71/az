@@ -70,6 +70,68 @@ az_reference_of_get_type (unsigned int instance_type)
 	return type;
 }
 
+/*
+ * Delegation: the reference answers interface/property queries and structural
+ * enumeration on behalf of the contained value. inst may be NULL for
+ * type-level queries (e.g. from az_type_implements); the contained instance is
+ * only computed when inst is non-NULL.
+ */
+
+static unsigned int az_reference_of_delegate_idx = 0;
+
+static const AZImplementation *
+reference_of_delegate_get_interface (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst)
+{
+	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) klass;
+	AZClass *inst_class = AZ_CLASS_FROM_TYPE (ref_class->instance_type);
+	void *sub_inst = (inst) ? az_reference_of_get_instance ((AZReferenceOfClass *) ref_class, (AZReferenceOf *) inst) : NULL;
+	return az_instance_get_interface (&inst_class->impl, sub_inst, if_type, if_inst);
+}
+
+static int
+reference_of_delegate_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+{
+	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) klass;
+	AZClass *inst_class = AZ_CLASS_FROM_TYPE (ref_class->instance_type);
+	void *content_inst = (inst) ? az_reference_of_get_instance ((AZReferenceOfClass *) ref_class, (AZReferenceOf *) inst) : NULL;
+	return az_class_lookup_property (inst_class, &inst_class->impl, content_inst, key, def_class, sub_impl, sub_inst);
+}
+
+static int
+reference_of_delegate_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+{
+	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) klass;
+	AZClass *inst_class = AZ_CLASS_FROM_TYPE (ref_class->instance_type);
+	void *content_inst = (inst) ? az_reference_of_get_instance ((AZReferenceOfClass *) ref_class, (AZReferenceOf *) inst) : NULL;
+	return az_class_lookup_function (inst_class, &inst_class->impl, content_inst, key, sig, def_class, sub_impl, sub_inst);
+}
+
+static unsigned int
+reference_of_delegate_foreach_property (const AZClass *klass, const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data)
+{
+	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) klass;
+	AZClass *inst_class = AZ_CLASS_FROM_TYPE (ref_class->instance_type);
+	void *sub_inst = (inst) ? az_reference_of_get_instance ((AZReferenceOfClass *) ref_class, (AZReferenceOf *) inst) : NULL;
+	return az_instance_foreach_property (&inst_class->impl, sub_inst, cb, data);
+}
+
+static unsigned int
+reference_of_delegate_foreach_interface (const AZClass *klass, const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data)
+{
+	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) klass;
+	AZClass *inst_class = AZ_CLASS_FROM_TYPE (ref_class->instance_type);
+	void *sub_inst = (inst) ? az_reference_of_get_instance ((AZReferenceOfClass *) ref_class, (AZReferenceOf *) inst) : NULL;
+	return az_instance_foreach_interface (&inst_class->impl, sub_inst, cb, data);
+}
+
+static const AZClassDelegate az_reference_of_delegate = {
+	reference_of_delegate_get_interface,
+	reference_of_delegate_lookup_property,
+	reference_of_delegate_lookup_function,
+	reference_of_delegate_foreach_property,
+	reference_of_delegate_foreach_interface
+};
+
 static void
 reference_of_class_init (AZReferenceOfClass *klass, uintptr_t instance_type)
 {
@@ -86,6 +148,9 @@ reference_of_class_init (AZReferenceOfClass *klass, uintptr_t instance_type)
 	if (inst_class->alignment > klass->reference_klass.klass.alignment) klass->reference_klass.klass.alignment = inst_class->alignment;
 	klass->instance_type = AZ_CLASS_TYPE(inst_class);
 	klass->reference_klass.klass.to_string = reference_of_to_string;
+	/* Answer interface/property queries and enumeration on behalf of the contained value */
+	if (!az_reference_of_delegate_idx) az_reference_of_delegate_idx = az_class_register_delegate (&az_reference_of_delegate);
+	klass->reference_klass.klass.delegate_idx = az_reference_of_delegate_idx;
 }
 
 static void

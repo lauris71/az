@@ -48,6 +48,15 @@ az_string_unref (AZString *astr)
 	az_reference_unref (&AZStringKlass.reference_class, &astr->reference);
 }
 
+/**
+ * @brief Check if two strings are equal
+ * 
+ * We exploit the fact that equal strings share the same reference (collation during creation)
+ * 
+ * @param lhs the left-hand string
+ * @param rhs the right-hand string
+ * @return 1 if equal, 0 if not
+ */
 static inline unsigned int
 az_string_equals (const AZString *lhs, const AZString *rhs)
 {

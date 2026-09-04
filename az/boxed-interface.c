@@ -44,6 +44,56 @@ boxed_interface_to_string (const AZImplementation *impl, void *inst, unsigned ch
 	return pos;
 }
 
+/* The box answers interface and property queries on behalf of the boxed content */
+static const AZImplementation *
+boxed_interface_delegate_get_interface (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst)
+{
+	/* Type-level queries (inst == NULL) cannot see through the box: the content is per-instance */
+	if (!inst) return NULL;
+	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
+	return az_instance_get_interface (boxed->impl, boxed->inst, if_type, if_inst);
+}
+
+static int
+boxed_interface_delegate_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+{
+	if (!inst) return -1;
+	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
+	return az_class_lookup_property (AZ_CLASS_FROM_IMPL (boxed->impl), boxed->impl, boxed->inst, key, def_class, sub_impl, sub_inst);
+}
+
+static int
+boxed_interface_delegate_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+{
+	if (!inst) return -1;
+	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
+	return az_class_lookup_function (AZ_CLASS_FROM_IMPL (boxed->impl), boxed->impl, boxed->inst, key, sig, def_class, sub_impl, sub_inst);
+}
+
+static unsigned int
+boxed_interface_delegate_foreach_property (const AZClass *klass, const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data)
+{
+	if (!inst) return 1;
+	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
+	return az_instance_foreach_property (boxed->impl, boxed->inst, cb, data);
+}
+
+static unsigned int
+boxed_interface_delegate_foreach_interface (const AZClass *klass, const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data)
+{
+	if (!inst) return 1;
+	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
+	return az_instance_foreach_interface (boxed->impl, boxed->inst, cb, data);
+}
+
+static const AZClassDelegate az_boxed_interface_delegate = {
+	boxed_interface_delegate_get_interface,
+	boxed_interface_delegate_lookup_property,
+	boxed_interface_delegate_lookup_function,
+	boxed_interface_delegate_foreach_property,
+	boxed_interface_delegate_foreach_interface
+};
+
 AZ_CLASS_ALIGN AZBoxedInterfaceClass AZBoxedInterfaceKlass = {
 	.klass = {
 		.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_BOXED_INTERFACE },
@@ -62,6 +112,7 @@ AZ_CLASS_ALIGN AZBoxedInterfaceClass AZBoxedInterfaceKlass = {
 void
 az_init_boxed_interface_class (void)
 {
+	AZBoxedInterfaceKlass.klass.delegate_idx = az_class_register_delegate (&az_boxed_interface_delegate);
 	az_class_new_with_value(&AZBoxedInterfaceKlass.klass);
 }
 
@@ -77,8 +128,9 @@ az_boxed_interface_new (const AZImplementation *impl, void *inst, const AZImplem
 	arikkei_return_val_if_fail (AZ_IMPL_TYPE(impl) != AZ_TYPE_BOXED_INTERFACE, NULL);
 	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 #ifdef AZ_SAFETY_CHECKS
-	/* The interface view has to be inside the containing class/instance */
-	arikkei_return_val_if_fail (((const char *) if_impl >= (const char *) impl) && ((const char *) if_impl < (const char *) impl + klass->class_size), NULL);
+	/* The implementation may live in another (immortal) class - e.g. delegated through
+	 * a reference-of - so only the instance side is checked: its lifetime is bound to
+	 * the container, which the box owns. */
 	/* instance_size is 0 for variable-sized types - the containment is not checkable there */
 	arikkei_return_val_if_fail (!klass->instance_size || (((const char *) if_inst >= (const char *) inst) && ((const char *) if_inst < (const char *) inst + klass->instance_size)), NULL);
 #endif
