@@ -194,6 +194,14 @@ enum AZTypeFlags {
  * Like AZ_FLAG_PARENT_CONSTRUCT, but for the finalize walk.
  */
 #define AZ_FLAG_PARENT_FINALIZE 0x1000
+/**
+ * @brief The class has been post-initialized
+ *
+ * Set by az_class_post_init; guards against running it twice (static classes
+ * are post-initialized at publish time, heap classes after class_init).
+ * NOT propagated to subclasses.
+ */
+#define AZ_FLAG_POST_INITED 0x2000
 
 /* Masks for "has any init/finalize work" (single test against class flags) */
 #define AZ_INIT_WORK_MASK (AZ_FLAG_HAS_DEFAULT | AZ_FLAG_HAS_INSTANCE_INIT | AZ_FLAG_HAS_IFACE_CONSTRUCT | AZ_FLAG_PARENT_CONSTRUCT)

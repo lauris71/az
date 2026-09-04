@@ -202,7 +202,7 @@ az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, 
 				const AZImplementation *sub_impl = az_instance_get_interface (box->impl, box->inst, to_type, &sub_inst);
 				if (sub_impl) {
 					/* Re-box the original containing value (lifecycle) with the resolved interface */
-					AZBoxedInterface *new_box = az_boxed_interface_new (box->val.impl, az_value_get_inst (box->val.impl, &box->val.v), sub_impl, sub_inst);
+					AZBoxedInterface *new_box = az_boxed_interface_new (box->val_impl, az_value_get_inst (box->val_impl, &box->val), sub_impl, sub_inst);
 					/* On transfer the old box is consumed */
 					if (transfer) az_boxed_interface_unref (box);
 					dst_val->reference = &new_box->reference;

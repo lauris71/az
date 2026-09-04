@@ -10,7 +10,7 @@
 #include <stdint.h>
 
 #include <az/reference.h>
-#include <az/packed-value.h>
+#include <az/value.h>
 
 typedef struct _AZReferenceClass AZBoxedInterfaceClass;
 
@@ -23,16 +23,23 @@ extern "C" {
 
 /**
  * @brief A reference type that holds an interface together with the containing instance
- * 
+ *
  * These are used to enforce the lifecycle of interface values. Plain interfaces will become invalid as soon as
  * the containing instance is destroyed. Thus storing these in containers is prone to use-after-free bugs.
+ *
+ * The content value may extend past the end of the struct (the allocation has
+ * room for it - see az_boxed_interface_new).
  */
 struct _AZBoxedInterface {
 	AZReference reference;
+	uint32_t _reserved;
+	/* The interface view */
 	const AZImplementation *impl;
 	void *inst;
-	uint64_t filler;
-	AZPackedValue val;
+	/* The packed container value (owns the lifecycle); the value bytes may use
+	 * the allocation tail past the struct end if the container is > 16 bytes */
+	const AZImplementation *val_impl;
+	AZValue val;
 };
 
 extern AZBoxedInterfaceClass AZBoxedInterfaceKlass;

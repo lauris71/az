@@ -149,8 +149,9 @@ az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int 
 #endif
 		memcpy (klass, parent_class, parent_class->class_size);
 		/* Overwrite values from supertype */
-		/* ABSTRACT and HAS_DEFAULT are never propagated; the work flags are recomputed in az_class_post_init */
-		klass->impl.flags &= ~(AZ_FLAG_ABSTRACT | AZ_FLAG_HAS_DEFAULT | AZ_COMPUTED_FLAG_MASK);
+		/* ABSTRACT and HAS_DEFAULT are never propagated; the work flags and the
+		 * post-init marker are recomputed in az_class_post_init */
+		klass->impl.flags &= ~(AZ_FLAG_ABSTRACT | AZ_FLAG_HAS_DEFAULT | AZ_COMPUTED_FLAG_MASK | AZ_FLAG_POST_INITED);
 		klass->impl.type = 0;
 		klass->parent = parent_class;
 		klass->n_ifaces_self = 0;
@@ -174,6 +175,8 @@ az_class_new_with_value (AZClass *klass)
 	/* Fundamental classes are statically initialized; publish immediately */
 	/* (az_init runs before any concurrent access) */
 	az_class_publish (klass);
+	/* Static classes have no class_init hook - post-initialize immediately */
+	az_class_post_init (klass);
 }
 
 void
@@ -266,6 +269,8 @@ void
 az_class_post_init (AZClass *klass)
 {
 	unsigned int i;
+	/* Static classes are post-initialized at publish; heap classes after class_init */
+	if (klass->impl.flags & AZ_FLAG_POST_INITED) return;
 	/*
 	 * Until this point the self interface declarations live in the inline array
 	 * (n_ifaces_self <= 2) or in a temporary heap array pointed to by ifaces_all
@@ -395,6 +400,7 @@ az_class_post_init (AZClass *klass)
 		/* A default value replaces the whole parent subtree, so nothing below it needs finalization */
 		if (!(pflags & AZ_FLAG_HAS_DEFAULT) && (pflags & AZ_FINALIZE_WORK_MASK)) klass->impl.flags |= AZ_FLAG_PARENT_FINALIZE;
 	}
+	klass->impl.flags |= AZ_FLAG_POST_INITED;
 #ifdef VERBOSE
 	if (klass->n_ifaces_all) {
 		fprintf (stderr, "Class %s\n", klass->name);
