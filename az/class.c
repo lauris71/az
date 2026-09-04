@@ -135,7 +135,8 @@ az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int 
 #endif
 		memcpy (klass, parent_class, parent_class->class_size);
 		/* Overwrite values from supertype */
-		klass->impl.flags &= ~AZ_FLAG_ABSTRACT;
+		/* ABSTRACT and HAS_DEFAULT are never propagated; the work flags are recomputed in az_class_post_init */
+		klass->impl.flags &= ~(AZ_FLAG_ABSTRACT | AZ_FLAG_HAS_DEFAULT | AZ_COMPUTED_FLAG_MASK);
 		klass->impl.type = 0;
 		klass->parent = parent_class;
 		klass->n_ifaces_self = 0;
@@ -338,6 +339,47 @@ az_class_post_init (AZClass *klass)
 			if (klass->n_ifaces_self > 2) free (self);
 			if (ifaces != klass->ifaces) klass->ifaces_all = ifaces;
 		}
+	}
+	/*
+	 * Compute the construction work flags (single-word tests on the hot paths).
+	 * Everything below is derived from the just-built interface list, the class
+	 * virtuals set by class_init and the (already post-initialized) parent class.
+	 */
+	if (klass->impl.flags & AZ_FLAG_HAS_DEFAULT) {
+#ifdef AZ_SAFETY_CHECKS
+		/* A default value is only valid for concrete value types with fixed storage */
+		arikkei_return_if_fail (!(klass->impl.flags & (AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT)));
+		arikkei_return_if_fail (klass->instance_size > 0);
+		arikkei_return_if_fail (klass->default_value != NULL);
+#endif
+	} else if (klass->instance_init) {
+		/* The union holds default_value instead when AZ_FLAG_HAS_DEFAULT is set */
+		klass->impl.flags |= AZ_FLAG_HAS_INSTANCE_INIT;
+	}
+	if (klass->instance_finalize) klass->impl.flags |= AZ_FLAG_HAS_INSTANCE_FINALIZE;
+	for (i = 0; i < klass->n_ifaces_self; i++) {
+		const AZIFEntry *ifentry = az_class_iface_self (klass, i);
+		/* az_type_reserve sets CONSTRUCT for interfaces needing (de)construction */
+		if (!ifentry->type || !(AZ_TYPE_FLAGS(ifentry->type) & AZ_FLAG_CONSTRUCT)) continue;
+		AZClass *iface_class = AZ_CLASS_FROM_TYPE (ifentry->type);
+		/*
+		 * An interface whose only construction work is zeroing its region does not
+		 * need the interface walk: promote the zeroing to the whole instance
+		 * (if any sub-component needs zeroed memory, the instance is zeroed).
+		 * Interface classes are fully constructed at this point, so their work
+		 * flags are final (and the promotion cascades through interface inheritance).
+		 */
+		if (!(iface_class->impl.flags & (AZ_INIT_WORK_MASK | AZ_FINALIZE_WORK_MASK))) {
+			if (iface_class->impl.flags & AZ_FLAG_ZERO_MEMORY) klass->impl.flags |= AZ_FLAG_ZERO_MEMORY;
+			continue;
+		}
+		klass->impl.flags |= AZ_FLAG_HAS_IFACE_CONSTRUCT;
+	}
+	if (klass->parent) {
+		uint32_t pflags = klass->parent->impl.flags;
+		if (pflags & AZ_INIT_WORK_MASK) klass->impl.flags |= AZ_FLAG_PARENT_CONSTRUCT;
+		/* A default value replaces the whole parent subtree, so nothing below it needs finalization */
+		if (!(pflags & AZ_FLAG_HAS_DEFAULT) && (pflags & AZ_FINALIZE_WORK_MASK)) klass->impl.flags |= AZ_FLAG_PARENT_FINALIZE;
 	}
 #ifdef VERBOSE
 	if (klass->n_ifaces_all) {

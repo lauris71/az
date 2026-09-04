@@ -262,7 +262,22 @@ struct _AZClass {
 	unsigned int (*set_property) (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
 
 	/* Constructors and destructors */
-	void (*instance_init) (const AZImplementation *impl, void *inst);
+	union {
+		/**
+		 * @brief The instance constructor
+		 *
+		 * Valid unless AZ_FLAG_HAS_DEFAULT is set (shares storage with default_value).
+		 */
+		void (*instance_init) (const AZImplementation *impl, void *inst);
+		/**
+		 * @brief The default value image (AZ_FLAG_HAS_DEFAULT)
+		 *
+		 * Construction copies instance_size bytes from here, replacing the
+		 * constructor walk for this class and its ancestors (see the flag). Only
+		 * concrete value types may carry a default value; set it in class_init.
+		 */
+		const void *default_value;
+	};
 	void (*instance_finalize) (const AZImplementation *impl, void *inst);
 
 	/* Serialization is by instance */

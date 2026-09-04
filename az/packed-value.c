@@ -35,7 +35,7 @@ packed_value_to_string (const AZImplementation *impl, void *inst, unsigned char 
 }
 
 AZ_CLASS_ALIGN AZClass AZPackedValueKlass = {
-	.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_PACKED_VALUE },
+	.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_ZERO_MEMORY | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_PACKED_VALUE },
 	.parent = &AZBlockKlass,
 	.name = (const uint8_t *) "packed value",
 	.alignment = 15,

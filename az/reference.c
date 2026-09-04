@@ -113,12 +113,6 @@ az_reference_dispose (AZReferenceClass *klass, AZReference *ref)
 	}
 }
 
-static void
-reference_instance_init (AZReferenceClass *klass, void *instance)
-{
-	((AZReference *) instance)->refcount = 1;
-}
-
 AZ_CLASS_ALIGN AZReferenceClass AZReferenceKlass = {
 	.klass = {
 		.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_REFERENCE },
@@ -127,7 +121,7 @@ AZ_CLASS_ALIGN AZReferenceClass AZReferenceKlass = {
 		.alignment = 7,
 		.class_size = sizeof(AZReferenceClass),
 		.instance_size = sizeof(AZReference),
-		.instance_init = (void (*) (const AZImplementation *, void *)) reference_instance_init,
+		/* No instance_init: az_instance_init sets the refcount directly (AZ_FLAG_REFERENCE) */
 		.to_string = az_any_to_string
 	},
 	.drop = NULL,

@@ -15,8 +15,6 @@
 #include <az/private.h>
 #include <az/extend.h>
 
-/* AZInstance implementation */
-static void object_init (AZObjectClass *klass, AZObject *object);
 /* AZReference implementation */
 void object_dispose (AZReferenceClass *klass, AZReference *ref);
 
@@ -37,8 +35,7 @@ AZ_CLASS_ALIGN AZObjectClass AZObjectKlass = {
 			.alignment = 7,
 			.class_size = sizeof(AZObjectClass),
 			.instance_size = sizeof(AZObject),
-			/* instance_init, instance_finalize */
-			.instance_init = (void (*) (const AZImplementation *, void *)) object_init,
+			/* No instance_init: az_object_new sets klass and AZ_OBJECT_ALIVE directly */
 			/* serialize, deserialize, to_string */
 			.to_string = az_any_to_string
 		},
@@ -56,12 +53,6 @@ az_init_object_class (void)
 	az_class_new_with_value(&AZObjectKlass.reference_klass.klass);
 	az_class_set_num_properties (&AZObjectKlass.reference_klass.klass, NUM_PROPERTIES);
 	az_class_define_property_value (&AZObjectKlass.reference_klass.klass, PROP_CLASS, (const uint8_t *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZObject, klass));
-}
-
-static void
-object_init (AZObjectClass *klass, AZObject *object)
-{
-	object->flags |= AZ_OBJECT_ALIVE;
 }
 
 void
@@ -82,6 +73,8 @@ az_object_new (unsigned int type)
 	arikkei_return_val_if_fail (AZ_TYPE_IS_OBJECT (type), NULL);
 	object = (AZObject *) az_instance_new (type);
 	object->klass = (AZObjectClass *) az_type_get_class (type);
+	/* ALIVE = fully constructed and not yet disposed (set only after the initializers ran) */
+	object->flags |= AZ_OBJECT_ALIVE;
 	return object;
 }
 

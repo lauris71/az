@@ -78,11 +78,16 @@ enum AZTypeFlags {
 	/**
 	 * @brief The type instances have constructor or destructor
 	 * 
-	 * Subclasses should not clear this flag if set set by parent.
-	 * This flags is automatically set during type registration if:
+	 * Typecode flags are inherited by subclasses (az_type_reserve) and this flag
+	 * is additionally set during type registration if:
 	 * - the type has constructor (init) or destructor (finalize)
 	 * - AZ_FLAGS_ZERO_MEMORY is set
 	 * - class implements interfaces or has properties
+	 *
+	 * This is the typecode-level gate: az_instance_init_by_type /
+	 * az_instance_finalize_by_type are no-ops without it (no class lookup, no
+	 * locking). It is a conservative superset of the actual construction work;
+	 * the precise work is described by the class-level flags below.
 	 */
 	AZ_FLAG_CONSTRUCT = 0x80000000,
 };
@@ -126,6 +131,75 @@ enum AZTypeFlags {
  * AZ_TYPE_BOXED_INTERFACE directly (see AZ_TYPE_IS_BOXED).
  */
 #define AZ_FLAG_BOXED 0x08
+
+/* Instance construction/finalization work flags (computed by az_class_post_init)
+ *
+ * These describe the precise construction work a class needs, so the hot paths
+ * can test a single class-flags word (cache line 1 of AZClass) instead of
+ * walking the parent chain and interface list. They are all recomputed in
+ * az_class_post_init and are NOT inherited verbatim (az_class_new masks them
+ * off after copying the parent class).
+ */
+
+/**
+ * @brief The class has a default value image
+ *
+ * The instance is initialized by copying the instance_size bytes starting at
+ * AZClass::default_value. Such classes must be concrete value types (structs);
+ * the whole subtree initialization and finalization is replaced by the copy,
+ * so the class, its ancestors and its interfaces must have trivially copiable,
+ * destructor-free instance state (see "Value type (struct) requirements").
+ *
+ * The flag itself is NOT propagated to subclasses (the image only covers this
+ * class's instance prefix); a subclass that wants a default must provide its own.
+ * The flag may be passed at type registration; the image pointer is set in
+ * class_init (AZClass::default_value).
+ */
+#define AZ_FLAG_HAS_DEFAULT 0x10
+/**
+ * @brief The class has a non-NULL instance_init
+ *
+ * Set by az_class_post_init. instance_init lives in the second cache line of
+ * AZClass, so testing this flag avoids touching that line for classes without
+ * a constructor.
+ */
+#define AZ_FLAG_HAS_INSTANCE_INIT 0x20
+/**
+ * @brief The class has a non-NULL instance_finalize
+ *
+ * Set by az_class_post_init.
+ */
+#define AZ_FLAG_HAS_INSTANCE_FINALIZE 0x40
+/**
+ * @brief At least one self interface needs construction work
+ *
+ * Set by az_class_post_init: an interface typecode has AZ_FLAG_CONSTRUCT iff the
+ * interface (or a super-interface) has instance_init/instance_finalize/zero-memory
+ * (az_type_reserve guarantees this), so this flag means the interface walk has
+ * actual work to do.
+ */
+#define AZ_FLAG_HAS_IFACE_CONSTRUCT 0x80
+/**
+ * @brief The parent class chain needs initialization work
+ *
+ * Set by az_class_post_init if the parent class has any init work of its own
+ * (by flags, recursively). Lets az_instance_init_recursive skip the parent
+ * recursion - and the parent class cache line - entirely for leaf-constructed
+ * classes.
+ */
+#define AZ_FLAG_PARENT_CONSTRUCT 0x800
+/**
+ * @brief The parent class chain needs finalization work
+ *
+ * Like AZ_FLAG_PARENT_CONSTRUCT, but for the finalize walk.
+ */
+#define AZ_FLAG_PARENT_FINALIZE 0x1000
+
+/* Masks for "has any init/finalize work" (single test against class flags) */
+#define AZ_INIT_WORK_MASK (AZ_FLAG_HAS_DEFAULT | AZ_FLAG_HAS_INSTANCE_INIT | AZ_FLAG_HAS_IFACE_CONSTRUCT | AZ_FLAG_PARENT_CONSTRUCT)
+#define AZ_FINALIZE_WORK_MASK (AZ_FLAG_HAS_INSTANCE_FINALIZE | AZ_FLAG_HAS_IFACE_CONSTRUCT | AZ_FLAG_PARENT_FINALIZE)
+/* The flags computed by az_class_post_init (masked off in az_class_new) */
+#define AZ_COMPUTED_FLAG_MASK (AZ_FLAG_HAS_INSTANCE_INIT | AZ_FLAG_HAS_INSTANCE_FINALIZE | AZ_FLAG_HAS_IFACE_CONSTRUCT | AZ_FLAG_PARENT_CONSTRUCT | AZ_FLAG_PARENT_FINALIZE)
 
 /* Miscellaneous info flags */
 #define AZ_FLAG_ARITHMETIC 0x100
@@ -283,7 +357,7 @@ enum AZType {
 	 * @brief A convenience container that stores both a value and a pointer to it's implementation
 	 * 
 	 */
-	AZ_TYPE_PACKED_VALUE = AZ_TYPE_IDX_PACKED_VALUE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL,
+	AZ_TYPE_PACKED_VALUE = AZ_TYPE_IDX_PACKED_VALUE | AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT,
 	/**
 	 * @brief A special reference type that contains a pointer to it's own class
 	 * 

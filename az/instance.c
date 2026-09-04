@@ -20,6 +20,7 @@
 #include <az/instance.h>
 #include <az/object.h>
 #include <az/private.h>
+#include <az/reference.h>
 #include <az/string.h>
 #include <az/types.h>
 
@@ -35,25 +36,35 @@
 void
 az_instance_init_recursive (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int zeroed)
 {
-	/* Fundamental tyles do not have constructors */
-	if (klass->parent && (AZ_TYPE_INDEX(AZ_CLASS_TYPE(klass->parent)) >= AZ_NUM_FUNDAMENTAL_TYPES)) {
+	uint32_t flags = klass->impl.flags;
+	/* A default value replaces the initialization of this class and its whole ancestry */
+	if (flags & AZ_FLAG_HAS_DEFAULT) {
+		memcpy (inst, klass->default_value, klass->instance_size);
+		return;
+	}
+	/* Recurse into the parent only if the parent chain has work (supersedes the fundamental-type check) */
+	if (flags & AZ_FLAG_PARENT_CONSTRUCT) {
 		az_instance_init_recursive (klass->parent, impl, inst, zeroed);
 	}
 	/* Interfaces */
-	const AZIFEntry *ifentry = az_class_iface_self(klass, 0);
-	for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
-		/* The declaration may have been rejected (e.g. circular interface implementation) */
-		if (ifentry->type) {
-			AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
-			AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
-			void *sub_inst = (void *) ((char *) inst + ifentry->inst_offset);
-			if (!zeroed && (sub_class->impl.flags & AZ_FLAG_ZERO_MEMORY)) memset (sub_inst, 0, sub_class->instance_size);
-			az_instance_init_recursive (sub_class, sub_impl, sub_inst, zeroed || (sub_class->impl.flags & AZ_FLAG_ZERO_MEMORY));
+	if (flags & AZ_FLAG_HAS_IFACE_CONSTRUCT) {
+		const AZIFEntry *ifentry = az_class_iface_self(klass, 0);
+		for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
+			/* Rejected declarations (type == 0) and construct-free interfaces are skipped;
+			 * the typecode CONSTRUCT bit is set for interfaces with init/finalize/zero-memory
+			 * (az_type_reserve), so no class lookup is needed for the common case */
+			if (AZ_TYPE_FLAGS(ifentry->type) & AZ_FLAG_CONSTRUCT) {
+				AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
+				AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
+				void *sub_inst = (void *) ((char *) inst + ifentry->inst_offset);
+				if (!zeroed && (sub_class->impl.flags & AZ_FLAG_ZERO_MEMORY)) memset (sub_inst, 0, sub_class->instance_size);
+				az_instance_init_recursive (sub_class, sub_impl, sub_inst, zeroed || (sub_class->impl.flags & AZ_FLAG_ZERO_MEMORY));
+			}
+			ifentry += 1;
 		}
-		ifentry += 1;
 	}
 	/* Instance itself */
-	if (klass->instance_init) klass->instance_init (impl, inst);
+	if (flags & AZ_FLAG_HAS_INSTANCE_INIT) klass->instance_init (impl, inst);
 }
 
 /*
@@ -68,19 +79,23 @@ az_instance_init_recursive (const AZClass *klass, const AZImplementation *impl, 
 void
 az_instance_finalize_recursive (const AZClass *klass, const AZImplementation *impl, void *inst)
 {
-	if (klass->instance_finalize) klass->instance_finalize (impl, inst);
-	const AZIFEntry *ifentry = az_class_iface_self(klass, 0);
-	for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
-		/* The declaration may have been rejected (e.g. circular interface implementation) */
-		if (ifentry->type) {
-			AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
-			AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
-			void *sub_inst = (void *) ((char *) inst + ifentry->inst_offset);
-			az_instance_finalize_recursive (sub_class, sub_impl, sub_inst);
+	uint32_t flags = klass->impl.flags;
+	/* A default value also replaces finalization: nothing in the subtree owns resources */
+	if (flags & AZ_FLAG_HAS_DEFAULT) return;
+	if (flags & AZ_FLAG_HAS_INSTANCE_FINALIZE) klass->instance_finalize (impl, inst);
+	if (flags & AZ_FLAG_HAS_IFACE_CONSTRUCT) {
+		const AZIFEntry *ifentry = az_class_iface_self(klass, 0);
+		for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
+			if (AZ_TYPE_FLAGS(ifentry->type) & AZ_FLAG_CONSTRUCT) {
+				AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
+				AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
+				void *sub_inst = (void *) ((char *) inst + ifentry->inst_offset);
+				az_instance_finalize_recursive (sub_class, sub_impl, sub_inst);
+			}
+			ifentry += 1;
 		}
-		ifentry += 1;
 	}
-	if (klass->parent && (AZ_TYPE_INDEX(AZ_CLASS_TYPE(klass->parent)) >= AZ_NUM_FUNDAMENTAL_TYPES)) {
+	if (flags & AZ_FLAG_PARENT_FINALIZE) {
 		az_instance_finalize_recursive (klass->parent, impl, inst);
 	}
 }
@@ -96,8 +111,12 @@ az_instance_init (const AZImplementation *impl, void *inst)
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (!AZ_CLASS_IS_ABSTRACT(klass));
 #endif
-	if (klass->impl.flags & AZ_FLAG_ZERO_MEMORY) memset (inst, 0, klass->instance_size);
-	if (klass->impl.flags & AZ_FLAG_CONSTRUCT) az_instance_init_recursive (klass, impl, inst, klass->impl.flags & AZ_FLAG_ZERO_MEMORY);
+	uint32_t flags = klass->impl.flags;
+	if (flags & AZ_FLAG_ZERO_MEMORY) memset (inst, 0, klass->instance_size);
+	/* References are counted from one; this is inlined here so reference base
+	 * classes do not need constructors (the flag test reads an already-hot word) */
+	if (flags & AZ_FLAG_REFERENCE) ((AZReference *) inst)->refcount = 1;
+	if (flags & AZ_INIT_WORK_MASK) az_instance_init_recursive (klass, impl, inst, flags & AZ_FLAG_ZERO_MEMORY);
 }
 
 void
@@ -111,7 +130,7 @@ az_instance_finalize (const AZImplementation *impl, void *inst)
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (!AZ_CLASS_IS_ABSTRACT(klass));
 #endif
-	if (klass->impl.flags & AZ_FLAG_CONSTRUCT) az_instance_finalize_recursive (klass, impl, inst);
+	if (klass->impl.flags & AZ_FINALIZE_WORK_MASK) az_instance_finalize_recursive (klass, impl, inst);
 }
 
 void *
@@ -131,8 +150,7 @@ az_instance_new (unsigned int type)
 	} else {
 		inst = malloc(klass->instance_size);
 	}
-	if (klass->impl.flags & AZ_FLAG_ZERO_MEMORY) memset (inst, 0, klass->instance_size);
-	az_instance_init_recursive (klass, &klass->impl, inst, klass->impl.flags & AZ_FLAG_ZERO_MEMORY);
+	az_instance_init (&klass->impl, inst);
 	return inst;
 }
 
@@ -153,10 +171,8 @@ az_instance_new_array (unsigned int type, unsigned int n_elements)
 	} else {
 		elements = malloc(n_elements * AZ_CLASS_ELEMENT_SIZE(klass));
 	}
-	if (klass->impl.flags & AZ_FLAG_ZERO_MEMORY) memset (elements, 0, n_elements * AZ_CLASS_ELEMENT_SIZE(klass));
 	for (unsigned int i = 0; i < n_elements; i++) {
-		void *instance = (char *) elements + i * AZ_CLASS_ELEMENT_SIZE(klass);
-		az_instance_init_recursive (klass, &klass->impl, instance, klass->impl.flags & AZ_FLAG_ZERO_MEMORY);
+		az_instance_init (&klass->impl, (char *) elements + i * AZ_CLASS_ELEMENT_SIZE(klass));
 	}
 	return elements;
 }
@@ -169,7 +185,7 @@ az_instance_delete (unsigned int type, void *instance)
 	arikkei_return_if_fail(!AZ_TYPE_IS_INTERFACE(type));
 #endif
 	AZClass *klass = az_type_get_class (type);
-	az_instance_finalize_recursive (klass, &klass->impl, instance);
+	az_instance_finalize (&klass->impl, instance);
 	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
 	if (allocator && allocator->free) {
 		allocator->free (klass, instance);
@@ -188,7 +204,7 @@ az_instance_delete_array (unsigned int type, void *elements, unsigned int neleme
 	AZClass *klass = az_type_get_class (type);
 	for (unsigned int i = 0; i < nelements; i++) {
 		void *instance = (char *) elements + i * AZ_CLASS_ELEMENT_SIZE(klass);
-		az_instance_finalize_recursive (klass, &klass->impl, instance);
+		az_instance_finalize (&klass->impl, instance);
 	}
 	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
 	if (allocator && allocator->free_array) {

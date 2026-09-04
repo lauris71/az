@@ -136,9 +136,11 @@ az_class_publish (AZClass *klass)
 {
 	unsigned int idx = AZ_TYPE_INDEX(klass->impl.type);
 #ifdef AZ_SAFETY_CHECKS
-	/* The CONSTRUCT bit has to agree between the typecode and the class flags */
-	/* (az_instance_init_by_type/finalize_by_type gate on the typecode) */
-	arikkei_return_if_fail (!(klass->impl.type & AZ_FLAG_CONSTRUCT) == !(klass->impl.flags & AZ_FLAG_CONSTRUCT));
+	/* The typecode CONSTRUCT bit is the coarse gate for the by-type entry points
+	 * (az_instance_init_by_type/az_instance_finalize_by_type): any class-level
+	 * construction work must be visible in the typecode (the reverse is allowed -
+	 * the typecode bit is inherited and thus a conservative superset) */
+	arikkei_return_if_fail (!(klass->impl.flags & (AZ_INIT_WORK_MASK | AZ_FINALIZE_WORK_MASK | AZ_FLAG_ZERO_MEMORY)) || (klass->impl.type & AZ_FLAG_CONSTRUCT));
 #endif
 #if defined(AZ_GLOBALS_STATIC)
 #ifdef AZ_SAFETY_CHECKS
@@ -173,7 +175,7 @@ az_type_reserve (unsigned int *type, const unsigned char *name, unsigned int par
 	void (*instance_finalize) (const AZImplementation *, void *),
 	unsigned int implementation_size, void (*implementation_init) (AZImplementation *))
 {
-	if ((flags & AZ_FLAG_ZERO_MEMORY) || n_interfaces_self || instance_init || instance_finalize) {
+	if ((flags & AZ_FLAG_ZERO_MEMORY) || (flags & AZ_FLAG_HAS_DEFAULT) || n_interfaces_self || instance_init || instance_finalize) {
 		flags |= AZ_FLAG_CONSTRUCT;
 	}
 	ensure_type();
