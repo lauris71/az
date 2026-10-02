@@ -342,7 +342,7 @@ az_classes_print_stats (void)
 #endif
 	unsigned int n_classes = 0, n_reserved = 0, n_fundamental = 0;
 	unsigned int n_struct = 0, n_block = 0, n_iface = 0, n_ref = 0, n_obj = 0;
-	unsigned int n_abstract = 0, n_final = 0, n_zero_memory = 0, n_construct = 0;
+	unsigned int n_abstract = 0, n_final = 0, n_zero_memory = 0, n_construct = 0, n_variable_size = 0;
 	unsigned int n_init = 0, n_finalize = 0;
 	unsigned int n_self_ifaces = 0, n_inherited_ifaces = 0;
 	unsigned int n_props = 0;
@@ -389,6 +389,7 @@ az_classes_print_stats (void)
 		if (flags & AZ_FLAG_ABSTRACT) n_abstract += 1;
 		if (flags & AZ_FLAG_FINAL) n_final += 1;
 		if (flags & AZ_FLAG_ZERO_MEMORY) n_zero_memory += 1;
+		if (flags & AZ_FLAG_VARIABLE_SIZE) n_variable_size += 1;
 		if (flags & AZ_FLAG_CONSTRUCT) n_construct += 1;
 		if (klass->instance_init) n_init += 1;
 		if (klass->instance_finalize) n_finalize += 1;
@@ -421,7 +422,7 @@ az_classes_print_stats (void)
 	fprintf (stdout, "  classes: %u (%u fundamental, %u registered but not constructed)\n", n_classes, n_fundamental, n_reserved);
 	fprintf (stdout, "  categories: %u structs, %u blocks, %u interfaces, %u references, %u objects\n", n_struct, n_block, n_iface, n_ref, n_obj);
 	fprintf (stdout, "  struct value sizes: %u > 16 bytes, %u > 64 bytes\n", n_struct_gt16, n_struct_gt64);
-	fprintf (stdout, "  flags: %u abstract, %u final, %u zero-memory, %u construct\n", n_abstract, n_final, n_zero_memory, n_construct);
+	fprintf (stdout, "  flags: %u abstract, %u final, %u zero-memory, %u construct, %u variable-size\n", n_abstract, n_final, n_zero_memory, n_construct, n_variable_size);
 	fprintf (stdout, "  lifecycle: %u instance_init, %u instance_finalize\n", n_init, n_finalize);
 	fprintf (stdout, "  interfaces: %u with self, %u with inherited/transitive (all > self)\n", n_self_ifaces, n_inherited_ifaces);
 	fprintf (stdout, "  iface list sizes: 0: %u, 1: %u, 2: %u, >2 (heap): %u\n", iface_hist[0], iface_hist[1], iface_hist[2], iface_hist[3]);

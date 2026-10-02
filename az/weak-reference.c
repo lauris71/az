@@ -7,52 +7,14 @@
 * Copyright (C) Lauris Kaplinski 2019
 */
 
-#include <az/extend.h>
-
 #include "weak-reference.h"
 
-static void weak_reference_class_init (AZWeakReferenceClass *klass);
-static void weak_reference_finalize (AZWeakReferenceClass *klass, AZWeakReference *ref);
 /* Listener */
 static void weak_reference_object_dispose (AZActiveObject *object, void *data);
 
 AZObjectEventVector weak_reference_event_vec = {
 	weak_reference_object_dispose
 };
-
-static unsigned int weak_reference_type = 0;
-
-unsigned int
-az_weak_reference_get_type (void)
-{
-	unsigned int t = AZ_TYPE_READ(weak_reference_type);
-	if (t) return t;
-	AZ_TYPES_LOCK();
-	if (!weak_reference_type) {
-		az_register_type (&weak_reference_type, (const unsigned char *) "WeakReference", AZ_TYPE_BLOCK, sizeof (AZWeakReferenceClass), sizeof (AZWeakReference), AZ_FLAG_ZERO_MEMORY | AZ_FLAG_FINAL,
-			0, 0,
-			(void (*) (AZClass *)) weak_reference_class_init,
-			NULL,
-			(void (*) (const AZImplementation *, void *)) weak_reference_finalize);
-	}
-	t = weak_reference_type;
-	AZ_TYPES_UNLOCK();
-	return t;
-}
-
-static void
-weak_reference_class_init (AZWeakReferenceClass *klass)
-{
-
-}
-
-static void
-weak_reference_finalize (AZWeakReferenceClass *klass, AZWeakReference *ref)
-{
-	if (ref->object) {
-		az_active_object_remove_listener_by_data (ref->object, ref);
-	}
-}
 
 void
 az_weak_reference_set (AZWeakReference *ref, AZActiveObject *object)

@@ -19,7 +19,6 @@
 #define AZ_TYPE_WEAK_REFERENCE az_weak_reference_get_type ()
 
 typedef struct _AZWeakReference AZWeakReference;
-typedef struct _AZWeakReferenceClass AZWeakReferenceClass;
 
 #include <az/classes/active-object.h>
 
@@ -30,12 +29,6 @@ extern "C" {
 struct _AZWeakReference {
 	AZActiveObject *object;
 };
-
-struct _AZWeakReferenceClass {
-	AZClass klass;
-};
-
-unsigned int az_weak_reference_get_type (void);
 
 void az_weak_reference_set (AZWeakReference *ref, AZActiveObject *object);
 void az_weak_reference_clear (AZWeakReference *ref);

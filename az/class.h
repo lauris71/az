@@ -115,8 +115,20 @@ struct _AZIFEntry {
 };
 
 struct _AZInstanceAllocator {
-	void *(*allocate) (AZClass *klass);
+	/*
+	 * Allocate an instance of the given size in bytes (the class's instance_size
+	 * for fixed-size classes; possibly bigger for AZ_FLAG_VARIABLE_SIZE ones).
+	 * The allocator decides internally between fixed-block pooling and generic
+	 * allocation based on the requested size.
+	 */
+	void *(*allocate) (AZClass *klass, unsigned int size);
 	void *(*allocate_array) (AZClass *klass, unsigned int n_elements);
+	/*
+	 * Free an instance. For variable-size classes the instance must retain
+	 * enough information to recompute its allocation size after finalization
+	 * (e.g. the boxed interface keeps the container implementation), so the
+	 * allocator can tell pool memory and generic memory apart.
+	 */
 	void (*free) (AZClass *klass, void *location);
 	void (*free_array) (AZClass *klass, void *location, unsigned int n_elements);
 };

@@ -469,6 +469,9 @@ AZConversionResult az_value_convert_in_place (const AZImplementation **impl, AZV
  */
 AZConversionResult az_value_convert_in_place_autobox (const AZImplementation **impl, AZValue *val, unsigned int size, unsigned int to_type, AZConversionType conversion_type);
 
+unsigned int az_value_to_string_autobox (const AZImplementation *impl, const AZValue *val, unsigned char *d, unsigned int dlen);
+uint8_t *az_value_to_string_autobox_new (const AZImplementation *impl, const AZValue *val);
+
 #ifdef __cplusplus
 };
 #endif

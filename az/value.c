@@ -34,6 +34,9 @@ az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *inst)
 		return;
 	}
 #ifdef AZ_SAFETY_CHECKS
+	if (inst == NULL) {
+		fprintf(stderr, ".");
+	}
 	arikkei_return_if_fail (inst != NULL);
 #endif
 	klass = AZ_CLASS_FROM_IMPL(impl);
@@ -304,4 +307,25 @@ az_value_convert_in_place_autobox (const AZImplementation **impl, AZValue *val, 
 {
 	/* In-place conversion (dst == src), boxing if needed */
 	return az_value_convert_internal (impl, val, size, *impl, val, to_type, conversion_type, 1, 1);
+}
+
+unsigned int
+az_value_to_string_autobox (const AZImplementation *impl, const AZValue *val, unsigned char *d, unsigned int dlen)
+{
+	if (!impl) {
+		if (d && dlen) d[0] = 0;
+		return 0;
+	}
+	void *inst;
+	impl = az_value_get_inst_autobox(impl, val, &inst);
+	return az_instance_to_string (impl, inst, d, dlen);
+}
+
+uint8_t *
+az_value_to_string_autobox_new (const AZImplementation *impl, const AZValue *val)
+{
+	unsigned int dlen = az_value_to_string_autobox(impl, val, NULL, 0) + 1;
+	uint8_t *buf = (uint8_t *) malloc(dlen);
+	az_value_to_string_autobox(impl, val, buf, dlen);
+	return buf;
 }

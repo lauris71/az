@@ -64,6 +64,18 @@ az_instance_finalize_by_type (void *inst, unsigned int type)
 }
 
 void *az_instance_new (unsigned int type);
+/**
+ * @brief Allocate and initialize a variable-size instance
+ *
+ * Only valid for classes with AZ_FLAG_VARIABLE_SIZE; size must be at least the
+ * class's (minimum) instance_size. The class allocator, if any, decides
+ * between pooled and generic allocation based on the size.
+ *
+ * @param type the typecode
+ * @param size the allocation size in bytes
+ * @return the new instance
+ */
+void *az_instance_new_sized (unsigned int type, unsigned int size);
 void *az_instance_new_array (unsigned int type, unsigned int nelements);
 void az_instance_delete (unsigned int type, void *inst);
 void az_instance_delete_array (unsigned int type, void *elements, unsigned int nelements);

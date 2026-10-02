@@ -142,14 +142,39 @@ az_instance_new (unsigned int type)
 #endif
 	AZClass *klass = AZ_CLASS_FROM_TYPE(type);
 	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_ABSTRACT), NULL);
-	arikkei_return_val_if_fail(klass->instance_size > 0, NULL);
+	arikkei_return_val_if_fail (klass->instance_size > 0, NULL);
+	/* Variable-size classes need az_instance_new_sized */
+	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_VARIABLE_SIZE), NULL);
 	void *inst;
 	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
 	if (allocator && allocator->allocate) {
-		inst = allocator->allocate (klass);
+		inst = allocator->allocate (klass, klass->instance_size);
 	} else {
 		inst = malloc(klass->instance_size);
 	}
+	az_instance_init (&klass->impl, inst);
+	return inst;
+}
+
+void *
+az_instance_new_sized (unsigned int type, unsigned int size)
+{
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_val_if_fail(az_type_is_valid(type), NULL);
+	arikkei_return_val_if_fail(!AZ_TYPE_IS_INTERFACE(type), NULL);
+#endif
+	AZClass *klass = AZ_CLASS_FROM_TYPE(type);
+	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_ABSTRACT), NULL);
+	arikkei_return_val_if_fail (klass->impl.flags & AZ_FLAG_VARIABLE_SIZE, NULL);
+	arikkei_return_val_if_fail (size >= klass->instance_size, NULL);
+	void *inst;
+	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
+	if (allocator && allocator->allocate) {
+		inst = allocator->allocate (klass, size);
+	} else {
+		inst = malloc (size);
+	}
+	if (!inst) return NULL;
 	az_instance_init (&klass->impl, inst);
 	return inst;
 }
@@ -163,7 +188,9 @@ az_instance_new_array (unsigned int type, unsigned int n_elements)
 #endif
 	AZClass *klass = az_type_get_class (type);
 	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_ABSTRACT), NULL);
-	arikkei_return_val_if_fail(klass->instance_size > 0, NULL);
+	arikkei_return_val_if_fail (klass->instance_size > 0, NULL);
+	/* Arrays of variable-size instances cannot be indexed */
+	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_VARIABLE_SIZE), NULL);
 	void *elements;
 	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
 	if (allocator && allocator->allocate_array) {
@@ -202,6 +229,7 @@ az_instance_delete_array (unsigned int type, void *elements, unsigned int neleme
 	arikkei_return_if_fail(!AZ_TYPE_IS_INTERFACE(type));
 #endif
 	AZClass *klass = az_type_get_class (type);
+	arikkei_return_if_fail (!(klass->impl.flags & AZ_FLAG_VARIABLE_SIZE));
 	for (unsigned int i = 0; i < nelements; i++) {
 		void *instance = (char *) elements + i * AZ_CLASS_ELEMENT_SIZE(klass);
 		az_instance_finalize (&klass->impl, instance);

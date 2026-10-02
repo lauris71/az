@@ -111,22 +111,11 @@ static ArikkeiPool boxed_iface_pool;
 static mtx_t boxed_iface_pool_mutex;
 
 static void *
-boxed_iface_alloc (const AZImplementation *impl)
+boxed_iface_allocate (AZClass *klass, unsigned int size)
 {
-	unsigned int content_size = az_class_value_size (AZ_CLASS_FROM_IMPL (impl));
-	unsigned int val_size = (content_size > 16) ? content_size - 16 : 0;
-	if (val_size) return malloc (sizeof (AZBoxedInterface) + val_size);
-	mtx_lock (&boxed_iface_pool_mutex);
-	void *p = arikkei_pool_alloc (&boxed_iface_pool);
-	mtx_unlock (&boxed_iface_pool_mutex);
-	return p;
-}
-
-static void *
-boxed_iface_allocate (AZClass *klass)
-{
-	/* Only ever serves the fixed-size (48 byte) box: the class is variable-sized
-	 * (instance_size == 0), so az_instance_new/array never reach this */
+	/* The pool/malloc decision lives here: the common 48-byte box is pooled,
+	 * bigger (tailed) boxes go to the generic allocator */
+	if (size > sizeof (AZBoxedInterface)) return malloc (size);
 	mtx_lock (&boxed_iface_pool_mutex);
 	void *p = arikkei_pool_alloc (&boxed_iface_pool);
 	mtx_unlock (&boxed_iface_pool_mutex);
@@ -149,13 +138,13 @@ boxed_iface_free (AZClass *klass, void *location)
 }
 
 static AZInstanceAllocator boxed_iface_allocator = {
-	boxed_iface_allocate,
-	NULL,	/* allocate_array */
-	boxed_iface_free,
-	NULL	/* free_array */
+	.allocate = boxed_iface_allocate,
+	.free = boxed_iface_free
 };
 
-/* Releases the packed container value (which owns the interface view's lifecycle) */
+/* Releases the packed container value (which owns the interface view's lifecycle).
+ * Note: val_impl is deliberately left intact - the allocator's free uses it to
+ * recompute the allocation size class (pool vs malloc) after finalization. */
 static void
 boxed_interface_finalize (const AZImplementation *impl, void *inst)
 {
@@ -165,12 +154,13 @@ boxed_interface_finalize (const AZImplementation *impl, void *inst)
 
 AZ_CLASS_ALIGN AZBoxedInterfaceClass AZBoxedInterfaceKlass = {
 	.klass = {
-		.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_BOXED_INTERFACE },
+		.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_BOXED | AZ_FLAG_VARIABLE_SIZE | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_BOXED_INTERFACE },
 		.parent = &AZReferenceKlass.klass,
 		.name = (const uint8_t *) "boxed interface",
 		.alignment = 7,
 		.class_size = sizeof(AZBoxedInterfaceClass),
-		.instance_size = 0,
+		/* The minimum size; value containers > 16 bytes use an allocation tail */
+		.instance_size = sizeof(AZBoxedInterface),
 		.instance_finalize = boxed_interface_finalize,
 		.serialize = serialize_boxed_interface,
 		.to_string = boxed_interface_to_string
@@ -207,7 +197,9 @@ az_boxed_interface_new (const AZImplementation *impl, void *inst, const AZImplem
 	/* instance_size is 0 for variable-sized types - the containment is not checkable there */
 	arikkei_return_val_if_fail (!klass->instance_size || (((const char *) if_inst >= (const char *) inst) && ((const char *) if_inst < (const char *) inst + klass->instance_size)), NULL);
 #endif
-	AZBoxedInterface *boxed = (AZBoxedInterface *) boxed_iface_alloc (impl);
+	unsigned int content_size = az_class_value_size(AZ_CLASS_FROM_IMPL(impl));
+	unsigned int val_size = (content_size > 16) ? content_size - 16 : 0;
+	AZBoxedInterface *boxed = (AZBoxedInterface *) az_instance_new_sized (AZ_TYPE_BOXED_INTERFACE, sizeof (AZBoxedInterface) + val_size);
 	az_instance_init(&AZBoxedInterfaceKlass.klass.impl, boxed);
 	boxed->val_impl = impl;
 	az_value_set_from_inst (impl, &boxed->val, inst);
@@ -223,7 +215,9 @@ az_boxed_interface_new_from_impl_value (const AZImplementation *impl, const AZVa
 	/* The containing value cannot be an interface nor a boxed interface (lifecycle guard) */
 	arikkei_return_val_if_fail (!AZ_TYPE_IS_INTERFACE(AZ_IMPL_TYPE(impl)), NULL);
 	arikkei_return_val_if_fail (AZ_IMPL_TYPE(impl) != AZ_TYPE_BOXED_INTERFACE, NULL);
-	AZBoxedInterface *boxed = (AZBoxedInterface *) boxed_iface_alloc (impl);
+	unsigned int content_size = az_class_value_size(AZ_CLASS_FROM_IMPL(impl));
+	unsigned int val_size = (content_size > 16) ? content_size - 16 : 0;
+	AZBoxedInterface *boxed = (AZBoxedInterface *) az_instance_new_sized (AZ_TYPE_BOXED_INTERFACE, sizeof (AZBoxedInterface) + val_size);
 	az_instance_init(&AZBoxedInterfaceKlass.klass.impl, boxed);
 	boxed->val_impl = impl;
 	az_value_set_from_inst (impl, &boxed->val, az_value_get_inst(impl, val));
@@ -243,7 +237,9 @@ az_boxed_interface_new_from_impl_value_autobox (const AZImplementation *impl, co
 	/* The containing value cannot be an interface nor a boxed interface (lifecycle guard) */
 	arikkei_return_val_if_fail (!AZ_TYPE_IS_INTERFACE(AZ_IMPL_TYPE(impl)), NULL);
 	arikkei_return_val_if_fail (AZ_IMPL_TYPE(impl) != AZ_TYPE_BOXED_INTERFACE, NULL);
-	AZBoxedInterface *boxed = (AZBoxedInterface *) boxed_iface_alloc (impl);
+	unsigned int content_size = az_class_value_size(AZ_CLASS_FROM_IMPL(impl));
+	unsigned int val_size = (content_size > 16) ? content_size - 16 : 0;
+	AZBoxedInterface *boxed = (AZBoxedInterface *) az_instance_new_sized (AZ_TYPE_BOXED_INTERFACE, sizeof (AZBoxedInterface) + val_size);
 	az_instance_init(&AZBoxedInterfaceKlass.klass.impl, boxed);
 	boxed->val_impl = impl;
 	az_value_set_from_inst (impl, &boxed->val, az_value_get_inst(impl, val));
@@ -258,7 +254,9 @@ az_boxed_interface_new_from_impl_instance (const AZImplementation *impl, void *i
 	/* The containing value cannot be an interface nor a boxed interface (lifecycle guard) */
 	arikkei_return_val_if_fail (!AZ_TYPE_IS_INTERFACE(AZ_IMPL_TYPE(impl)), NULL);
 	arikkei_return_val_if_fail (AZ_IMPL_TYPE(impl) != AZ_TYPE_BOXED_INTERFACE, NULL);
-	AZBoxedInterface *boxed = (AZBoxedInterface *) boxed_iface_alloc (impl);
+	unsigned int content_size = az_class_value_size(AZ_CLASS_FROM_IMPL(impl));
+	unsigned int val_size = (content_size > 16) ? content_size - 16 : 0;
+	AZBoxedInterface *boxed = (AZBoxedInterface *) az_instance_new_sized (AZ_TYPE_BOXED_INTERFACE, sizeof (AZBoxedInterface) + val_size);
 	az_instance_init(&AZBoxedInterfaceKlass.klass.impl, boxed);
 	boxed->val_impl = impl;
 	az_value_set_from_inst (impl, &boxed->val, inst);

@@ -176,12 +176,13 @@ string_dispose (AZReferenceClass *klass, AZReference *ref)
 AZ_CLASS_ALIGN AZStringClass AZStringKlass = {
 	.reference_class = {
 		.klass = {
-			.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_STRING },
+			.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_CONSTRUCT | AZ_FLAG_REFERENCE | AZ_FLAG_VARIABLE_SIZE | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_STRING },
 			.parent = &AZReferenceKlass.klass,
 			.name = (const uint8_t *) "string",
 			.alignment = 7,
 			.class_size = sizeof(AZStringClass),
-			.instance_size = 0,
+			/* The minimum size (empty string); the character data uses an allocation tail */
+			.instance_size = sizeof(AZString),
 			.serialize = serialize_string,
 			.deserialize = deserialize_string,
 			.to_string = string_to_string
@@ -214,8 +215,7 @@ az_string_new_length (const unsigned char *str, unsigned int length)
 {
 	/* Create outside the lock: instance init takes the registry lock, and the lock
 	 * ordering is registry -> dict (class constructors create strings, not vice versa) */
-	AZString *astr = (AZString *) malloc (sizeof (AZString) + length);
-	az_instance_init_by_type (astr, AZ_TYPE_STRING);
+	AZString *astr = (AZString *) az_instance_new_sized (AZ_TYPE_STRING, sizeof (AZString) + length);
 	astr->length = length;
 	memcpy ((unsigned char *) astr->str, str, length);
 	((unsigned char *) astr->str)[length] = 0;
@@ -264,8 +264,7 @@ az_string_concat (AZString *lhs, AZString *rhs)
 	AZString *built, *astr;
 	if (!lhs) return rhs;
 	if (!rhs) return lhs;
-	built = (AZString *) malloc (sizeof (AZString) + lhs->length + rhs->length);
-	az_instance_init_by_type (built, AZ_TYPE_STRING);
+	built = (AZString *) az_instance_new_sized (AZ_TYPE_STRING, sizeof (AZString) + lhs->length + rhs->length);
 	built->length = lhs->length + rhs->length;
 	if (lhs->length) memcpy ((unsigned char *) built->str, lhs->str, lhs->length);
 	if (rhs->length) memcpy ((unsigned char *) built->str + lhs->length, rhs->str, rhs->length);

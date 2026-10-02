@@ -151,7 +151,7 @@ az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int 
 		/* Overwrite values from supertype */
 		/* ABSTRACT and HAS_DEFAULT are never propagated; the work flags and the
 		 * post-init marker are recomputed in az_class_post_init */
-		klass->impl.flags &= ~(AZ_FLAG_ABSTRACT | AZ_FLAG_HAS_DEFAULT | AZ_COMPUTED_FLAG_MASK | AZ_FLAG_POST_INITED);
+		klass->impl.flags &= ~(AZ_FLAG_ABSTRACT | AZ_FLAG_HAS_DEFAULT | AZ_COMPUTED_FLAG_MASK | AZ_FLAG_POST_INITED | AZ_FLAG_VARIABLE_SIZE);
 		klass->impl.type = 0;
 		klass->parent = parent_class;
 		klass->n_ifaces_self = 0;
@@ -680,7 +680,9 @@ az_class_lookup_function_default (const AZClass *klass, const AZImplementation *
 			return i;
 		}
 	}
+#ifdef VERBOSE
 	fprintf (stderr, "    (not found)\n");
+#endif
 	/* interfaces */
 	for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
 		const AZIFEntry *ifentry = az_class_iface_self(klass, i);

@@ -202,6 +202,18 @@ enum AZTypeFlags {
  * NOT propagated to subclasses.
  */
 #define AZ_FLAG_POST_INITED 0x2000
+/**
+ * @brief The class has dynamically-sized instances
+ *
+ * For such classes instance_size is the *minimum* instance size; actual
+ * instances may carry an allocation tail past the struct end. Allocation must
+ * go through az_instance_new_sized (az_instance_new allocates the minimum).
+ * Arrays of variable-size instances are not supported (az_instance_new_array /
+ * az_instance_delete_array reject them).
+ *
+ * NOT propagated to subclasses.
+ */
+#define AZ_FLAG_VARIABLE_SIZE 0x4000
 
 /* Masks for "has any init/finalize work" (single test against class flags) */
 #define AZ_INIT_WORK_MASK (AZ_FLAG_HAS_DEFAULT | AZ_FLAG_HAS_INSTANCE_INIT | AZ_FLAG_HAS_IFACE_CONSTRUCT | AZ_FLAG_PARENT_CONSTRUCT)

@@ -158,6 +158,17 @@ az_packed_value_copy (AZPackedValue *dst, const AZPackedValue *src)
 	*dst = *src;
 }
 
+static inline void
+az_packed_value_transfer(AZPackedValue *dst, AZPackedValue *src)
+{
+	if (dst == src) return;
+	if (dst->impl && AZ_IMPL_IS_REFERENCE(dst->impl) && dst->v.reference) {
+		az_reference_unref ((AZReferenceClass *) dst->impl, dst->v.reference);
+	}
+	*dst = *src;
+	src->impl = NULL;
+}
+
 ARIKKEI_INLINE void
 az_packed_value_set_boolean (AZPackedValue *val, unsigned int boolean_v)
 {
