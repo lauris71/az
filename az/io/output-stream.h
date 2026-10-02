@@ -63,6 +63,9 @@ az_output_stream_close(const AZOutputStreamImplementation *impl, AZOutputStream 
 	return (impl->close) ? impl->close (impl, inst) : 0;
 }
 
+int64_t az_output_stream_write_inst(const AZOutputStreamImplementation *impl, AZOutputStream *inst, const AZImplementation *data_impl, void *data_inst);
+int64_t az_output_stream_print_inst(const AZOutputStreamImplementation *impl, AZOutputStream *inst, const AZImplementation *data_impl, void *data_inst);
+
 #ifdef __cplusplus
 };
 #endif

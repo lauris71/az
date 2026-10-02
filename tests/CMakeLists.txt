@@ -7,6 +7,7 @@ add_executable(az_test
     hash-set.c
     call-native.c
     array-list.c
+    io.c
 )
 
 target_compile_definitions(az_test PRIVATE UNITY_INCLUDE_DOUBLE)
@@ -37,3 +38,4 @@ add_test(NAME strings-mt COMMAND az_test strings-mt)
 add_test(NAME boxed-interface-conversion COMMAND az_test boxed-interface-conversion)
 add_test(NAME value-array COMMAND az_test value-array)
 add_test(NAME delegation COMMAND az_test delegation)
+add_test(NAME io COMMAND az_test io)

@@ -112,8 +112,9 @@ void az_init_boxed_value_class (void);
 void az_init_boxed_interface_class (void);
 void az_init_packed_value_class (void);
 void az_init_object_class(void);
-void az_init_output_stream_class(void);
-void az_init_input_stream_class(void);
+void az_init_output_stream_class();
+void az_post_init_output_stream_class();
+void az_init_input_stream_class();
 
 /* Allocates and initializes a new class; does NOT register it, call neither class constructor nor post_init */
 /* The parent class is constructed on demand; the typecode is assigned by the caller (az_type_construct) */

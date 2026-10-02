@@ -21,21 +21,18 @@ extern "C" {
 #endif
 
 /**
- * @brief A lightweight value type writing into fixed buffer
- * 
- * As it is a value type, the copies are not synchronized
- * 
+ * @brief A lightweight block type writing into dynamically growing buffer
  */
 
 struct _AZBufferOutputStream {
-    uint8_t *buffer;
-    uint64_t size;
-    uint64_t pos;
+	uint8_t *buffer;
+	uint64_t allocated;
+	uint64_t pos;
 };
 
 struct _AZBufferOutputStreamClass {
-    AZClass klass;
-    AZOutputStreamImplementation ostream_impl;
+	AZClass klass;
+	AZOutputStreamImplementation ostream_impl;
 };
 
 unsigned int az_buffer_output_stream_get_type (void);

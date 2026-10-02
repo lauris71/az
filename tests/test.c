@@ -53,6 +53,7 @@ void test_array_list();
 void test_hash_map(void);
 void test_hash_set(void);
 void test_call_native();
+void test_io(void);
 
 void setUp(void) {
     // set stuff up here
@@ -101,6 +102,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_hash_map);
         } else if (!strcmp(argv[i], "hash-set")) {
             RUN_TEST(test_hash_set);
+        } else if (!strcmp(argv[i], "io")) {
+            RUN_TEST(test_io);
         }
     }
     return UNITY_END();

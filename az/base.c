@@ -36,6 +36,7 @@ az_init (void)
 
 	az_post_init_primitive_classes();
 	az_post_init_base_classes();
+	az_post_init_output_stream_class();
 }
 
 static unsigned int

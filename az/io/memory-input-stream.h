@@ -1,5 +1,5 @@
-#ifndef __AZ_BUFFER_INPUT_STREAM_H__
-#define __AZ_BUFFER_INPUT_STREAM_H__
+#ifndef __AZ_MEMORY_INPUT_STREAM_H__
+#define __AZ_MEMORY_INPUT_STREAM_H__
 
 /*
  * A run-time type library
@@ -7,10 +7,10 @@
  * Copyright (C) Lauris Kaplinski 2026
  */
 
- #define AZ_TYPE_BUFFER_INPUT_STREAM az_buffer_input_stream_get_type()
+ #define AZ_TYPE_MEMORY_INPUT_STREAM az_memory_input_stream_get_type()
 
-typedef struct _AZBufferInputStream AZBufferInputStream;
-typedef struct _AZBufferInputStreamClass AZBufferInputStreamClass;
+typedef struct _AZMemoryInputStream AZMemoryInputStream;
+typedef struct _AZMemoryInputStreamClass AZMemoryInputStreamClass;
 
 #include <stdint.h>
 
@@ -27,18 +27,18 @@ extern "C" {
  * 
  */
 
-struct _AZBufferInputStream {
+struct _AZMemoryInputStream {
 	const uint8_t *buffer;
 	uint64_t size;
 	uint64_t pos;
 };
 
-struct _AZBufferInputStreamClass {
+struct _AZMemoryInputStreamClass {
 	AZClass klass;
 	AZInputStreamImplementation istream_impl;
 };
 
-unsigned int az_buffer_input_stream_get_type (void);
+unsigned int az_memory_input_stream_get_type (void);
 
 #ifdef __cplusplus
 };
