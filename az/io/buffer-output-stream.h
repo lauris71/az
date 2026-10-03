@@ -37,6 +37,12 @@ struct _AZBufferOutputStreamClass {
 
 unsigned int az_buffer_output_stream_get_type (void);
 
+static inline void
+az_buffer_output_stream_reset(AZBufferOutputStream *bostream)
+{
+	bostream->pos = 0;
+}
+
 #ifdef __cplusplus
 };
 #endif

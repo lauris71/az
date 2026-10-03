@@ -75,7 +75,7 @@ deserialize_boolean (const AZImplementation *impl, AZValue *value, const unsigne
 static unsigned int
 boolean_to_string (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen)
 {
-	const unsigned char *s = (*((unsigned int *) instance)) ? (const unsigned char *) "True" : (const unsigned char *) "False";
+	const unsigned char *s = (*((unsigned int *) instance)) ? (const unsigned char *) "true" : (const unsigned char *) "false";
 	unsigned int slen = arikkei_memcpy_str (d, dlen, s);
 	if (d && (slen < dlen)) d[slen] = 0;
 	return slen;

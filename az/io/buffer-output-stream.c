@@ -18,6 +18,7 @@
 
 static void bostream_class_init (AZBufferOutputStreamClass *klass);
 static void bostream_finalize (AZBufferOutputStreamClass *klass, AZBufferOutputStream *bostream);
+static unsigned int bostream_to_string(const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
 static int64_t bostream_write (const AZOutputStreamImplementation *impl, AZOutputStream *inst, const void *data, uint64_t size);
 static int64_t bostream_close (const AZOutputStreamImplementation *impl, AZOutputStream *inst);
 
@@ -48,6 +49,7 @@ static void
 bostream_class_init (AZBufferOutputStreamClass *klass)
 {
 	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_OUTPUT_STREAM, ARIKKEI_OFFSET (AZBufferOutputStreamClass, ostream_impl), 0);
+	klass->klass.to_string = bostream_to_string;
 	klass->ostream_impl.write = bostream_write;
 	klass->ostream_impl.close = bostream_close;
 }
@@ -57,6 +59,19 @@ bostream_finalize (AZBufferOutputStreamClass *klass, AZBufferOutputStream *bostr
 {
 	if (bostream->buffer) free (bostream->buffer);
 }
+
+static unsigned int
+bostream_to_string(const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen)
+{
+	AZBufferOutputStream *bostream = (AZBufferOutputStream *) inst;
+	if (dlen) {
+		unsigned int len = (dlen > bostream->pos) ? bostream->pos : dlen - 1;
+		if (len) memcpy (d, bostream->buffer, len);
+		d[len] = 0;
+	}
+	return bostream->pos;
+}
+
 
 static int64_t
 bostream_write (const AZOutputStreamImplementation *impl, AZOutputStream *inst, const void *data, uint64_t size)
