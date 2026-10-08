@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include <arikkei/arikkei-strlib.h>
 #include <az/base.h>
 #include <az/convert.h>
 #include <az/instance.h>
@@ -20,8 +21,33 @@
 
 #include <az/function.h>
 
-//static AZClass *function_signature_class = NULL;
-//static AZClass *function_class = NULL;
+static unsigned int
+function_signature_to_string(const AZImplementation *impl, void *inst, uint8_t *d, unsigned int d_len)
+{
+	AZFunctionSignature *sig = (AZFunctionSignature *) inst;
+	if (!d) d_len = 0;
+	unsigned int len = 0, l = 0;
+	len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) "(");
+	l = (len <= d_len) ? len : d_len;
+	for (unsigned int i = 0; i < sig->n_args; i++) {
+		if (i > 0) {
+			len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) ", ");
+			l = (len <= d_len) ? len : d_len;
+		}
+		AZClass *klass = AZ_CLASS_FROM_TYPE(sig->arg_types[i]);
+		len += arikkei_strncpy(d + l, d_len - l, klass->name);
+		l = (len <= d_len) ? len : d_len;
+	}
+	len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) ") => ");
+	l = (len <= d_len) ? len : d_len;
+	if (sig->ret_type) {
+		AZClass *klass = AZ_CLASS_FROM_TYPE(sig->ret_type);
+		len += arikkei_strncpy(d + l, d_len - l, klass->name);
+	} else {
+		len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) "void");
+	}
+	return len;
+}
 
 AZ_CLASS_ALIGN AZClass AZFunctionSignatureKlass = {
 	.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_FUNCTION_SIGNATURE },
@@ -30,7 +56,7 @@ AZ_CLASS_ALIGN AZClass AZFunctionSignatureKlass = {
 	.alignment = 7,
 	.class_size = sizeof(AZClass),
 	.instance_size = 0,
-	.to_string = az_any_to_string
+	.to_string = function_signature_to_string
 };
 
 AZ_CLASS_ALIGN AZInterfaceClass AZFunctionKlass = {

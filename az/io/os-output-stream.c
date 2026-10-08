@@ -27,8 +27,8 @@ az_os_output_stream_get_type (void)
 	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!osostream_type) {
-		az_register_type (&osostream_type, (const unsigned char *) "AZOSOutputStream", AZ_TYPE_STRUCT,
-			sizeof (AZOSOutputStreamClass), sizeof (AZOSOutputStream), AZ_FLAG_FINAL, 0, 0,
+		az_register_type (&osostream_type, (const unsigned char *) "AZOSOutputStream", AZ_TYPE_BLOCK,
+			sizeof (AZOSOutputStreamClass), sizeof (AZOSOutputStream), AZ_FLAG_FINAL, 1, 0,
 			(void (*) (AZClass *)) osostream_class_init,
 			NULL, NULL);
 		/* Registration nested inside another class construction is deferred - force it */

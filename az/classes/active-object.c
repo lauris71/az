@@ -336,7 +336,10 @@ aobj_attrd_set (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst
 {
 	AZObjectAttribute *attr;
 	AZActiveObject *aobj = (AZActiveObject *) ARIKKEI_BASE_ADDRESS(AZActiveObject,adict,aa_inst);
-	if (!impl) return az_active_object_clear_attribute (aobj, key);
+	if (!impl) {
+		az_active_object_clear_attribute (aobj, key);
+		return 1;
+	}
 	attr = az_active_object_get_attribute_slot (aobj, key, 1);
 	az_packed_value_set_autobox (&attr->value, impl, inst);
 	return 1;

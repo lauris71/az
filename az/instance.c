@@ -430,8 +430,17 @@ az_instance_set_property_by_id (const AZClass *klass, const AZImplementation *im
 			AZFunctionInstance *func_inst;
 			const AZFunctionImplementation *func_impl = (const AZFunctionImplementation *) az_instance_get_interface (prop_impl, prop_inst, AZ_TYPE_FUNCTION, (void **) &func_inst);
 			const AZFunctionSignature *sig = az_function_get_signature (func_impl, func_inst);
+			if (!sig) {
+				sig = az_function_get_signature (func_impl, func_inst);
+			}
 			if (prop->signature && !az_function_signature_is_assignable_to (sig, prop->signature, 1)) {
-				fprintf (stderr, ".");
+				fprintf (stderr, "Incompatible signatures:\n");
+				uint8_t *str = az_instance_to_string_new(AZ_IMPL_FROM_TYPE(AZ_TYPE_FUNCTION_SIGNATURE), (void *) prop->signature);
+				fprintf(stderr, "Property: %s\n", str);
+				free (str);
+				str = az_instance_to_string_new(AZ_IMPL_FROM_TYPE(AZ_TYPE_FUNCTION_SIGNATURE), (void *) sig);
+				fprintf(stderr, "Instance: %s\n", str);
+				free (str);
 			}
 			arikkei_return_val_if_fail (!prop->signature || az_function_signature_is_assignable_to (sig, klass->props_self[idx].signature, 1), 0);
 		}

@@ -22,6 +22,7 @@ static void value_array_init (AZValueArrayClass *klass, AZValueArray *varray);
 static void value_array_finalize (AZValueArrayClass *klass, AZValueArray *varray);
 static unsigned int value_array_ensure_room16 (AZValueArray *varray, unsigned int idx, unsigned int req16);
 
+static unsigned int varray_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
 /* AZCollection implementation */
 static unsigned int value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
 static unsigned int value_array_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst);
@@ -60,6 +61,7 @@ value_array_class_init (AZValueArrayClass *klass)
 {
 	klass->default_size = 4;
 	az_class_declare_interface ((AZClass*) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZValueArrayClass, list_impl), ARIKKEI_OFFSET(AZValueArray, list));
+	klass->reference_klass.klass.to_string = varray_to_string;
 	klass->list_impl.collection_impl.get_element_type = value_array_get_element_type;
 	klass->list_impl.collection_impl.contains = value_array_contains;
 	klass->list_impl.get_element = value_array_get_element;
@@ -104,6 +106,32 @@ value_array_finalize (AZValueArrayClass *klass, AZValueArray *varray)
 	}
 	free (varray->values);
 	if (varray->data) free (varray->data);
+}
+
+static unsigned int
+varray_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen)
+{
+	AZValueArray *varray = (AZValueArray *) inst;
+	unsigned int pos = 0;
+	/* Nothing is written when destination is NULL */
+	if (!d) dlen = 0;
+	if (d && (pos < dlen)) d[pos] = '[';
+	pos++;
+	for (unsigned int i = 0; i < varray->list.collection.size; i++) {
+		if (i) {
+			if (d && (pos < dlen)) d[pos] = ',';
+			pos++;
+		}
+		const AZImplementation *el_impl = varray->values[i].impl;
+		const AZValue *el_val = value_array_element_value(varray, i);
+		void *el_inst;
+		el_impl = az_value_get_inst_autobox(el_impl, el_val, &el_inst);
+		pos += az_instance_to_string (el_impl, el_inst, (d) ? d + pos : NULL, (dlen > pos) ? dlen - pos : 0);
+	}
+	if (d && (pos < dlen)) d[pos] = ']';
+	pos++;
+	if (d && (pos < dlen)) d[pos] = 0;
+	return pos;
 }
 
 static unsigned int

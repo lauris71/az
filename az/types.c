@@ -49,6 +49,9 @@ az_type_is_a (unsigned int type, unsigned int to_type)
 #ifdef AZ_SAFETY_CHECKS
 	ENSURE_INITIALIZED();
 	arikkei_return_val_if_fail (az_type_is_valid(type), 0);
+	if (!az_type_is_valid(to_type)) {
+		fprintf(stderr, ".");
+	}
 	arikkei_return_val_if_fail (az_type_is_valid(to_type), 0);
 #endif
 	if (!type) return 0;
