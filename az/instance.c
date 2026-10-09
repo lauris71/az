@@ -421,9 +421,6 @@ az_instance_set_property_by_id (const AZClass *klass, const AZImplementation *im
 	arikkei_return_val_if_fail (!AZ_FIELD_IS_FINAL(&klass->props_self[idx]), 0);
 	arikkei_return_val_if_fail (AZ_FIELD_WRITE(&klass->props_self[idx]) != AZ_FIELD_WRITE_NONE, 0);
 	const AZField *prop = &klass->props_self[idx];
-	if (!strcmp((const char *) prop->key->str, "cameraController")) {
-		fprintf (stderr, ".");
-	}
 	if (AZ_TYPE_IS_INTERFACE(prop->type)) {
 		arikkei_return_val_if_fail (!prop_impl || az_type_implements(AZ_IMPL_TYPE(prop_impl), prop->type), 0);
 		if (AZ_FIELD_IS_FUNCTION(prop) && prop_impl) {

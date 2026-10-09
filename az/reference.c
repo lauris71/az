@@ -26,11 +26,19 @@ mtx_t mutex;
 #define AZ_REFERENCE_LOCK() mtx_lock (&mutex)
 #define AZ_REFERENCE_UNLOCK() mtx_unlock (&mutex)
 
+#ifdef AZ_REFERENCE_HOOKS
+void (*az_reference_ref_hook) (AZReference *) = NULL;
+void (*az_reference_unref_hook) (AZReferenceClass *, AZReference *) = NULL;
+#endif
+
 void
 az_reference_ref (AZReference* ref)
 {
 	unsigned int refcount;
 	AZ_REFERENCE_LOCK ();
+#ifdef AZ_REFERENCE_HOOKS
+	if (az_reference_ref_hook) az_reference_ref_hook(ref);
+#endif
 	refcount = ref->refcount;
 	if (refcount) ref->refcount = refcount + 1;
 	AZ_REFERENCE_UNLOCK ();
@@ -48,6 +56,9 @@ az_reference_unref (AZReferenceClass* klass, AZReference* ref)
 {
 	unsigned int refcount;
 	AZ_REFERENCE_LOCK ();
+#ifdef AZ_REFERENCE_HOOKS
+	if (az_reference_unref_hook) az_reference_unref_hook(klass, ref);
+#endif
 	refcount = ref->refcount;
 	if (refcount > 1) {
 		ref->refcount = refcount - 1;

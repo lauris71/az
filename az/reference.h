@@ -59,12 +59,20 @@ struct _AZReferenceClass {
 
 extern AZReferenceClass AZReferenceKlass;
 
+#ifdef AZ_REFERENCE_HOOKS
+extern void (*az_reference_ref_hook) (AZReference *);
+extern void (*az_reference_unref_hook) (AZReferenceClass *, AZReference *);
+#endif
+
 #ifdef AZ_MT_REFERENCES
 void az_reference_ref (AZReference* ref);
 #else
 ARIKKEI_INLINE void
 az_reference_ref (AZReference *ref)
 {
+#ifdef AZ_REFERENCE_HOOKS
+	if (az_reference_ref_hook) az_reference_ref_hook(ref);
+#endif
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_if_fail (ref->refcount);
 #endif
