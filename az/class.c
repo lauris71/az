@@ -178,31 +178,6 @@ az_class_new_with_value (AZClass *klass)
 }
 
 void
-az_class_set_num_interfaces (AZClass *klass, unsigned int n_ifaces)
-{
-	arikkei_return_if_fail (n_ifaces <= UINT8_MAX);
-	klass->n_ifaces_self = n_ifaces;
-	if (n_ifaces > 2) {
-		/* Temporary storage for the declarations; az_class_post_init either
-		 * reuses it as the full interface list or frees it again */
-		klass->ifaces_all = (AZIFEntry *) malloc(n_ifaces * sizeof(AZIFEntry));
-#ifdef VERBOSE
-		static unsigned int n_allocations = 0, allocated = 0;
-		n_allocations += 1;
-		allocated += n_ifaces;
-		fprintf(stderr, "az_class_set_num_interfaces(): Allocated %u (%u %u)\n", n_ifaces, n_allocations, allocated);
-#endif
-#ifdef AZ_SAFETY_CHECKS
-        memset (klass->ifaces_all, 0, n_ifaces * sizeof (AZIFEntry));
-#endif
-	} else {
-#ifdef AZ_SAFETY_CHECKS
-        memset (klass->ifaces, 0, n_ifaces * sizeof (AZIFEntry));
-#endif
-	}
-}
-
-void
 az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type, unsigned int impl_offset, unsigned int inst_offset)
 {
 #ifdef AZ_SAFETY_CHECKS

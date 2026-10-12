@@ -17,7 +17,9 @@ extern "C" {
 #endif
 
 /*
- * Functions for extending types
+ * Structs and functions needed only for extending types (e.g. normally used in class_init)
+ *
+ * These are collected int separate header to reduce the clutter of class.h
  */
 
 /** @ingroup types
@@ -77,8 +79,92 @@ AZClass *az_register_composite_type (unsigned int *type, const unsigned char *na
 	void (*instance_finalize) (const AZImplementation *, void *),
 	void *data);
 
+	struct _AZInstanceAllocator {
+	/*
+	 * Allocate an instance of the given size in bytes (the class's instance_size
+	 * for fixed-size classes; possibly bigger for AZ_FLAG_VARIABLE_SIZE ones).
+	 * The allocator decides internally between fixed-block pooling and generic
+	 * allocation based on the requested size.
+	 */
+	void *(*allocate) (AZClass *klass, unsigned int size);
+	void *(*allocate_array) (AZClass *klass, unsigned int n_elements);
+	/*
+	 * Free an instance. For variable-size classes the instance must retain
+	 * enough information to recompute its allocation size after finalization
+	 * (e.g. the boxed interface keeps the container implementation), so the
+	 * allocator can tell pool memory and generic memory apart.
+	 */
+	void (*free) (AZClass *klass, void *location);
+	void (*free_array) (AZClass *klass, void *location, unsigned int n_elements);
+};
+
+/*
+ * The class allocator table. Custom allocators are rare, so classes hold a
+ * uint8 index into this table (allocator_idx) instead of a pointer;
+ * index 0 is the default (malloc/free) allocator.
+ *
+ * Allocators are registered during class construction (az_class_new), i.e.
+ * under the registry lock, and are immutable afterwards; the entry is written
+ * before the class is published, so lock-free class readers see a valid entry.
+ */
+#define AZ_MAX_CLASS_ALLOCATORS 256
+extern const AZInstanceAllocator *az_class_allocators[AZ_MAX_CLASS_ALLOCATORS];
+/**
+ * @brief Register a class allocator
+ *
+ * @param allocator the allocator (has to stay valid for the program lifetime)
+ * @return the allocator index for AZClass::allocator_idx (0 on error/exhaustion)
+ */
+unsigned int az_class_register_allocator (const AZInstanceAllocator *allocator);
+
+/*
+ * Class delegates
+ *
+ * A delegate lets a class answer interface/property queries and structural
+ * enumeration on behalf of a contained or wrapped value (e.g. AZBoxedValue,
+ * AZBoxedInterface, AZReferenceOf). Classes with a delegate have delegate_idx
+ * != 0 (the class's first cache line); the lookup/iteration entry points try
+ * the delegate first and fall back to the class's own tables.
+ *
+ * The delegate methods receive the delegating class, the impl and inst the
+ * query was issued with (inst may be NULL for type-level queries, e.g. from
+ * az_type_implements - the delegate has to pass NULL through, not compute a
+ * content instance).
+ *
+ * Rules:
+ * - A delegate must delegate to a different class; the built-in delegates only
+ *   target value/interface content, which never carries a delegate itself.
+ * - Dispatch happens once at the public entry points; the default workers
+ *   never re-dispatch, so recursion into interfaces and parent classes does
+ *   not re-enter delegation.
+ * - lookup slots return "not found" (NULL/NU_SUCH_PROPERTY) to fall back to the class's own
+ *   members; the foreach slots, if present, perform the full enumeration.
+ *
+ * Delegates are registered during class construction (i.e. under the registry
+ * lock) and are immutable afterwards; the table entry is written before the
+ * class is published, so lock-free class readers see a valid entry.
+ */
+typedef struct _AZClassDelegate AZClassDelegate;
+
+struct _AZClassDelegate {
+	const AZImplementation *(*get_interface) (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
+	int (*lookup_property) (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
+	int (*lookup_function) (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
+	int (*foreach_property) (const AZClass *klass, const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data);
+	int (*foreach_interface) (const AZClass *klass, const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data);
+};
+
+#define AZ_MAX_CLASS_DELEGATES 256
+extern const AZClassDelegate *az_class_delegates[AZ_MAX_CLASS_DELEGATES];
+/**
+ * @brief Register a class delegate
+ *
+ * @param delegate the delegate (has to stay valid for the program lifetime)
+ * @return the delegate index for AZClass::delegate_idx (0 on error/exhaustion)
+ */
+unsigned int az_class_register_delegate (const AZClassDelegate *delegate);
+
 /* To be called from class constructors */
-void az_class_set_num_interfaces (AZClass *klass, unsigned int ninterfaces);
 void az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type, unsigned int impl_offset, unsigned int inst_offset);
 
 void az_class_set_num_properties (AZClass *klass, unsigned int nproperties);

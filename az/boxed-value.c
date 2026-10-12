@@ -11,7 +11,7 @@
 #include <arikkei/arikkei-strlib.h>
 
 #include <az/boxed-value.h>
-#include <az/instance.h>
+#include <az/extend.h>
 #include <az/private.h>
 
 static unsigned int

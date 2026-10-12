@@ -18,7 +18,7 @@
 #include <az/boxed-interface.h>
 #include <az/boxed-value.h>
 #include <az/instance.h>
-#include <az/class.h>
+#include <az/extend.h>
 #include <az/object.h>
 #include <az/private.h>
 #include <az/serialization.h>

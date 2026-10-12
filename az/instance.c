@@ -14,7 +14,7 @@
 #include <az/base.h>
 #include <az/boxed-interface.h>
 #include <az/boxed-value.h>
-#include <az/class.h>
+#include <az/extend.h>
 #include <az/field.h>
 #include <az/function.h>
 #include <az/instance.h>
