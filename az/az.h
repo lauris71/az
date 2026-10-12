@@ -38,7 +38,52 @@ enum AZErrorCode {
 	 * @brief Generic IO error
 	 * 
 	 */
-	AZ_IO_ERROR = -3
+	AZ_IO_ERROR = -3,
+	/**
+	 * @brief The destination address is NULL
+	 * 
+	 */
+	AZ_NULL_DESTINATION = -4,
+	/**
+	 * @brief The type is not valid for given operation
+	 * 
+	 */
+	AZ_INVALID_TYPE = -5,
+	/**
+	 * @brief The value is not valid for given operation
+	 * 
+	 */
+	AZ_INVALID_VALUE = -6,
+	/**
+	 * @brief The provided value is NULL
+	 * 
+	 */
+	AZ_NULL_VALUE = -7,
+	/**
+	 * @brief The property with given name does not exist
+	 * 
+	 */
+	AZ_NO_SUCH_PROPERTY = -8,
+	/**
+	 * @brief The property value is not readable
+	 * 
+	 */
+	AZ_PROPERTY_NOT_READABLE = -9,
+	/**
+	 * @brief The property value is not writable
+	 * 
+	 */
+	AZ_PROPERTY_NOT_WRITABLE = -10,
+	/**
+	 * @brief The property value is final
+	 * 
+	 */
+	AZ_PROPERTY_IS_FINAL = -11,
+	/**
+	 * @brief Internal inconsistency of az data
+	 * 
+	 */
+	AZ_INTERNAL_INCONSISTENCY = -1000000000
 };
 
 /** @ingroup types

@@ -106,7 +106,7 @@ reference_of_delegate_lookup_function (const AZClass *klass, const AZImplementat
 	return az_class_lookup_function (inst_class, &inst_class->impl, content_inst, key, sig, def_class, sub_impl, sub_inst);
 }
 
-static unsigned int
+static int
 reference_of_delegate_foreach_property (const AZClass *klass, const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data)
 {
 	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) klass;
@@ -115,7 +115,7 @@ reference_of_delegate_foreach_property (const AZClass *klass, const AZImplementa
 	return az_instance_foreach_property (&inst_class->impl, sub_inst, cb, data);
 }
 
-static unsigned int
+static int
 reference_of_delegate_foreach_interface (const AZClass *klass, const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data)
 {
 	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) klass;

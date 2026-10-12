@@ -91,8 +91,7 @@ impl_call_setStaticProperty (const AZImplementation **arg_impls, const AZValue *
 	arikkei_return_val_if_fail (AZ_FIELD_SPEC(prop) == AZ_FIELD_CLASS, 0);
 	arikkei_return_val_if_fail (!AZ_FIELD_IS_FINAL(prop), 0);
 	arikkei_return_val_if_fail (AZ_FIELD_WRITE(prop) != AZ_FIELD_WRITE_NONE, 0);
-	az_instance_set_property_by_id (def_class, sub_impl, NULL, prop_idx, arg_impls[2], az_value_get_inst(arg_impls[2], arg_vals[2]), ctx);
-	return 1;
+	return !az_instance_set_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, arg_impls[2], az_value_get_inst(arg_impls[2], arg_vals[2]));
 }
 
 static unsigned int
@@ -109,8 +108,7 @@ impl_call_getstaticProperty (const AZImplementation **arg_impls, const AZValue *
 	AZField *prop = &def_class->props_self[prop_idx];
 	arikkei_return_val_if_fail (AZ_FIELD_SPEC(prop) == AZ_FIELD_CLASS, 0);
 	arikkei_return_val_if_fail (AZ_FIELD_READ(prop) != AZ_FIELD_READ_NONE, 0);
-	az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, ret_impl, &ret_val->value, 64, NULL);
-	return 1;
+	return !az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, ret_impl, &ret_val->value, 64);
 }
 
 void
@@ -589,10 +587,7 @@ void az_class_define_static_method_native_va (AZClass *klass, unsigned int idx, 
 static int
 az_class_lookup_property_default (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
-	arikkei_return_val_if_fail (impl != NULL, -1);
-	arikkei_return_val_if_fail (key != NULL, -1);
-	/* NB! Until "new" is handled differently we have to go subclass-first */
-	for (uint16_t i = 0; i < (int) klass->n_props_self; i++) {
+	for (uint16_t i = 0; i < klass->n_props_self; i++) {
 		if (az_string_equals(key, klass->props_self[i].key)) {
 			*def_class = klass;
 			if (sub_impl) *sub_impl = impl;
@@ -617,13 +612,14 @@ az_class_lookup_property_default (const AZClass *klass, const AZImplementation *
 		int result = az_class_lookup_property_default (klass->parent, impl, inst, key, def_class, sub_impl, sub_inst);
 		if (result >= 0) return result;
 	}
-	return -1;
+	return AZ_NO_SUCH_PROPERTY;
 }
 
 int
 az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
-	arikkei_return_val_if_fail (klass != NULL, -1);
+	arikkei_return_val_if_fail (klass != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (key != NULL, AZ_NULL_VALUE);
 	/* Delegating classes answer for their content first, own members are the fallback */
 	if (klass->delegate_idx) {
 		const AZClassDelegate *delegate = az_class_delegates[klass->delegate_idx];
@@ -641,9 +637,6 @@ static int
 az_class_lookup_function_default (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
 	int result;
-	//arikkei_return_val_if_fail (impl != NULL, -1);
-	arikkei_return_val_if_fail (key != NULL, -1);
-	/* NB! Until "new" is handled differently we have to go subclass-first */
 #ifdef VERBOSE
 	fprintf(stderr, "Lookup function in %s: %s (", (const char *) klass->name, (const char *) key->str);
 	for (unsigned int i = 0; i < sig->n_args; i++) {
@@ -700,13 +693,14 @@ az_class_lookup_function_default (const AZClass *klass, const AZImplementation *
 		result = az_class_lookup_function_default (klass->parent, impl, inst, key, sig, def_class, sub_impl, sub_inst);
 		if (result >= 0) return result;
 	}
-	return -1;
+	return AZ_NO_SUCH_PROPERTY;
 }
 
 int
 az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
-	arikkei_return_val_if_fail (klass != NULL, -1);
+	arikkei_return_val_if_fail (klass != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (key != NULL, AZ_NULL_VALUE);
 	/* Delegating classes answer for their content first, own members are the fallback */
 	if (klass->delegate_idx) {
 		const AZClassDelegate *delegate = az_class_delegates[klass->delegate_idx];
@@ -725,11 +719,12 @@ az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, vo
  * and lookup always agree about locations. They never consult delegate_idx.
  */
 
-static unsigned int
+static int
 az_foreach_property_default (const AZClass *klass, const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data)
 {
 	for (unsigned int i = 0; i < klass->n_props_self; i++) {
-		if (!cb (klass, i, impl, inst, data)) return 0;
+		int result = cb (klass, i, impl, inst, data);
+		if (result) return result;
 	}
 	const AZIFEntry *ifentry = az_class_iface_self (klass, 0);
 	for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
@@ -737,19 +732,20 @@ az_foreach_property_default (const AZClass *klass, const AZImplementation *impl,
 			AZClass *if_class = AZ_CLASS_FROM_TYPE (ifentry->type);
 			const AZImplementation *sub_impl = (impl) ? (const AZImplementation *) ((const char *) impl + ifentry->impl_offset) : NULL;
 			void *sub_inst = (inst) ? (void *) ((char *) inst + ifentry->inst_offset) : NULL;
-			if (!az_foreach_property_default (if_class, sub_impl, sub_inst, cb, data)) return 0;
+			int result = az_foreach_property_default (if_class, sub_impl, sub_inst, cb, data);
+			return result;
 		}
 		ifentry += 1;
 	}
 	if (klass->parent) {
-		if (!az_foreach_property_default (klass->parent, impl, inst, cb, data)) return 0;
+		return az_foreach_property_default (klass->parent, impl, inst, cb, data);
 	}
-	return 1;
+	return AZ_OK;
 }
 
 /* The sub-interface tree under a direct interface: declared sub-interfaces
  * (offsets compose) and the super-interface chain (same view, offset 0) */
-static unsigned int
+static int
 az_foreach_iface_tree (const AZClass *if_class, const AZImplementation *impl, void *inst, unsigned int level, AZInterfaceForeachFunc cb, void *data)
 {
 	const AZIFEntry *ifentry = az_class_iface_self (if_class, 0);
@@ -757,21 +753,25 @@ az_foreach_iface_tree (const AZClass *if_class, const AZImplementation *impl, vo
 		if (ifentry->type) {
 			const AZImplementation *sub_impl = (impl) ? (const AZImplementation *) ((const char *) impl + ifentry->impl_offset) : NULL;
 			void *sub_inst = (inst) ? (void *) ((char *) inst + ifentry->inst_offset) : NULL;
-			if (!cb (sub_impl, sub_inst, ifentry->type, level, data)) return 0;
-			if (!az_foreach_iface_tree (AZ_CLASS_FROM_TYPE (ifentry->type), sub_impl, sub_inst, level + 1, cb, data)) return 0;
+			int result = cb (sub_impl, sub_inst, ifentry->type, level, data);
+			if (result) return result;
+			result = az_foreach_iface_tree (AZ_CLASS_FROM_TYPE (ifentry->type), sub_impl, sub_inst, level + 1, cb, data);
+			if (result) return result;
 		}
 		ifentry += 1;
 	}
 	/* Super-interfaces are at offset 0 within the interface implementation/instance */
 	AZClass *super = if_class->parent;
 	if (super && (super->impl.flags & AZ_FLAG_INTERFACE) && (super->impl.type != AZ_TYPE_INTERFACE)) {
-		if (!cb (impl, inst, super->impl.type, level, data)) return 0;
-		if (!az_foreach_iface_tree (super, impl, inst, level + 1, cb, data)) return 0;
+		int result = cb (impl, inst, super->impl.type, level, data);
+		if (result) return result;
+		result = az_foreach_iface_tree (super, impl, inst, level + 1, cb, data);
+		if (result) return result;
 	}
-	return 1;
+	return AZ_OK;
 }
 
-static unsigned int
+static int
 az_foreach_interface_default (const AZClass *klass, const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data)
 {
 	const AZIFEntry *ifentry = az_class_iface_self (klass, 0);
@@ -779,23 +779,26 @@ az_foreach_interface_default (const AZClass *klass, const AZImplementation *impl
 		if (ifentry->type) {
 			const AZImplementation *sub_impl = (impl) ? (const AZImplementation *) ((const char *) impl + ifentry->impl_offset) : NULL;
 			void *sub_inst = (inst) ? (void *) ((char *) inst + ifentry->inst_offset) : NULL;
-			if (!cb (sub_impl, sub_inst, ifentry->type, 0, data)) return 0;
-			if (!az_foreach_iface_tree (AZ_CLASS_FROM_TYPE (ifentry->type), sub_impl, sub_inst, 1, cb, data)) return 0;
+			int result = cb (sub_impl, sub_inst, ifentry->type, 0, data);
+			if (result) return result;
+			result = az_foreach_iface_tree (AZ_CLASS_FROM_TYPE (ifentry->type), sub_impl, sub_inst, 1, cb, data);
+		if (result) return result;
 		}
 		ifentry += 1;
 	}
 	/* Parent class interfaces are direct interfaces of the instance (level 0) */
 	if (klass->parent) {
-		if (!az_foreach_interface_default (klass->parent, impl, inst, cb, data)) return 0;
+		int result = az_foreach_interface_default (klass->parent, impl, inst, cb, data);
+		if (result) return result;
 	}
-	return 1;
+	return AZ_OK;
 }
 
-unsigned int
+int
 az_instance_foreach_property (const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data)
 {
-	arikkei_return_val_if_fail (impl != NULL, 0);
-	arikkei_return_val_if_fail (cb != NULL, 0);
+	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (cb != NULL, AZ_NULL_VALUE);
 	AZClass *klass = AZ_CLASS_FROM_IMPL (impl);
 	/* A delegate, if present, performs the full enumeration */
 	if (klass->delegate_idx) {
@@ -805,11 +808,11 @@ az_instance_foreach_property (const AZImplementation *impl, void *inst, AZProper
 	return az_foreach_property_default (klass, impl, inst, cb, data);
 }
 
-unsigned int
+int
 az_instance_foreach_interface (const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data)
 {
-	arikkei_return_val_if_fail (impl != NULL, 0);
-	arikkei_return_val_if_fail (cb != NULL, 0);
+	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (cb != NULL, AZ_NULL_VALUE);
 	AZClass *klass = AZ_CLASS_FROM_IMPL (impl);
 	if (klass->delegate_idx) {
 		const AZClassDelegate *delegate = az_class_delegates[klass->delegate_idx];
@@ -818,16 +821,16 @@ az_instance_foreach_interface (const AZImplementation *impl, void *inst, AZInter
 	return az_foreach_interface_default (klass, impl, inst, cb, data);
 }
 
-unsigned int
+int
 az_class_foreach_property (const AZClass *klass, AZPropertyForeachFunc cb, void *data)
 {
-	arikkei_return_val_if_fail (klass != NULL, 0);
+	arikkei_return_val_if_fail (klass != NULL, AZ_NULL_VALUE);
 	return az_instance_foreach_property (&klass->impl, NULL, cb, data);
 }
 
-unsigned int
+int
 az_class_foreach_interface (const AZClass *klass, AZInterfaceForeachFunc cb, void *data)
 {
-	arikkei_return_val_if_fail (klass != NULL, 0);
+	arikkei_return_val_if_fail (klass != NULL, AZ_NULL_VALUE);
 	return az_instance_foreach_interface (&klass->impl, NULL, cb, data);
 }

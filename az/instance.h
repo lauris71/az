@@ -63,6 +63,18 @@ az_instance_finalize_by_type (void *inst, unsigned int type)
 	if (AZ_TYPE_FLAGS(type) & AZ_FLAG_CONSTRUCT) az_instance_finalize(AZ_IMPL_FROM_TYPE(type), inst);
 }
 
+/**
+ * @brief Allocate and initialize a new instance
+ * 
+ * Class must be:
+ * - Not abstract (AZ_FLAG_ABSTRACT not set)
+ * - Fixed size instance (AZ_FLAG_VARIABLE_SIZE not set)
+ * - Instance size > 0
+ * If class has an allocator, it's allocate method is used, otherwise the generic malloc
+ * 
+ * @param type the typecode
+ * @return the new instance
+ */
 void *az_instance_new (unsigned int type);
 /**
  * @brief Allocate and initialize a variable-size instance
@@ -84,17 +96,15 @@ unsigned int az_instance_serialize (const AZImplementation *impl, void *inst, un
 /**
  * @brief writes a string representation of instance to the buffer
  * 
- * Returns the number of content bytes (excluding the terminating 0)
- * Unless len == 0, terminating 0 is always written
+ * Returns the number of content bytes (excluding the terminating 0) needed for the full representation.
+ * If dlen is less than required, the string is truncated.
+ * Unless len is 0 or d is NULL, the terminating 0 is always written
  * 
  * @param impl type implementation
  * @param inst type instance
  * @param d destination buffer (may be NULL, nothing is written then)
  * @param dlen destination buffer size
  * @return the required length of the string (excluding the terminating '\0', may be bigger than dlen)
- *
- * Writes at most dlen bytes. If there is extra room (the required length is
- * smaller than dlen) the string is terminated with '\0'.
  */
 unsigned int az_instance_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
 
@@ -126,16 +136,29 @@ az_instance_get_interface_from_type (unsigned int type, void *inst, unsigned int
  * 
  * 
  * 
- * @param impl the type implementation
- * @param inst the type instance
- * @param key property key
- * @param dst_impl the result implementation
- * @param dst_val the result value
- * @return 1 if successfule, 0 if not
+ * @param impl The type implementation
+ * @param inst The type instance
+ * @param key The property name
+ * @param dst_impl The result implementation
+ * @param dst_val The result value
+ * @param dst_size The available result size
+ * @return AZ_OK or error code
  */
-unsigned int az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation **dst_impl, AZValue64 *dst_val);
-unsigned int az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val);
-unsigned int az_instance_set_property_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
+int az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation **dst_impl, AZValue64 *dst_val, unsigned int dst_size);
+int az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size);
+/**
+ * @brief Set property by key and instance
+ * 
+ * The actual value must be assignable to the property type, no automatic conversion are performed.
+ * 
+ * @param impl The type implementation
+ * @param inst The type instance
+ * @param key The property name
+ * @param prop_impl The value implementation
+ * @param prop_inst The value instance
+ * @return AZ_OK or error code
+ */
+int az_instance_set_property_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation *prop_impl, void *prop_inst);
 
 /**
  * @brief Get property value by defining class and property index
@@ -144,7 +167,7 @@ unsigned int az_instance_set_property_by_key (const AZImplementation *impl, void
  * and the class, implementation and instance of type. For static properties the instance and/or implementation
  * can be NULL.
  * The normal order of execution is to first call az_class_lookup property and, if the property is found, use
- * def_class, AZ_CLASS_FROM_IMPL(impl), impl, inst and index or, for pure statics, def_class, def_class and index
+ * def_class, AZ_CLASS_FROM_IMPL(impl), impl, inst and index or, for pure statics, def_class, AZ_CLASS_FROM_TYPE(type) and index
  * to fetch the property value.
  * 
  * @param def_klass the class where property is defined
@@ -155,11 +178,10 @@ unsigned int az_instance_set_property_by_key (const AZImplementation *impl, void
  * @param prop_impl result implementation
  * @param prop_val result value
  * @param val_size result value size (value is autoboxed if size is bigger)
- * @param ctx an execution context
- * @return 1 if successful, 0 if the property is not readable
+ * @return AZ_OK or error code
  */
-unsigned int az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation **prop_impl, AZValue *prop_val, unsigned int val_size, AZContext *ctx);
-unsigned int az_instance_set_property_by_id (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
+int az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation **prop_impl, AZValue *prop_val, unsigned int val_size);
+int az_instance_set_property_by_id (const AZClass *def_klass, const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation *prop_impl, void *prop_inst);
 
 #ifdef __cplusplus
 }

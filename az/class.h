@@ -172,7 +172,7 @@ unsigned int az_class_register_allocator (const AZInstanceAllocator *allocator);
  * - Dispatch happens once at the public entry points; the default workers
  *   never re-dispatch, so recursion into interfaces and parent classes does
  *   not re-enter delegation.
- * - lookup slots return "not found" (NULL/-1) to fall back to the class's own
+ * - lookup slots return "not found" (NULL/NU_SUCH_PROPERTY) to fall back to the class's own
  *   members; the foreach slots, if present, perform the full enumeration.
  *
  * Delegates are registered during class construction (i.e. under the registry
@@ -181,16 +181,16 @@ unsigned int az_class_register_allocator (const AZInstanceAllocator *allocator);
  */
 typedef struct _AZClassDelegate AZClassDelegate;
 
-/* Both callback types return 0 to stop the iteration, nonzero to continue */
-typedef unsigned int (*AZPropertyForeachFunc) (const AZClass *def_class, unsigned int prop_idx, const AZImplementation *impl, void *inst, void *data);
-typedef unsigned int (*AZInterfaceForeachFunc) (const AZImplementation *iface_impl, void *iface_inst, unsigned int if_type, unsigned int level, void *data);
+/* Both callback types return AZ_OK to continue the iteration, nonzero to stop */
+typedef int (*AZPropertyForeachFunc) (const AZClass *def_class, unsigned int prop_idx, const AZImplementation *impl, void *inst, void *data);
+typedef int (*AZInterfaceForeachFunc) (const AZImplementation *iface_impl, void *iface_inst, unsigned int if_type, unsigned int level, void *data);
 
 struct _AZClassDelegate {
 	const AZImplementation *(*get_interface) (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
 	int (*lookup_property) (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
 	int (*lookup_function) (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
-	unsigned int (*foreach_property) (const AZClass *klass, const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data);
-	unsigned int (*foreach_interface) (const AZClass *klass, const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data);
+	int (*foreach_property) (const AZClass *klass, const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data);
+	int (*foreach_interface) (const AZClass *klass, const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data);
 };
 
 #define AZ_MAX_CLASS_DELEGATES 256
@@ -444,7 +444,7 @@ az_class_parent(const AZClass *klass) {
  * @param def_class result: the actual class where the property is defined
  * @param sub_impl result: the actual implementation (either impl or sub-implementation, can be null)
  * @param sub_inst result: the actual instance (either inst or sub-interface, can be null)
- * @return the property index in def_class
+ * @return the property index in def_class or error code
  */
 int az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
 int az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
@@ -467,9 +467,9 @@ int az_class_lookup_function (const AZClass *klass, const AZImplementation *impl
  * @param inst the instance (may be NULL for type-level enumeration)
  * @param cb the callback (return 0 to stop)
  * @param data user data passed to the callback
- * @return 1 if the enumeration ran to completion, 0 if stopped by the callback
+ * @return AZ_OK if the enumeration ran to completion, any other value if stopped by the callback
  */
-unsigned int az_instance_foreach_property (const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data);
+int az_instance_foreach_property (const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data);
 /**
  * @brief Iterate over all visible interfaces of an instance or type
  *
@@ -485,12 +485,12 @@ unsigned int az_instance_foreach_property (const AZImplementation *impl, void *i
  * @param inst the instance (may be NULL for type-level enumeration)
  * @param cb the callback (return 0 to stop)
  * @param data user data passed to the callback
- * @return 1 if the enumeration ran to completion, 0 if stopped by the callback
+ * @return AZ_OK if the enumeration ran to completion, any other value if stopped by the callback
  */
-unsigned int az_instance_foreach_interface (const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data);
+int az_instance_foreach_interface (const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data);
 /* Type-level convenience wrappers (inst locations reported as NULL) */
-unsigned int az_class_foreach_property (const AZClass *klass, AZPropertyForeachFunc cb, void *data);
-unsigned int az_class_foreach_interface (const AZClass *klass, AZInterfaceForeachFunc cb, void *data);
+int az_class_foreach_property (const AZClass *klass, AZPropertyForeachFunc cb, void *data);
+int az_class_foreach_interface (const AZClass *klass, AZInterfaceForeachFunc cb, void *data);
 
 /**
  * @brief Print class registry statistics to stdout

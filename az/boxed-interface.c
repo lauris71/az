@@ -59,7 +59,7 @@ boxed_interface_delegate_get_interface (const AZClass *klass, const AZImplementa
 static int
 boxed_interface_delegate_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
-	if (!inst) return -1;
+	if (!inst) return AZ_NULL_VALUE;
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
 	return az_class_lookup_property (AZ_CLASS_FROM_IMPL (boxed->impl), boxed->impl, boxed->inst, key, def_class, sub_impl, sub_inst);
 }
@@ -67,23 +67,23 @@ boxed_interface_delegate_lookup_property (const AZClass *klass, const AZImplemen
 static int
 boxed_interface_delegate_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
-	if (!inst) return -1;
+	if (!inst) return AZ_NULL_VALUE;
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
 	return az_class_lookup_function (AZ_CLASS_FROM_IMPL (boxed->impl), boxed->impl, boxed->inst, key, sig, def_class, sub_impl, sub_inst);
 }
 
-static unsigned int
+static int
 boxed_interface_delegate_foreach_property (const AZClass *klass, const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data)
 {
-	if (!inst) return 1;
+	if (!inst) return AZ_OK;
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
 	return az_instance_foreach_property (boxed->impl, boxed->inst, cb, data);
 }
 
-static unsigned int
+static int
 boxed_interface_delegate_foreach_interface (const AZClass *klass, const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data)
 {
-	if (!inst) return 1;
+	if (!inst) return AZ_OK;
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
 	return az_instance_foreach_interface (boxed->impl, boxed->inst, cb, data);
 }

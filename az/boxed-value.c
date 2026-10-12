@@ -75,7 +75,7 @@ boxed_value_delegate_get_interface (const AZClass *klass, const AZImplementation
 static int
 boxed_value_delegate_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
-	if (!inst) return -1;
+	if (!inst) return AZ_NULL_VALUE;
 	AZBoxedValue *boxed = (AZBoxedValue *) inst;
 	return az_class_lookup_property (boxed->klass, &boxed->klass->impl, &boxed->val, key, def_class, sub_impl, sub_inst);
 }
@@ -83,23 +83,23 @@ boxed_value_delegate_lookup_property (const AZClass *klass, const AZImplementati
 static int
 boxed_value_delegate_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
-	if (!inst) return -1;
+	if (!inst) return AZ_NULL_VALUE;
 	AZBoxedValue *boxed = (AZBoxedValue *) inst;
 	return az_class_lookup_function (boxed->klass, &boxed->klass->impl, &boxed->val, key, sig, def_class, sub_impl, sub_inst);
 }
 
-static unsigned int
+static int
 boxed_value_delegate_foreach_property (const AZClass *klass, const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data)
 {
-	if (!inst) return 1;
+	if (!inst) return AZ_OK;
 	AZBoxedValue *boxed = (AZBoxedValue *) inst;
 	return az_instance_foreach_property (&boxed->klass->impl, &boxed->val, cb, data);
 }
 
-static unsigned int
+static int
 boxed_value_delegate_foreach_interface (const AZClass *klass, const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data)
 {
-	if (!inst) return 1;
+	if (!inst) return AZ_OK;
 	AZBoxedValue *boxed = (AZBoxedValue *) inst;
 	return az_instance_foreach_interface (&boxed->klass->impl, &boxed->val, cb, data);
 }
