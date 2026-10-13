@@ -29,7 +29,7 @@ static const AZImplementation *packed_value_array_get_element (const AZListImple
 
 enum {
 	PROP_LENGTH,
-	NUM_PROPERTIES
+	VARRAY_NUM_PROPERTIES
 };
 
 unsigned int
@@ -41,7 +41,7 @@ az_packed_value_array_get_type (void)
 	AZ_TYPES_LOCK();
 	if (!type) {
 		az_register_type (&type, (const unsigned char *) "AZPackedValueArray", AZ_TYPE_REFERENCE, sizeof (AZPackedValueArrayClass), sizeof (AZPackedValueArray), AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY,
-			1, NUM_PROPERTIES,
+			1, VARRAY_NUM_PROPERTIES,
 			(void (*) (AZClass *)) packed_value_array_class_init,
 			NULL,
 			(void (*) (const AZImplementation *, void *)) packed_value_array_finalize);

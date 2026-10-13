@@ -96,12 +96,7 @@ AZClass *az_type_register_internal (unsigned int *type, const unsigned char *nam
 
 /* Library internals */
 void az_init_primitive_classes (void);
-void az_post_init_primitive_classes (void);
-
-void az_init_base_classes (void);
-void az_post_init_base_classes (void);
-void az_impl_class_post_init (void);
-void az_class_class_post_init (void);
+void az_construct_primitive_classes (void);
 
 void az_init_interface_class (void);
 void az_init_field_class (void);
@@ -113,7 +108,6 @@ void az_init_boxed_interface_class (void);
 void az_init_packed_value_class (void);
 void az_init_object_class(void);
 void az_init_output_stream_class();
-void az_post_init_output_stream_class();
 void az_init_input_stream_class();
 
 /* Allocates and initializes a new class; does NOT register it, call neither class constructor nor post_init */

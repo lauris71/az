@@ -44,7 +44,7 @@ static unsigned int active_object_call_getAttribute (const AZImplementation **ar
 enum {
 	FUNC_SETATTRIBUTE,
 	FUNC_GETATTRIBUTE,
-	NUM_PROPERTIES
+	AOBJ_NUM_PROPERTIES
 };
 
 unsigned int
@@ -56,7 +56,7 @@ az_active_object_get_type (void)
 	AZ_TYPES_LOCK();
 	if (!type) {
 		az_register_type (&type, (const unsigned char *) "AZActiveObject", AZ_TYPE_OBJECT, sizeof (AZActiveObjectClass), sizeof (AZActiveObject), AZ_FLAG_ABSTRACT,
-			1, NUM_PROPERTIES,
+			1, AOBJ_NUM_PROPERTIES,
 			(void (*) (AZClass *)) az_active_object_class_init, NULL, NULL);
 	}
 	t = type;

@@ -327,6 +327,7 @@ AZ_CLASS_ALIGN AZClass AZAnyKlass = {
 	.alignment = 0,
 	.class_size = sizeof(AZClass),
 	.instance_size = 0,
+	.n_props_self = ANY_NUM_PROPS,
 	.to_string = az_any_to_string,
 	.get_property = any_get_property
 };
@@ -531,12 +532,11 @@ az_init_primitive_classes (void)
 }
 
 void
-az_post_init_primitive_classes (void)
+az_construct_primitive_classes (void)
 {
 	unsigned int i;
     /* Properties are set in post-init because property types have to be initialized first */
 	AZClass *any_class = AZ_CLASS_FROM_TYPE(AZ_TYPE_ANY);
-	az_class_set_num_properties (any_class, ANY_NUM_PROPS);
 	az_class_define_property (any_class, ANY_PROP_TYPE, (const unsigned char *) "type", AZ_TYPE_UINT32, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
 	az_class_define_property (any_class, ANY_PROP_CLASS, (const unsigned char *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
 	az_class_define_property_value(any_class, ANY_PROP_ARITHMETIC, (const uint8_t *) "isArithmetic", AZ_TYPE_BOOLEAN, 1, AZ_FIELD_CLASS, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZClass, impl.flags));
@@ -551,9 +551,6 @@ az_post_init_primitive_classes (void)
 	any_class->props_self[ANY_PROP_SIGNED].value_type_idx = AZ_TYPE_IDX_UINT32;
 	any_class->props_self[ANY_PROP_SIGNED].shift = 10;
 	any_class->props_self[ANY_PROP_SIGNED].mask_width = 1;
-	for (i = AZ_TYPE_INDEX(AZ_TYPE_ANY); i <= AZ_TYPE_INDEX(AZ_TYPE_POINTER); i++) {
-		az_class_post_init (AZ_CLASS_FROM_TYPE(i));
-	}
 }
 
 #define A AZ_CONVERT_AUTO

@@ -32,7 +32,7 @@ enum {
 	NUM_FUNCTIONS,
 	/* Values */
 	PROP_LENGTH = NUM_FUNCTIONS,
-	NUM_PROPERTIES
+	WOBJL_NUM_PROPERTIES
 };
 
 static unsigned int weak_object_list_type = 0;
@@ -45,7 +45,7 @@ az_weak_object_list_get_type (void)
 	AZ_TYPES_LOCK();
 	if (!weak_object_list_type) {
 		az_register_type (&weak_object_list_type, (const unsigned char *) "AZWeakObjectList", AZ_TYPE_BLOCK, sizeof (AZWeakObjectListClass), sizeof (AZWeakObjectList), AZ_FLAG_ZERO_MEMORY | AZ_FLAG_FINAL,
-			1, NUM_PROPERTIES,
+			1, WOBJL_NUM_PROPERTIES,
 			(void (*) (AZClass *)) weak_object_list_class_init,
 			(void (*) (const AZImplementation *, void *)) weak_object_list_init,
 			(void (*) (const AZImplementation *, void *)) weak_object_list_finalize);

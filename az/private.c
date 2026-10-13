@@ -255,7 +255,11 @@ az_type_construct (AZTypeDescriptor *desc)
 			if_klass->implementation_init = desc->implementation_init;
 		}
 		if (desc->n_ifaces_self) az_class_set_num_interfaces (klass, desc->n_ifaces_self);
-		if (desc->n_props_self) az_class_set_num_properties (klass, desc->n_props_self);
+		if (desc->n_props_self) {
+			//az_class_set_num_properties (klass, desc->n_props_self);
+			klass->n_props_self = desc->n_props_self;
+			klass->props_self = (AZField *) calloc (desc->n_props_self, sizeof (AZField));
+		}
 		if (desc->class_init) desc->class_init (klass);
 		if (desc->class_init_ex) desc->class_init_ex (klass, desc->data);
 		az_class_post_init (klass);

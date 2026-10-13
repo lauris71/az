@@ -25,7 +25,7 @@ enum {
 	FUNC_WRITE,
 	FUNC_PRINT,
 	FUNC_PRINTLN,
-	NUM_PROPS
+	OSTREAM_NUM_PROPS
 };
 
 
@@ -37,6 +37,7 @@ AZ_CLASS_ALIGN AZInterfaceClass AZOutputStreamKlass = {
 		.alignment = 3,
 		.class_size = sizeof(AZInterfaceKlass),
 		.instance_size = 0,
+		.n_props_self = OSTREAM_NUM_PROPS,
 		.to_string = az_any_to_string
 	},
 	.implementation_size = sizeof(AZOutputStreamImplementation),
@@ -47,12 +48,6 @@ void
 az_init_output_stream_class()
 {
     az_class_new_with_value(&AZOutputStreamKlass.klass);
-}
-
-void
-az_post_init_output_stream_class()
-{
-	az_class_set_num_properties (&AZOutputStreamKlass.klass, NUM_PROPS);
 	az_class_define_method_va((AZClass *) &AZOutputStreamKlass, FUNC_WRITE, (const uint8_t *) "write", ostream_call_write, AZ_TYPE_INT64, 1, AZ_TYPE_ANY);
 	az_class_define_method_va((AZClass *) &AZOutputStreamKlass, FUNC_PRINT, (const uint8_t *) "print", ostream_call_print, AZ_TYPE_INT64, 1, AZ_TYPE_ANY);
 	az_class_define_method_va((AZClass *) &AZOutputStreamKlass, FUNC_PRINTLN, (const uint8_t *) "printLn", ostream_call_println, AZ_TYPE_INT64, 1, AZ_TYPE_ANY);

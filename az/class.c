@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #if defined(_WIN32)
 #include <malloc.h>
@@ -54,68 +55,6 @@ az_class_register_delegate (const AZClassDelegate *delegate)
 	unsigned int idx = az_num_class_delegates++;
 	az_class_delegates[idx] = delegate;
 	return idx;
-}
-
-/* Method implementations */
-static unsigned int impl_call_setStaticProperty (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
-static unsigned int impl_call_getstaticProperty (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
-
-/* Properties */
-
-enum {
-	FUNC_SETSTATICPROPERTY,
-	FUNC_GETSTATICPROPERTY,
-	NUM_PROPERTIES
-};
-
-void
-az_impl_class_post_init (void)
-{
-	az_class_set_num_properties (&AZImplKlass, NUM_PROPERTIES);
-	az_class_define_method_va (&AZImplKlass, FUNC_SETSTATICPROPERTY, (const unsigned char *) "setStaticProperty", impl_call_setStaticProperty, AZ_TYPE_NONE, 2, AZ_TYPE_STRING, AZ_TYPE_ANY);
-	az_class_define_method_va (&AZImplKlass, FUNC_GETSTATICPROPERTY, (const unsigned char *) "getStaticProperty", impl_call_getstaticProperty, AZ_TYPE_ANY, 1, AZ_TYPE_STRING);
-}
-
-static unsigned int
-impl_call_setStaticProperty (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
-{
-	int prop_idx;
-	AZImplementation *impl = (AZImplementation *) arg_vals[0]->block;
-	AZString *key = arg_vals[1]->string;
-	const AZClass *def_class;
-	const AZImplementation *sub_impl;
-	void *sub_inst;
-	prop_idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &def_class, &sub_impl, &sub_inst);
-	arikkei_return_val_if_fail (prop_idx >= 0, 0);
-	AZField *prop = &def_class->props_self[prop_idx];
-	arikkei_return_val_if_fail (AZ_FIELD_SPEC(prop) == AZ_FIELD_CLASS, 0);
-	arikkei_return_val_if_fail (!AZ_FIELD_IS_FINAL(prop), 0);
-	arikkei_return_val_if_fail (AZ_FIELD_WRITE(prop) != AZ_FIELD_WRITE_NONE, 0);
-	return !az_instance_set_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, arg_impls[2], az_value_get_inst(arg_impls[2], arg_vals[2]));
-}
-
-static unsigned int
-impl_call_getstaticProperty (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
-{
-	int prop_idx;
-	AZImplementation *impl = (AZImplementation *) arg_vals[0]->block;
-	AZString *key = arg_vals[1]->string;
-	const AZClass *def_class;
-	const AZImplementation *sub_impl;
-	void *sub_inst;
-	prop_idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &def_class, &sub_impl, &sub_inst);
-	arikkei_return_val_if_fail (prop_idx >= 0, 0);
-	AZField *prop = &def_class->props_self[prop_idx];
-	arikkei_return_val_if_fail (AZ_FIELD_SPEC(prop) == AZ_FIELD_CLASS, 0);
-	arikkei_return_val_if_fail (AZ_FIELD_READ(prop) != AZ_FIELD_READ_NONE, 0);
-	return !az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, ret_impl, &ret_val->value, 64);
-}
-
-void
-az_class_class_post_init (void)
-{
-	az_class_set_num_properties (&AZClassKlass, 1);
-	az_class_define_property (&AZClassKlass, 0, (const unsigned char *) "parent", AZ_TYPE_CLASS, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZClass, parent), NULL, NULL);
 }
 
 AZClass *
@@ -170,11 +109,12 @@ az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int 
 void
 az_class_new_with_value (AZClass *klass)
 {
+	/* Have to allocate properties because we cannot do that in static initializer */
+	klass->props_self = (AZField *) calloc (klass->n_props_self, sizeof (AZField));
 	/* Fundamental classes are statically initialized; publish immediately */
 	/* (az_init runs before any concurrent access) */
 	az_class_publish (klass);
-	/* Static classes have no class_init hook - post-initialize immediately */
-	az_class_post_init (klass);
+	/* The post_init has to be called explicitly for static classes as soon as dependencies are built */
 }
 
 void
@@ -389,14 +329,6 @@ az_class_post_init (AZClass *klass)
 		}
 	}
 #endif
-}
-
-void
-az_class_set_num_properties (AZClass *klass, unsigned int nproperties)
-{
-	klass->n_props_self = nproperties;
-	klass->props_self = (AZField *) malloc (nproperties * sizeof (AZField));
-	memset (klass->props_self, 0, nproperties * sizeof (AZField));
 }
 
 void az_class_define_property_value (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,

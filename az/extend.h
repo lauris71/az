@@ -167,7 +167,6 @@ unsigned int az_class_register_delegate (const AZClassDelegate *delegate);
 /* To be called from class constructors */
 void az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type, unsigned int impl_offset, unsigned int inst_offset);
 
-void az_class_set_num_properties (AZClass *klass, unsigned int nproperties);
 /* Define property with AZ_FIELD_READ_VALUE */
 void az_class_define_property_value (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,
 	unsigned int is_final, unsigned int spec, unsigned int write, unsigned int offset);

@@ -29,7 +29,7 @@ static AZListClass *list_class;
 
 enum {
 	PROP_LENGTH,
-	NUM_PROPERTIES
+	LIST_NUM_PROPERTIES
 };
 
 unsigned int
@@ -41,7 +41,7 @@ az_list_get_type (void)
 	if (!list_type) {
 		list_class = (AZListClass *) az_register_interface_type (&list_type, (const unsigned char *) "AZList", AZ_TYPE_COLLECTION,
 			sizeof(AZListClass), sizeof(AZListImplementation), sizeof(AZList), 0,
-			0, NUM_PROPERTIES,
+			0, LIST_NUM_PROPERTIES,
 			(void (*) (AZClass *)) list_class_init,
 			(void (*) (AZImplementation *)) list_implementation_init,
 			NULL, NULL);

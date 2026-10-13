@@ -33,7 +33,7 @@ enum {
 	NUM_FUNCTIONS,
 	/* Values */
 	PROP_LENGTH = NUM_FUNCTIONS,
-	NUM_PROPERTIES
+	OBJL_NUM_PROPERTIES
 };
 
 static unsigned int object_list_type = 0;
@@ -46,7 +46,7 @@ az_object_list_get_type (void)
 	AZ_TYPES_LOCK();
 	if (!object_list_type) {
 		az_register_type (&object_list_type, (const unsigned char *) "AZObjectList", AZ_TYPE_BLOCK, sizeof (AZObjectListClass), sizeof (AZObjectList), AZ_FLAG_ZERO_MEMORY | AZ_FLAG_FINAL,
-			1, NUM_PROPERTIES,
+			1, OBJL_NUM_PROPERTIES,
 			(void (*) (AZClass *)) object_list_class_init,
 			(void (*) (const AZImplementation *, void *)) object_list_init,
 			(void (*) (const AZImplementation *, void *)) object_list_finalize);

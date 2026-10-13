@@ -53,6 +53,9 @@ extern "C" {
 
 /*
  * Basic type queries
+ *
+ * The library internals require that AZ_CLASS_FROM_TYPE works from type index as well as with type
+ * So there should be any flag validity checking in accessors
  */
 
 #if defined(AZ_GLOBALS_STATIC)

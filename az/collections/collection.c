@@ -24,7 +24,7 @@ enum {
 	FUNC_CONTAINS,
 	FUNC_GET_ITERATOR,
 	PROP_SIZE,
-	NUM_PROPERTIES
+	COLL_NUM_PROPERTIES
 };
 
 static unsigned int collection_type = 0;
@@ -39,7 +39,7 @@ az_collection_get_type (void)
 	if (!collection_type) {
 		collection_class = (AZCollectionClass *) az_register_interface_type (&collection_type, (const unsigned char *) "AZCollection", AZ_TYPE_INTERFACE,
 			sizeof(AZCollectionClass), sizeof(AZCollectionImplementation), sizeof(AZCollection), AZ_FLAG_ABSTRACT,
-			0, NUM_PROPERTIES,
+			0, COLL_NUM_PROPERTIES,
 			(void (*) (AZClass *)) collection_class_init,
 			NULL,
 			NULL, NULL);
