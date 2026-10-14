@@ -25,9 +25,9 @@ extern "C" {
 #endif
 
 struct _AZWeakObjectList {
+	uint64_t size;
 	unsigned int type;
 	unsigned int allocated_size;
-	AZList list;
 	AZActiveObject **objects;
 };
 

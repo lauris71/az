@@ -21,7 +21,7 @@ extern "C" {
 
 struct _AZPackedValueArray {
 	AZReference reference;
-	AZList list;
+	uint32_t size;
 	AZPackedValue *_values;
 };
 

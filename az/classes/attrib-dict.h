@@ -41,10 +41,6 @@ struct _AZAttribDictClass {
 	AZMapClass map_class;
 };
 
-struct _AZAttribDict {
-	AZMap map;
-};
-
 unsigned int az_attrib_dict_get_type (void);
 
 static inline const AZImplementation *

@@ -9,12 +9,14 @@
 #include <assert.h>
 
 #include <arikkei/arikkei-utils.h>
+#include <arikkei/arikkei-strlib.h>
 
 #include <az/base.h>
 #include <az/string.h>
 #include <az/field.h>
 #include <az/packed-value.h>
 #include <az/private.h>
+#include <az/extend.h>
 
 void az_field_setup_value (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
 	unsigned int spec, unsigned int read, unsigned int write, unsigned int offset)
@@ -114,6 +116,25 @@ void az_field_setup_function_packed (AZField *field, const unsigned char *key, u
 	field->signature = sig;
 }
 
+enum {
+	FIELD_PROP_NAME,
+	FIELD_NUM_PROPS
+};
+
+static unsigned int
+field_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int d_len)
+{
+	AZField *field = (AZField *) inst;
+	if (!d) d_len = 0;
+	unsigned int pos = arikkei_strncpy (d, d_len, (const unsigned char *) "AZField [");
+	pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, field->key->str);
+	pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) ": ");
+	AZClass* klass = AZ_CLASS_FROM_TYPE(field->type);
+	pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, klass->name);
+	pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) "]");
+	return pos;
+}
+
 AZ_CLASS_ALIGN AZClass AZFieldKlass = {
 	.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_FIELD },
 	.parent = &AZBlockKlass,
@@ -121,7 +142,8 @@ AZ_CLASS_ALIGN AZClass AZFieldKlass = {
 	.alignment = 7,
 	.class_size = sizeof(AZClass),
 	.instance_size = sizeof(AZField),
-	.to_string = az_any_to_string
+	.n_props_self = FIELD_NUM_PROPS,
+	.to_string = field_to_string
 };
 
 void
@@ -130,3 +152,8 @@ az_init_field_class (void)
 	az_class_new_with_value(&AZFieldKlass);
 }
 
+void
+az_construct_field_class (void)
+{
+	az_class_define_property_value (&AZFieldKlass, FIELD_PROP_NAME, (const uint8_t *) "name", AZ_TYPE_STRING, 1, AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZField, key));
+}

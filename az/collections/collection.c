@@ -16,6 +16,7 @@
 
 /* AZInterface implementation */
 static void collection_class_init (AZCollectionClass* klass);
+static unsigned int collection_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
 
 static unsigned int collection_call_contains (const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
 static unsigned int collection_call_get_iterator (const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
@@ -38,7 +39,7 @@ az_collection_get_type (void)
 	AZ_TYPES_LOCK();
 	if (!collection_type) {
 		collection_class = (AZCollectionClass *) az_register_interface_type (&collection_type, (const unsigned char *) "AZCollection", AZ_TYPE_INTERFACE,
-			sizeof(AZCollectionClass), sizeof(AZCollectionImplementation), sizeof(AZCollection), AZ_FLAG_ABSTRACT,
+			sizeof(AZCollectionClass), sizeof(AZCollectionImplementation), 0, AZ_FLAG_ABSTRACT,
 			0, COLL_NUM_PROPERTIES,
 			(void (*) (AZClass *)) collection_class_init,
 			NULL,
@@ -52,9 +53,21 @@ az_collection_get_type (void)
 static void
 collection_class_init (AZCollectionClass *klass)
 {
-	az_class_define_method_va ((AZClass *) klass, FUNC_CONTAINS, (const unsigned char *) "contains", collection_call_contains, AZ_TYPE_BOOLEAN, 1, AZ_TYPE_ANY);
-	az_class_define_method_va ((AZClass *) klass, FUNC_GET_ITERATOR, (const unsigned char *) "getIterator", collection_call_get_iterator, AZ_TYPE_ANY, 0);
-	az_class_define_property ((AZClass *) klass, PROP_SIZE, (const unsigned char *) "size", AZ_TYPE_UINT32, 0, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET(AZCollection,size), NULL, NULL);
+	az_class_define_method_va ((AZClass *) klass, FUNC_CONTAINS, (const uint8_t *) "contains", collection_call_contains, AZ_TYPE_BOOLEAN, 1, AZ_TYPE_ANY);
+	az_class_define_method_va ((AZClass *) klass, FUNC_GET_ITERATOR, (const uint8_t *) "getIterator", collection_call_get_iterator, AZ_TYPE_ANY, 0);
+	az_class_define_property ((AZClass *) klass, PROP_SIZE, (const uint8_t *) "size", AZ_TYPE_UINT64, 0, AZ_FIELD_INSTANCE, AZ_FIELD_READ_METHOD, 0, 0, NULL, NULL);
+	klass->iface_class.klass.get_property = collection_get_property;
+}
+
+static unsigned int
+collection_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx)
+{
+	if (idx == PROP_SIZE) {
+		*prop_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_UINT64);
+		prop_val->uint64_v = az_collection_get_size ((const AZCollectionImplementation *) impl, inst);
+		return 1;
+	}
+	return 0;
 }
 
 static unsigned int

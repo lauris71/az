@@ -24,10 +24,6 @@ extern "C" {
 * The iterator of a list is always unsigned integer
 */
 
-struct _AZList {
-	AZCollection collection;
-};
-
 struct _AZListImplementation {
 	AZCollectionImplementation collection_impl;
 	const AZImplementation *(*get_element) (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);

@@ -24,8 +24,8 @@ extern "C" {
 
 struct _AZInterfaceList {
 	unsigned int iface_type;
-	unsigned int size;
-	AZList list;
+	unsigned int allocated_size;
+	uint32_t size;
 	AZInterfaceValue* elements;
 };
 

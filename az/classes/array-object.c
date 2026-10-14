@@ -67,7 +67,7 @@ static void
 array_object_instance_finalize(AZArrayObjectClass *klass, AZArrayObject *aobj)
 {
 	if (!az_object_flags((AZObject *) aobj, AZ_ARRAY_OBJ_FLAG_OWNED)) {
-		az_value_delete_array(az_array_object_class->array_impl.elem_impl, aobj->array.values, aobj->array.list.collection.size);
+		az_value_delete_array(az_array_object_class->array_impl.elem_impl, aobj->array.values, aobj->array.size);
 	}
 }
 
@@ -83,7 +83,7 @@ array_object_contains(const AZCollectionImplementation *coll_impl, AZCollection 
 {
 	AZArrayImplementation *array_impl = (AZArrayImplementation *) coll_impl;
 	AZArrayObject *aobj = (AZArrayObject *) coll_inst;
-	for (unsigned int i = 0; i < aobj->array.list.collection.size; i++) {
+	for (unsigned int i = 0; i < aobj->array.size; i++) {
 		const AZValue *val = (const AZValue *) ((char *) aobj->array.values + i * AZ_CLASS_ELEMENT_SIZE(AZ_CLASS_FROM_IMPL(array_impl->elem_impl)));
 		if (az_value_equals_instance_autobox(array_impl->elem_impl, val, impl, inst)) return 1;
 	}
@@ -105,7 +105,7 @@ az_array_object_new(unsigned int elem_type, unsigned int length)
 	arikkei_return_val_if_fail(AZ_TYPE_IS_OBJECT(elem_type) || AZ_TYPE_IS_FINAL(elem_type), NULL);
 	AZArrayObject *obj = (AZArrayObject *) az_object_new(AZ_TYPE_ARRAY_OBJECT);
 	az_object_set_flags((AZObject *) obj, AZ_ARRAY_OBJ_FLAG_OWNED);
-	obj->array.list.collection.size = length;
+	obj->array.size = length;
 	az_array_object_class->array_impl.elem_impl = AZ_IMPL_FROM_TYPE(elem_type);
 	obj->array.values = az_value_new_array(az_array_object_class->array_impl.elem_impl, length);
 	return obj;
@@ -116,7 +116,7 @@ az_array_object_new_static(unsigned int elem_type, unsigned int length, void *va
 {
 	arikkei_return_val_if_fail(AZ_TYPE_IS_OBJECT(elem_type) || AZ_TYPE_IS_FINAL(elem_type), NULL);
 	AZArrayObject *obj = (AZArrayObject *) az_object_new(AZ_TYPE_ARRAY_OBJECT);
-	obj->array.list.collection.size = length;
+	obj->array.size = length;
 	az_array_object_class->array_impl.elem_impl = AZ_IMPL_FROM_TYPE(elem_type);
 	obj->array.values = values;
 	return obj;

@@ -25,6 +25,7 @@ static unsigned int value_array_ensure_room16 (AZValueArray *varray, unsigned in
 static unsigned int varray_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
 /* AZCollection implementation */
 static unsigned int value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
+static uint64_t value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
 static unsigned int value_array_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
 static const AZImplementation *value_array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
@@ -60,9 +61,10 @@ static void
 value_array_class_init (AZValueArrayClass *klass)
 {
 	klass->default_size = 4;
-	az_class_declare_interface ((AZClass*) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZValueArrayClass, list_impl), ARIKKEI_OFFSET(AZValueArray, list));
+	az_class_declare_interface ((AZClass*) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZValueArrayClass, list_impl), 0);
 	klass->reference_klass.klass.to_string = varray_to_string;
 	klass->list_impl.collection_impl.get_element_type = value_array_get_element_type;
+	klass->list_impl.collection_impl.get_size = value_array_get_size;
 	klass->list_impl.collection_impl.contains = value_array_contains;
 	klass->list_impl.get_element = value_array_get_element;
 }
@@ -71,10 +73,10 @@ static void
 value_array_init (AZValueArrayClass *klass, AZValueArray *varray)
 {
 	varray->type = AZ_TYPE_ANY;
-	varray->size = klass->default_size;
+	varray->allocated_size = klass->default_size;
 	varray->data_size = 0;
-	varray->list.collection.size = 0;
-	varray->values = (AZValueArrayEntry *) malloc (varray->size * sizeof (AZValueArrayEntry));
+	varray->size = 0;
+	varray->values = (AZValueArrayEntry *) malloc (varray->allocated_size * sizeof (AZValueArrayEntry));
 	varray->data = NULL;
 }
 
@@ -98,8 +100,7 @@ value_array_element_value (AZValueArray *varray, unsigned int idx)
 static void
 value_array_finalize (AZValueArrayClass *klass, AZValueArray *varray)
 {
-	unsigned int i;
-	for (i = 0; i < varray->list.collection.size; i++) {
+	for (unsigned int i = 0; i < varray->size; i++) {
 		if (varray->values[i].impl) {
 			az_value_clear (varray->values[i].impl, value_array_element_value (varray, i));
 		}
@@ -117,7 +118,7 @@ varray_to_string (const AZImplementation *impl, void *inst, unsigned char *d, un
 	if (!d) dlen = 0;
 	if (d && (pos < dlen)) d[pos] = '[';
 	pos++;
-	for (unsigned int i = 0; i < varray->list.collection.size; i++) {
+	for (unsigned int i = 0; i < varray->size; i++) {
 		if (i) {
 			if (d && (pos < dlen)) d[pos] = ',';
 			pos++;
@@ -137,23 +138,22 @@ varray_to_string (const AZImplementation *impl, void *inst, unsigned char *d, un
 static unsigned int
 value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
-	AZValueArray *varray = (AZValueArray *) ARIKKEI_BASE_ADDRESS(AZValueArray, list.collection, collection_inst);
+	AZValueArray *varray = (AZValueArray *) collection_inst;
 	return varray->type;
 }
 
-static unsigned int
+static uint64_t
 value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst)
 {
-	AZValueArray *varray = (AZValueArray *) ARIKKEI_BASE_ADDRESS(AZValueArray, list.collection, collection_inst);
-	return varray->list.collection.size;
+	AZValueArray *varray = (AZValueArray *) collection_inst;
+	return varray->size;
 }
 
 static unsigned int
 value_array_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst)
 {
-	AZValueArray *varray = (AZValueArray *) ARIKKEI_BASE_ADDRESS(AZValueArray, list.collection, collection_inst);
-	unsigned int i;
-	for (i = 0; i < varray->list.collection.size; i++) {
+	AZValueArray *varray = (AZValueArray *) collection_inst;
+	for (unsigned int i = 0; i < varray->size; i++) {
 		if (varray->values[i].impl != impl) continue;
 		if (!impl) return 1;
 		if (!AZ_IMPL_VALUE_SIZE(varray->values[i].impl)) return 1;
@@ -169,7 +169,7 @@ value_array_contains (const AZCollectionImplementation *collection_impl, AZColle
 static const AZImplementation *
 value_array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
 {
-	AZValueArray *varray = (AZValueArray *) ARIKKEI_BASE_ADDRESS(AZValueArray, list, list_inst);
+	AZValueArray *varray = (AZValueArray *) list_inst;
 	if (varray->values[idx].impl) {
 		return az_value_copy_autobox(varray->values[idx].impl, val, value_array_element_value(varray, idx), size);
 	}
@@ -180,25 +180,25 @@ void
 az_value_array_set_length (AZValueArray* varray, unsigned int length)
 {
 	unsigned int i;
-	if (length < varray->list.collection.size) {
+	if (length < varray->size) {
 		/* Elements are removed from the back; their data-pool slots were at the
 		 * pool's tail (the pool is packed in element order), so the remaining
 		 * elements stay compact - no compaction needed */
-		for (i = length; i < varray->list.collection.size; i++) {
+		for (i = length; i < varray->size; i++) {
 			if (varray->values[i].impl) {
 				az_value_clear (varray->values[i].impl, value_array_element_value (varray, i));
 			}
 		}
-		varray->list.collection.size = length;
-	} else if (length > varray->list.collection.size) {
-		if (length > varray->size) {
-			varray->size = length;
-			varray->values = (AZValueArrayEntry *) realloc (varray->values, varray->size * sizeof (AZValueArrayEntry));
+		varray->size = length;
+	} else if (length > varray->size) {
+		if (length > varray->allocated_size) {
+			varray->allocated_size = length;
+			varray->values = (AZValueArrayEntry *) realloc (varray->values, varray->allocated_size * sizeof (AZValueArrayEntry));
 		}
-		for (i = varray->list.collection.size; i < length; i++) {
+		for (i = varray->size; i < length; i++) {
 			varray->values[i].impl = NULL;
 		}
-		varray->list.collection.size = length;
+		varray->size = length;
 	}
 }
 
@@ -221,7 +221,7 @@ value_array_ensure_room16 (AZValueArray* varray, unsigned int idx, unsigned int 
 {
 	unsigned int total16 = req16;
 	unsigned int i;
-	for (i = 0; i < varray->list.collection.size; i++) {
+	for (i = 0; i < varray->size; i++) {
 		if (i == idx) continue;
 		if (varray->values[i].impl) {
 			unsigned int size8 = value_array_element_size8 (varray, i);
@@ -237,7 +237,7 @@ value_array_ensure_room16 (AZValueArray* varray, unsigned int idx, unsigned int 
 	AZValue *newdata = (AZValue *) malloc (total16 * sizeof (AZValue));
 	unsigned int pos = 0;
 	unsigned int result = 0;
-	for (i = 0; i < varray->list.collection.size; i++) {
+	for (i = 0; i < varray->size; i++) {
 		if (i == idx) {
 			result = pos;
 			pos += req16;

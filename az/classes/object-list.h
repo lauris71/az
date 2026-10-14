@@ -26,7 +26,7 @@ extern "C" {
 struct _AZObjectList {
 	unsigned int type;
 	unsigned int allocated_size;
-	AZList list;
+	uint32_t size;
 	AZObject **objects;
 };
 

@@ -99,7 +99,8 @@ void az_init_primitive_classes (void);
 void az_construct_primitive_classes (void);
 
 void az_init_interface_class (void);
-void az_init_field_class (void);
+void az_init_field_class(void);
+void az_construct_field_class(void);
 void az_init_function_classes (void);
 void az_init_reference_class (void);
 void az_init_string_class (void);

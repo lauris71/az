@@ -41,6 +41,7 @@ static unsigned int array_serialize (const AZImplementation *impl, void *inst, u
 static unsigned int array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
 static unsigned int array_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
 static unsigned int static_array_of_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+static uint64_t static_array_of_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 static unsigned int static_array_of_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
 static const AZImplementation *static_array_of_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
@@ -98,7 +99,7 @@ static void
 static_array_of_instance_init (AZStaticArrayOfClass *klass, AZStaticArrayOf *sarr)
 {
 	sarr->array.values = NULL;
-	sarr->array.list.collection.size = 0;
+	sarr->array.size = 0;
 }
 
 static unsigned int
@@ -132,12 +133,19 @@ static_array_of_get_element_type (const AZCollectionImplementation *coll_impl, A
 	return AZ_IMPL_TYPE(array_impl->elem_impl);
 }
 
+static uint64_t
+static_array_of_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
+{
+	AZStaticArrayOf *sarr = (AZStaticArrayOf *) coll_inst;
+	return sarr->array.size;
+}
+
 static unsigned int
 static_array_of_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst)
 {
 	AZArrayImplementation *array_impl = (AZArrayImplementation *) coll_impl;
 	AZStaticArrayOf *sarr = (AZStaticArrayOf *) coll_inst;
-	for (unsigned int i = 0; i < sarr->array.list.collection.size; i++) {
+	for (unsigned int i = 0; i < sarr->array.size; i++) {
 		const AZValue *val = az_array_value_at(array_impl, &sarr->array, i);
 		if (az_value_equals_instance_autobox(array_impl->elem_impl, val, impl, inst)) return 1;
 	}

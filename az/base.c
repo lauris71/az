@@ -57,6 +57,7 @@ az_init (void)
 	/* These need separate construct phase because string and function types are not yet defined during their creation */
 	az_construct_primitive_classes();
 	az_construct_base_classes();
+	az_construct_field_class();
 
 	/* Post init everything, i.e. sanity checks, interface lists and construction flags */
 	for (unsigned int i = AZ_TYPE_IDX_ANY; i < AZ_NUM_BASE_TYPES; i++) {
@@ -201,6 +202,14 @@ prop_list_get_element_type (const AZCollectionImplementation *coll_impl, AZColle
 	return AZ_TYPE_FIELD;
 }
 
+static uint64_t
+prop_list_get_size(const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
+{
+	AZClass *klass = (AZClass *) coll_inst;
+	return klass->n_props_self;
+
+}
+
 static unsigned int
 prop_list_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *val_impl, const void *val_inst)
 {
@@ -226,6 +235,7 @@ az_construct_base_classes (void)
 {
 	az_implementation_init_by_type(&prop_list_impl.collection_impl.impl, AZ_TYPE_LIST);
 	prop_list_impl.collection_impl.get_element_type = prop_list_get_element_type;
+	prop_list_impl.collection_impl.get_size = prop_list_get_size;
 	prop_list_impl.collection_impl.contains = prop_list_contains;
 	prop_list_impl.get_element = prop_list_get_element;
 	/* Implementation */

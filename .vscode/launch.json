@@ -8,6 +8,14 @@
             "program": "${workspaceFolder}/build/tests/az_test",
             "args": ["io"],
             "cwd": "${workspaceFolder}/build/tests/"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Test HashMap",
+            "program": "${workspaceFolder}/build/tests/az_test",
+            "args": ["hash-map"],
+            "cwd": "${workspaceFolder}/build/tests/"
         }
     ]
 }

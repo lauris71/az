@@ -17,6 +17,7 @@
 static void map_implementation_init(AZMapImplementation *impl);
 
 unsigned int keyset_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+static uint64_t keyset_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 unsigned int keyset_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *val_impl, const void *val_inst);
 const AZImplementation *keyset_get_iterator (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
 const AZImplementation *keyset_iterator_next (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
@@ -33,7 +34,7 @@ az_map_get_type (void)
 	AZ_TYPES_LOCK();
 	if (!map_type) {
 		map_class = (AZMapClass *) az_register_interface_type (&map_type, (const unsigned char *) "AZMap", AZ_TYPE_COLLECTION,
-			sizeof(AZMapClass), sizeof(AZMapImplementation), sizeof(AZMap), AZ_FLAG_ZERO_MEMORY,
+			sizeof(AZMapClass), sizeof(AZMapImplementation), 0, AZ_FLAG_ABSTRACT | AZ_FLAG_ZERO_MEMORY,
 			0, 0,
 			NULL,
 			(void (*) (AZImplementation *)) map_implementation_init,
@@ -49,6 +50,7 @@ map_implementation_init(AZMapImplementation *impl)
 {
 	az_implementation_init_by_type((AZImplementation *) &impl->keyset_impl, AZ_TYPE_SET);
 	impl->keyset_impl.collection_impl.get_element_type = keyset_get_element_type;
+	impl->keyset_impl.collection_impl.get_size = keyset_get_size;
 	impl->keyset_impl.collection_impl.contains = keyset_contains;
 	impl->keyset_impl.collection_impl.get_iterator = keyset_get_iterator;
 	impl->keyset_impl.collection_impl.iterator_next = keyset_iterator_next;
@@ -60,6 +62,13 @@ keyset_get_element_type (const AZCollectionImplementation *coll_impl, AZCollecti
 {
 	AZMapImplementation *map_impl = (AZMapImplementation *) ARIKKEI_BASE_ADDRESS(AZMapImplementation,keyset_impl,coll_impl);
 	return map_impl->get_key_type(map_impl, (AZMap *) coll_inst);
+}
+
+static uint64_t
+keyset_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
+{
+	AZMapImplementation *map_impl = (AZMapImplementation *) ARIKKEI_BASE_ADDRESS(AZMapImplementation,keyset_impl,coll_impl);
+	return map_impl->collection_impl.get_size(&map_impl->collection_impl, coll_inst);
 }
 
 unsigned int

@@ -24,7 +24,7 @@ az_set_get_type (void)
 	AZ_TYPES_LOCK();
 	if (!set_type) {
 		set_class = (AZSetClass *) az_register_interface_type (&set_type, (const unsigned char *) "AZSet", AZ_TYPE_COLLECTION,
-			sizeof(AZSetClass), sizeof(AZSetImplementation), sizeof(AZSet), AZ_FLAG_ABSTRACT,
+			sizeof(AZSetClass), sizeof(AZSetImplementation), 0, AZ_FLAG_ABSTRACT,
 			0, 0,
 			NULL, NULL, NULL, NULL);
 	}

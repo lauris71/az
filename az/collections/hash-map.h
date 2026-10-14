@@ -30,7 +30,7 @@ extern "C" {
  * 
  */
 struct _AZHashMap {
-    AZMap map;
+    uint64_t size;
     unsigned int allocated_size;
     unsigned int root_size;
     unsigned int free;

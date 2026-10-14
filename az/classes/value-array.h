@@ -46,8 +46,8 @@ struct _AZValueArray {
 	AZReference reference;
 	unsigned int type;
 	unsigned int size;
+	unsigned int allocated_size;
 	unsigned int data_size;
-	AZList list;
 	AZValueArrayEntry *values;
 	AZValue *data;
 };

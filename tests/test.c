@@ -427,7 +427,7 @@ test_array()
     /* AZArray interface to_string prints [element,element...] */
     uint32_t av[3] = {1, 22, 333};
     AZArray arr = {0};
-    arr.list.collection.size = 3;
+    arr.size = 3;
     arr.values = av;
     check_to_string((const AZImplementation *) impl, &arr, "[1,22,333]");
     /* Empty array */
@@ -464,21 +464,21 @@ test_object_list()
         AZActiveObject *o3 = (AZActiveObject *) az_object_new (ao_type);
         az_object_list_append_object (list, (AZObject *) o1);
         az_object_list_append_object (list, (AZObject *) o2);
-        TEST_ASSERT_EQUAL_UINT (2, list->list.collection.size);
+        TEST_ASSERT_EQUAL_UINT (2, list->size);
         /* The list holds strong references */
         TEST_ASSERT_EQUAL_UINT (2, o1->object.reference.refcount);
         az_object_list_insert_object (list, (AZObject *) o3, 1);
-        TEST_ASSERT_EQUAL_UINT (3, list->list.collection.size);
+        TEST_ASSERT_EQUAL_UINT (3, list->size);
         TEST_ASSERT (list->objects[1] == (AZObject *) o3);
         TEST_ASSERT (az_object_list_contains (list, (AZObject *) o2));
         az_object_list_remove_object (list, (AZObject *) o3);
-        TEST_ASSERT_EQUAL_UINT (2, list->list.collection.size);
+        TEST_ASSERT_EQUAL_UINT (2, list->size);
         TEST_ASSERT_EQUAL_UINT (1, o3->object.reference.refcount);
         az_object_list_remove_object_by_index (list, 0);
-        TEST_ASSERT_EQUAL_UINT (1, list->list.collection.size);
+        TEST_ASSERT_EQUAL_UINT (1, list->size);
         TEST_ASSERT (list->objects[0] == (AZObject *) o2);
         az_object_list_clear (list);
-        TEST_ASSERT_EQUAL_UINT (0, list->list.collection.size);
+        TEST_ASSERT_EQUAL_UINT (0, list->size);
         TEST_ASSERT_EQUAL_UINT (1, o2->object.reference.refcount);
         az_object_list_delete (list);
         az_object_unref ((AZObject *) o1);
@@ -492,16 +492,16 @@ test_object_list()
         AZActiveObject *o2 = (AZActiveObject *) az_object_new (ao_type);
         az_weak_object_list_append_object (list, o1);
         az_weak_object_list_append_object (list, o2);
-        TEST_ASSERT_EQUAL_UINT (2, list->list.collection.size);
+        TEST_ASSERT_EQUAL_UINT (2, list->size);
         /* The list does not hold strong references */
         TEST_ASSERT_EQUAL_UINT (1, o1->object.reference.refcount);
         TEST_ASSERT (az_weak_object_list_contains (list, o1));
         /* Explicit removal */
         az_weak_object_list_remove_object (list, o1);
-        TEST_ASSERT_EQUAL_UINT (1, list->list.collection.size);
+        TEST_ASSERT_EQUAL_UINT (1, list->size);
         /* Shutdown removes the object from the list automatically (and frees it) */
         az_object_shutdown ((AZObject *) o2);
-        TEST_ASSERT_EQUAL_UINT (0, list->list.collection.size);
+        TEST_ASSERT_EQUAL_UINT (0, list->size);
         az_weak_object_list_delete (list);
         az_object_unref ((AZObject *) o1);
     }
@@ -1319,7 +1319,7 @@ test_value_array()
     az_init();
     az_value_array_get_type ();
     AZValueArray *va = az_value_array_new (8);
-    TEST_ASSERT_EQUAL_UINT (8, va->list.collection.size);
+    TEST_ASSERT_EQUAL_UINT (8, va->size);
     TEST_ASSERT_EQUAL_UINT (1, va->reference.refcount);
 
     /* Fill with inline values (4 and 8 bytes) */
@@ -1363,7 +1363,7 @@ test_value_array()
 
     /* Remove elements from the middle/end */
     az_value_array_set_length (va, 5);
-    TEST_ASSERT_EQUAL_UINT (5, va->list.collection.size);
+    TEST_ASSERT_EQUAL_UINT (5, va->size);
     va_verify_element (va, 0, 2, 100);
     va_verify_element (va, 1, 0, 50);
     va_verify_element (va, 2, 1, 70);
@@ -1372,7 +1372,7 @@ test_value_array()
 
     /* Grow again and refill */
     az_value_array_set_length (va, 10);
-    TEST_ASSERT_EQUAL_UINT (10, va->list.collection.size);
+    TEST_ASSERT_EQUAL_UINT (10, va->size);
     for (unsigned int i = 5; i < 10; i++) {
         AZValue64 v;
         unsigned int t = i % 5;
@@ -1459,7 +1459,7 @@ test_delegation (void)
     AZStaticArrayOf *sarr = (AZStaticArrayOf *) az_reference_of_get_instance ((AZReferenceOfClass *) AZ_CLASS_FROM_TYPE (ref_type), ref);
     int32_t values[3] = { 17, 23, 42 };
     sarr->array.values = values;
-    sarr->array.list.collection.size = 3;
+    sarr->array.size = 3;
 
     void *list_inst = NULL;
     const AZImplementation *list_impl = az_instance_get_interface (AZ_IMPL_FROM_TYPE (ref_type), ref, AZ_TYPE_LIST, &list_inst);

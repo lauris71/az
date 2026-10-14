@@ -19,13 +19,10 @@ typedef struct _AZCollectionClass AZCollectionClass;
 extern "C" {
 #endif
 
-struct _AZCollection {
-	uint64_t size;
-};
-
 struct _AZCollectionImplementation {
 	AZImplementation impl;
 	unsigned int (*get_element_type) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+	uint64_t (*get_size) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 	unsigned int (*contains) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *val_impl, const void *val_inst);
 	const AZImplementation *(*get_iterator) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
 	const AZImplementation *(*iterator_next) (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter);
@@ -48,7 +45,7 @@ az_collection_get_element_type (const AZCollectionImplementation *coll_impl, AZC
 static inline uint64_t
 az_collection_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
 {
-	return coll_inst->size;
+	return coll_impl->get_size (coll_impl, coll_inst);
 }
 
 static inline unsigned int

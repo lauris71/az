@@ -25,6 +25,7 @@ static unsigned int array_serialize (const AZImplementation *impl, void *inst, u
 static unsigned int array_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
 
 static unsigned int array_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
+static uint64_t array_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 static unsigned int array_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
 static const AZImplementation *array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
@@ -58,6 +59,7 @@ static void
 array_implementation_init (AZArrayImplementation *impl)
 {
 	impl->list_impl.collection_impl.get_element_type = array_get_element_type;
+	impl->list_impl.collection_impl.get_size = array_get_size;
 	impl->list_impl.collection_impl.contains = array_contains;
 	impl->list_impl.get_element = array_get_element;
 	impl->elem_impl = NULL;
@@ -68,8 +70,8 @@ array_serialize (const AZImplementation *impl, void *inst, unsigned char *d, uns
 {
 	AZArrayImplementation *array_impl = (AZArrayImplementation *) impl;
 	AZArray *array = (AZArray *) inst;
-	unsigned int len = az_instance_serialize(&AZUint64Klass.impl, &array->list.collection.size, d, dlen, ctx);
-	for (unsigned int i = 0; i < array->list.collection.size; i++) {
+	unsigned int len = az_instance_serialize(&AZUint64Klass.impl, &array->size, d, dlen, ctx);
+	for (uint64_t i = 0; i < array->size; i++) {
 		len += az_instance_serialize(array_impl->elem_impl, az_array_value_at(array_impl, array, i), d + len, (len <= dlen) ? dlen - len : 0, ctx);
 	}
 	return len;
@@ -81,12 +83,12 @@ array_to_string (const AZImplementation *impl, void *inst, unsigned char *d, uns
 	AZArrayImplementation *array_impl = (AZArrayImplementation *) impl;
 	AZArray *array = (AZArray *) inst;
 	unsigned int pos = 0;
-	arikkei_return_val_if_fail (!array->list.collection.size || (array_impl->elem_impl != NULL), 0);
+	arikkei_return_val_if_fail (!array->size || (array_impl->elem_impl != NULL), 0);
 	/* Nothing is written when destination is NULL */
 	if (!d) dlen = 0;
 	if (d && (pos < dlen)) d[pos] = '[';
 	pos++;
-	for (unsigned int i = 0; i < array->list.collection.size; i++) {
+	for (uint64_t i = 0; i < array->size; i++) {
 		if (i) {
 			if (d && (pos < dlen)) d[pos] = ',';
 			pos++;
@@ -106,12 +108,19 @@ array_get_element_type (const AZCollectionImplementation *coll_impl, AZCollectio
 	return AZ_IMPL_TYPE(array_impl->elem_impl);
 }
 
+static uint64_t
+array_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
+{
+	AZArray *array = (AZArray *) coll_inst;
+	return array->size;
+}
+
 static unsigned int
 array_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst)
 {
 	AZArrayImplementation *array_impl = (AZArrayImplementation *) coll_impl;
 	AZArray *array = (AZArray *) coll_inst;
-	for (unsigned int i = 0; i < array->list.collection.size; i++) {
+	for (uint64_t i = 0; i < array->size; i++) {
 		const AZValue *val = az_array_value_at(array_impl, array, i);
 		if (az_value_equals_instance_autobox(array_impl->elem_impl, val, impl, inst)) return 1;
 	}
@@ -129,9 +138,9 @@ array_get_element (const AZListImplementation *list_impl, void *list_inst, unsig
 unsigned int
 az_array_deserialize (const AZArrayImplementation *array_impl, AZArray *array, const unsigned char *s, unsigned int slen, AZContext *ctx)
 {
-	unsigned int len = az_value_deserialize(&AZUint64Klass.impl, (AZValue *) &array->list.collection.size, s + len, (len <= slen) ? slen - len : 0, ctx);
-	array->values = az_value_new_array(array_impl->elem_impl, array->list.collection.size);
-	for (unsigned int i = 0; i < array->list.collection.size; i++) {
+	unsigned int len = az_value_deserialize(&AZUint64Klass.impl, (AZValue *) &array->size, s + len, (len <= slen) ? slen - len : 0, ctx);
+	array->values = az_value_new_array(array_impl->elem_impl, array->size);
+	for (uint64_t i = 0; i < array->size; i++) {
 		len += az_value_deserialize(array_impl->elem_impl, az_array_value_at(array_impl, array, i), s + len, (len <= slen) ? slen - len : 0, ctx);
 	}
 	return len;

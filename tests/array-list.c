@@ -20,7 +20,7 @@ verify_list(AZArrayList *alist, const unsigned int idx[], const unsigned int typ
     TEST_ASSERT(coll_impl == &AZArrayListKlass->list_impl.collection_impl);
     TEST_ASSERT(coll_inst == alist);
     unsigned int size = az_collection_get_size(coll_impl, coll_inst);
-    TEST_ASSERT(size == alist->list.collection.size);
+    TEST_ASSERT(size == alist->size);
     for (unsigned int i = 0; i < size; i++) {
         uint8_t buf[256];
         memset(buf, (char) idx[i], 256);
@@ -43,8 +43,8 @@ verify_list(AZArrayList *alist, const unsigned int idx[], const unsigned int typ
 static void
 print_list(AZArrayList *alist, FILE *ofs)
 {
-    fprintf(stdout, "List [val_size=%d length=%" PRIu64 "]:", alist->val_size, alist->list.collection.size);
-    for (unsigned int i = 0; i < alist->list.collection.size; i++) {
+    fprintf(stdout, "List [val_size=%d length=%" PRIu64 "]:", alist->val_size, alist->size);
+    for (unsigned int i = 0; i < alist->size; i++) {
         AZArrayListEntry *entry = az_array_list_get_entry(alist, i);
         fprintf (stdout, " %d", (entry->impl) ? AZ_IMPL_TYPE(entry->impl) : 0);
     }

@@ -29,7 +29,7 @@ extern "C" {
  */
 
 struct _AZArray {
-	AZList list;
+	uint64_t size;
 	void *values;
 };
 

@@ -23,10 +23,6 @@ extern "C" {
 * An hybrid interface that allows lookup by key
 */
 
-struct _AZMap {
-	AZCollection collection;
-};
-
 struct _AZMapImplementation {
 	AZCollectionImplementation collection_impl;
 	AZSetImplementation keyset_impl;
