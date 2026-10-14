@@ -16,22 +16,6 @@
 #include <az/packed-value.h>
 #include <az/private.h>
 
-AZ_CLASS_ALIGN AZClass AZFieldKlass = {
-	.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_FIELD },
-	.parent = &AZBlockKlass,
-	.name = (const uint8_t *) "field",
-	.alignment = 7,
-	.class_size = sizeof(AZClass),
-	.instance_size = sizeof(AZField),
-	.to_string = az_any_to_string
-};
-
-void
-az_init_field_class (void)
-{
-	az_class_new_with_value(&AZFieldKlass);
-}
-
 void az_field_setup_value (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
 	unsigned int spec, unsigned int read, unsigned int write, unsigned int offset)
 {
@@ -41,14 +25,14 @@ void az_field_setup_value (AZField *prop, const unsigned char *key, unsigned int
 	arikkei_return_if_fail (type != AZ_TYPE_NONE);
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
 	arikkei_return_if_fail ((read == AZ_FIELD_READ_VALUE) || (read == AZ_FIELD_READ_INSTANCE) || (read == AZ_FIELD_READ_PACKED));
-	arikkei_return_if_fail ((write == read) || (write == AZ_FIELD_WRITE_NONE) || (write == AZ_FIELD_WRITE_METHOD));
+	arikkei_return_if_fail ((write == (read << 3)) || (write == AZ_FIELD_WRITE_NONE) || (write == AZ_FIELD_WRITE_METHOD));
 #endif
 	prop->key = az_string_new (key);
 	prop->type = type;
-	prop->is_final = is_final;
-	prop->spec = spec;
-	prop->read = read;
-	prop->write = write;
+	if (is_final) prop->flags |= AZ_FIELD_FLAG_FINAL;
+	prop->flags |= spec;
+	prop->flags |= read;
+	prop->flags |= write;
 	prop->offset = offset;
 	/* Masked (bit-field) values default to plain access */
 	prop->value_type_idx = 0;
@@ -71,10 +55,10 @@ void az_field_setup_stored (AZField *prop, const unsigned char *key, unsigned in
 #endif
 	prop->key = az_string_new (key);
 	prop->type = type;
-	prop->is_final = is_final;
-	prop->spec = spec;
-	prop->read = read;
-	prop->write = write;
+	if (is_final) prop->flags |= AZ_FIELD_FLAG_FINAL;
+	prop->flags |= spec;
+	prop->flags |= read;
+	prop->flags |= write;
 	prop->value.impl = NULL;
 	if (impl) {
 		prop->value.impl = az_value_set_from_inst_autobox(impl, &prop->value.v, AZ_VALUE_MAX_SIZE, inst);
@@ -94,10 +78,10 @@ void az_field_setup_method (AZField *prop, const unsigned char *key, unsigned in
 #endif
 	prop->key = az_string_new (key);
 	prop->type = type;
-	prop->is_final = is_final;
-	prop->spec = spec;
-	prop->read = read;
-	prop->write = write;
+	if (is_final) prop->flags |= AZ_FIELD_FLAG_FINAL;
+	prop->flags |= spec;
+	prop->flags |= read;
+	prop->flags |= write;
 }
 
 void az_field_setup_function (AZField *field, const unsigned char *key, unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, const AZFunctionSignature *sig,
@@ -112,7 +96,6 @@ void az_field_setup_function (AZField *field, const unsigned char *key, unsigned
 	} else {
 		az_field_setup_stored (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, impl, inst);
 	}
-	field->is_function = 1;
 	field->signature = sig;
 }
 
@@ -128,6 +111,22 @@ void az_field_setup_function_packed (AZField *field, const unsigned char *key, u
 		// fixme: Cannot happen
 		az_field_setup_stored (field, key, AZ_TYPE_FUNCTION, is_final, spec, read, write, NULL, NULL);
 	}
-	field->is_function = 1;
 	field->signature = sig;
 }
+
+AZ_CLASS_ALIGN AZClass AZFieldKlass = {
+	.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_FIELD },
+	.parent = &AZBlockKlass,
+	.name = (const uint8_t *) "field",
+	.alignment = 7,
+	.class_size = sizeof(AZClass),
+	.instance_size = sizeof(AZField),
+	.to_string = az_any_to_string
+};
+
+void
+az_init_field_class (void)
+{
+	az_class_new_with_value(&AZFieldKlass);
+}
+

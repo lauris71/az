@@ -47,8 +47,7 @@ extern AZClass AZClassKlass;
  * @param d_len the destination buffer length
  * @return the required length of the string (excluding the terminating '\0', may be bigger than d_len)
  *
- * Writes at most d_len bytes. If there is extra room (the required length is
- * smaller than d_len) the string is terminated with '\0'.
+ * Writes at most d_len bytes. Unless d == NULL or d_len == 0 the string is terminated with '\0'.
  */
 unsigned int az_any_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int d_len);
 

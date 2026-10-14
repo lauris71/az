@@ -108,14 +108,14 @@ AZClass *az_register_composite_type (unsigned int *type, const unsigned char *na
  * before the class is published, so lock-free class readers see a valid entry.
  */
 #define AZ_MAX_CLASS_ALLOCATORS 256
-extern const AZInstanceAllocator *az_class_allocators[AZ_MAX_CLASS_ALLOCATORS];
+extern const AZInstanceAllocator *az_allocators[AZ_MAX_CLASS_ALLOCATORS];
 /**
  * @brief Register a class allocator
  *
  * @param allocator the allocator (has to stay valid for the program lifetime)
  * @return the allocator index for AZClass::allocator_idx (0 on error/exhaustion)
  */
-unsigned int az_class_register_allocator (const AZInstanceAllocator *allocator);
+unsigned int az_register_allocator (const AZInstanceAllocator *allocator);
 
 /*
  * Class delegates
@@ -155,14 +155,14 @@ struct _AZClassDelegate {
 };
 
 #define AZ_MAX_CLASS_DELEGATES 256
-extern const AZClassDelegate *az_class_delegates[AZ_MAX_CLASS_DELEGATES];
+extern const AZClassDelegate *az_delegates[AZ_MAX_CLASS_DELEGATES];
 /**
  * @brief Register a class delegate
  *
  * @param delegate the delegate (has to stay valid for the program lifetime)
  * @return the delegate index for AZClass::delegate_idx (0 on error/exhaustion)
  */
-unsigned int az_class_register_delegate (const AZClassDelegate *delegate);
+unsigned int az_register_delegate (const AZClassDelegate *delegate);
 
 /* To be called from class constructors */
 void az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type, unsigned int impl_offset, unsigned int inst_offset);

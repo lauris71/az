@@ -82,7 +82,6 @@ typedef enum AZConversionResult {
     AZ_CONVERSION_FAILED
 } AZConversionResult;
 
-
 /**
  * @brief Gets the conversion category between two types
  *
@@ -94,6 +93,9 @@ typedef enum AZConversionResult {
  * @return the conversion category (AZ_CONVERT_AUTO ... AZ_CANNOT_CONVERT)
  */
 AZConversionType az_type_get_conversion_to (unsigned int type, unsigned int to_type);
+
+/* Return status, type has to be arithmetic, safe to have to_val == from_val */
+AZConversionResult az_convert_arithmetic_type (unsigned int to_type, AZValue *to_val, unsigned int from_type, const AZValue *from_val);
 
 #ifdef __cplusplus
 }

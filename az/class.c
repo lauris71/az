@@ -29,34 +29,6 @@
 
 static unsigned char zero_val[16] = { 0 };
 
-/* Index 0 is the default (malloc/free) allocator */
-const AZInstanceAllocator *az_class_allocators[AZ_MAX_CLASS_ALLOCATORS] = { NULL };
-static unsigned int az_num_class_allocators = 1;
-
-unsigned int
-az_class_register_allocator (const AZInstanceAllocator *allocator)
-{
-	arikkei_return_val_if_fail (allocator != NULL, 0);
-	arikkei_return_val_if_fail (az_num_class_allocators < AZ_MAX_CLASS_ALLOCATORS, 0);
-	unsigned int idx = az_num_class_allocators++;
-	az_class_allocators[idx] = allocator;
-	return idx;
-}
-
-/* Index 0 is the default (no delegation) */
-const AZClassDelegate *az_class_delegates[AZ_MAX_CLASS_DELEGATES] = { NULL };
-static unsigned int az_num_class_delegates = 1;
-
-unsigned int
-az_class_register_delegate (const AZClassDelegate *delegate)
-{
-	arikkei_return_val_if_fail (delegate != NULL, 0);
-	arikkei_return_val_if_fail (az_num_class_delegates < AZ_MAX_CLASS_DELEGATES, 0);
-	unsigned int idx = az_num_class_delegates++;
-	az_class_delegates[idx] = delegate;
-	return idx;
-}
-
 AZClass *
 az_class_new (const unsigned char *name, unsigned int parent_type, unsigned int class_size, unsigned int instance_size, unsigned int flags,
 	void (*instance_init) (const AZImplementation *, void *),
@@ -529,7 +501,7 @@ az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, vo
 	arikkei_return_val_if_fail (key != NULL, AZ_NULL_VALUE);
 	/* Delegating classes answer for their content first, own members are the fallback */
 	if (klass->delegate_idx) {
-		const AZClassDelegate *delegate = az_class_delegates[klass->delegate_idx];
+		const AZClassDelegate *delegate = az_delegates[klass->delegate_idx];
 		if (delegate->lookup_property) {
 			int result = delegate->lookup_property (klass, impl, inst, key, def_class, sub_impl, sub_inst);
 			if (result >= 0) return result;
@@ -610,7 +582,7 @@ az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, vo
 	arikkei_return_val_if_fail (key != NULL, AZ_NULL_VALUE);
 	/* Delegating classes answer for their content first, own members are the fallback */
 	if (klass->delegate_idx) {
-		const AZClassDelegate *delegate = az_class_delegates[klass->delegate_idx];
+		const AZClassDelegate *delegate = az_delegates[klass->delegate_idx];
 		if (delegate->lookup_function) {
 			int result = delegate->lookup_function (klass, impl, inst, key, sig, def_class, sub_impl, sub_inst);
 			if (result >= 0) return result;
@@ -709,7 +681,7 @@ az_instance_foreach_property (const AZImplementation *impl, void *inst, AZProper
 	AZClass *klass = AZ_CLASS_FROM_IMPL (impl);
 	/* A delegate, if present, performs the full enumeration */
 	if (klass->delegate_idx) {
-		const AZClassDelegate *delegate = az_class_delegates[klass->delegate_idx];
+		const AZClassDelegate *delegate = az_delegates[klass->delegate_idx];
 		if (delegate->foreach_property) return delegate->foreach_property (klass, impl, inst, cb, data);
 	}
 	return az_foreach_property_default (klass, impl, inst, cb, data);
@@ -722,7 +694,7 @@ az_instance_foreach_interface (const AZImplementation *impl, void *inst, AZInter
 	arikkei_return_val_if_fail (cb != NULL, AZ_NULL_VALUE);
 	AZClass *klass = AZ_CLASS_FROM_IMPL (impl);
 	if (klass->delegate_idx) {
-		const AZClassDelegate *delegate = az_class_delegates[klass->delegate_idx];
+		const AZClassDelegate *delegate = az_delegates[klass->delegate_idx];
 		if (delegate->foreach_interface) return delegate->foreach_interface (klass, impl, inst, cb, data);
 	}
 	return az_foreach_interface_default (klass, impl, inst, cb, data);

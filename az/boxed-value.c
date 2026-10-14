@@ -115,7 +115,7 @@ static const AZClassDelegate az_boxed_value_delegate = {
 void
 az_init_boxed_value_class (void)
 {
-	AZBoxedValueKlass.klass.delegate_idx = az_class_register_delegate (&az_boxed_value_delegate);
+	AZBoxedValueKlass.klass.delegate_idx = az_register_delegate (&az_boxed_value_delegate);
 	az_class_new_with_value(&AZBoxedValueKlass.klass);
 }
 

@@ -149,7 +149,7 @@ reference_of_class_init (AZReferenceOfClass *klass, uintptr_t instance_type)
 	klass->instance_type = AZ_CLASS_TYPE(inst_class);
 	klass->reference_klass.klass.to_string = reference_of_to_string;
 	/* Answer interface/property queries and enumeration on behalf of the contained value */
-	if (!az_reference_of_delegate_idx) az_reference_of_delegate_idx = az_class_register_delegate (&az_reference_of_delegate);
+	if (!az_reference_of_delegate_idx) az_reference_of_delegate_idx = az_register_delegate (&az_reference_of_delegate);
 	klass->reference_klass.klass.delegate_idx = az_reference_of_delegate_idx;
 }
 

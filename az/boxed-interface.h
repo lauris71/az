@@ -57,9 +57,20 @@ extern AZBoxedInterfaceClass AZBoxedInterfaceKlass;
  */
 AZBoxedInterface *az_boxed_interface_new (const AZImplementation *impl, void *inst, const AZImplementation *if_impl, void *if_inst);
 AZBoxedInterface *az_boxed_interface_new_from_impl_value (const AZImplementation *impl, const AZValue *val, unsigned int type);
-AZBoxedInterface *az_boxed_interface_new_from_impl_value_autobox (const AZImplementation *impl, const AZValue *val, unsigned int type);
-AZBoxedInterface *az_boxed_interface_new_from_impl_instance (const AZImplementation *impl,void *inst, unsigned int type);
+AZBoxedInterface *az_boxed_interface_new_from_impl_instance (const AZImplementation *impl, void *inst, unsigned int type);
 AZBoxedInterface *az_boxed_interface_new_from_object (AZObject *obj, unsigned int type);
+/**
+ * @brief Create a boxed interface from plain value, boxed value or boxed interface
+ * 
+ * This is the only method that allows boxing sub-interfaces of an another interface - if the source is a boxed interface,
+ * the containing value is copied to the new boxed interface and the sub-interface of the source interface is used.
+ * 
+ * @param impl The source implementation
+ * @param val The source value
+ * @param type The type of the interface
+ * @return A new boxed interface
+ */
+AZBoxedInterface *az_boxed_interface_new_from_impl_value_autobox (const AZImplementation *impl, const AZValue *val, unsigned int type);
 
 ARIKKEI_INLINE void
 az_boxed_interface_ref(AZBoxedInterface *astr)

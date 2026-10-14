@@ -147,7 +147,7 @@ az_instance_new (unsigned int type)
 	/* Variable-size classes need az_instance_new_sized */
 	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_VARIABLE_SIZE), NULL);
 	void *inst;
-	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
+	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_allocators[klass->allocator_idx] : NULL;
 	if (allocator && allocator->allocate) {
 		inst = allocator->allocate (klass, klass->instance_size);
 	} else {
@@ -169,7 +169,7 @@ az_instance_new_sized (unsigned int type, unsigned int size)
 	arikkei_return_val_if_fail (klass->impl.flags & AZ_FLAG_VARIABLE_SIZE, NULL);
 	arikkei_return_val_if_fail (size >= klass->instance_size, NULL);
 	void *inst;
-	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
+	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_allocators[klass->allocator_idx] : NULL;
 	if (allocator && allocator->allocate) {
 		inst = allocator->allocate (klass, size);
 	} else {
@@ -193,7 +193,7 @@ az_instance_new_array (unsigned int type, unsigned int n_elements)
 	/* Arrays of variable-size instances cannot be indexed */
 	arikkei_return_val_if_fail (!(klass->impl.flags & AZ_FLAG_VARIABLE_SIZE), NULL);
 	void *elements;
-	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
+	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_allocators[klass->allocator_idx] : NULL;
 	if (allocator && allocator->allocate_array) {
 		elements = allocator->allocate_array (klass, n_elements);
 	} else {
@@ -214,7 +214,7 @@ az_instance_delete (unsigned int type, void *instance)
 #endif
 	AZClass *klass = az_type_get_class (type);
 	az_instance_finalize (&klass->impl, instance);
-	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
+	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_allocators[klass->allocator_idx] : NULL;
 	if (allocator && allocator->free) {
 		allocator->free (klass, instance);
 	} else {
@@ -235,7 +235,7 @@ az_instance_delete_array (unsigned int type, void *elements, unsigned int neleme
 		void *instance = (char *) elements + i * AZ_CLASS_ELEMENT_SIZE(klass);
 		az_instance_finalize (&klass->impl, instance);
 	}
-	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_class_allocators[klass->allocator_idx] : NULL;
+	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_allocators[klass->allocator_idx] : NULL;
 	if (allocator && allocator->free_array) {
 		allocator->free_array (klass, elements, nelements);
 	} else {
@@ -287,7 +287,7 @@ az_instance_get_interface (const AZImplementation *impl, void *inst, unsigned in
 	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 	/* Delegating classes (boxed values/interfaces, references) answer for their content first */
 	if (klass->delegate_idx) {
-		const AZClassDelegate *delegate = az_class_delegates[klass->delegate_idx];
+		const AZClassDelegate *delegate = az_delegates[klass->delegate_idx];
 		if (delegate->get_interface) {
 			const AZImplementation *result = delegate->get_interface (klass, impl, inst, if_type, if_inst);
 			if (result) return result;

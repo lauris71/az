@@ -15,6 +15,8 @@
 #include <az/field.h>
 #include <az/extend.h>
 
+#include <az/collections/list.h>
+
 static void az_init_base_classes (void);
 static void az_construct_base_classes (void);
 
@@ -70,6 +72,7 @@ enum {
 
 enum {
     CLASS_PROP_PARENT,
+	CLASS_PROP_PROPERTIES,
     CLASS_NUM_PROPERTIES
 };
 
@@ -99,6 +102,8 @@ class_to_string (const AZImplementation* impl, void *inst, unsigned char *buf, u
 	if (buf && (pos < len)) buf[pos] = 0;
 	return pos;
 }
+
+static unsigned int class_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
 
 AZ_CLASS_ALIGN AZClass AZStructKlass = {
 	.impl = { .flags = AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_STRUCT },
@@ -140,6 +145,7 @@ AZ_CLASS_ALIGN AZClass AZClassKlass = {
 	.class_size = sizeof(AZClass),
 	.instance_size = 0,
 	.n_props_self = CLASS_NUM_PROPERTIES,
+	.get_property = class_get_property,
 	.to_string = class_to_string
 };
 
@@ -187,12 +193,59 @@ impl_call_getstaticProperty (const AZImplementation **arg_impls, const AZValue *
 	return !az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, ret_impl, &ret_val->value, 64);
 }
 
+AZListImplementation prop_list_impl;
+
+static unsigned int
+prop_list_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst)
+{
+	return AZ_TYPE_FIELD;
+}
+
+static unsigned int
+prop_list_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *val_impl, const void *val_inst)
+{
+	if (val_impl != &AZFieldKlass.impl) return 0;
+	AZClass *klass = (AZClass *) coll_inst;
+	for (uint16_t i = 0; i < klass->n_props_self; i++) {
+		if (&klass->props_self[i] == val_inst) return 1;
+	}
+	return 0;
+}
+
+static const AZImplementation *
+prop_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size)
+{
+	AZClass *klass = (AZClass *) list_inst;
+	if (idx >= klass->n_props_self) return NULL;
+	val->block = &klass->props_self[idx];
+	return &AZFieldKlass.impl;
+}
+
 static void
 az_construct_base_classes (void)
 {
+	az_implementation_init_by_type(&prop_list_impl.collection_impl.impl, AZ_TYPE_LIST);
+	prop_list_impl.collection_impl.get_element_type = prop_list_get_element_type;
+	prop_list_impl.collection_impl.contains = prop_list_contains;
+	prop_list_impl.get_element = prop_list_get_element;
 	/* Implementation */
 	az_class_define_method_va (&AZImplKlass, IMPL_FUNC_SETSTATICPROPERTY, (const unsigned char *) "setStaticProperty", impl_call_setStaticProperty, AZ_TYPE_NONE, 2, AZ_TYPE_STRING, AZ_TYPE_ANY);
 	az_class_define_method_va (&AZImplKlass, IMPL_FUNC_GETSTATICPROPERTY, (const unsigned char *) "getStaticProperty", impl_call_getstaticProperty, AZ_TYPE_ANY, 1, AZ_TYPE_STRING);
 	/* Class */
-	az_class_define_property (&AZClassKlass, CLASS_PROP_PARENT, (const unsigned char *) "parent", AZ_TYPE_CLASS, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZClass, parent), NULL, NULL);
+	az_class_define_property (&AZClassKlass, CLASS_PROP_PARENT, (const uint8_t *) "parent", AZ_TYPE_CLASS, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZClass, parent), NULL, NULL);
+	az_class_define_property (&AZClassKlass, CLASS_PROP_PROPERTIES, (const uint8_t *) "properties", AZ_TYPE_LIST, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_METHOD, 0, 0, NULL, NULL);
+}
+
+static unsigned int
+class_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx)
+{
+	AZClass *klass = (AZClass *) inst;
+	switch (idx) {
+		case CLASS_PROP_PROPERTIES:
+			*prop_impl = &prop_list_impl.collection_impl.impl;
+			prop_val->block = klass;
+			return 1;
+		default:
+			return 0;
+	}
 }

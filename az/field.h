@@ -15,48 +15,47 @@ typedef struct _AZFieldFunction AZFieldFUnction;
 extern "C" {
 #endif
 
-#define AZ_FIELD_INSTANCE 0
-#define AZ_FIELD_IMPLEMENTATION 1
-#define AZ_FIELD_CLASS 2
+#define AZ_FIELD_FLAG_FINAL 0b01
 
+#define AZ_FIELD_MASK_SPEC (0x3 << 1)
+#define AZ_FIELD_INSTANCE (0 << 1)
+#define AZ_FIELD_IMPLEMENTATION (1 << 1)
+#define AZ_FIELD_CLASS (2 << 1)
+
+#define AZ_FIELD_MASK_READ (0x7 << 3)
 /* Not readable */
-#define AZ_FIELD_READ_NONE 0
+#define AZ_FIELD_READ_NONE (0 << 3)
 /* Directly read member value (final type or object) */
-#define AZ_FIELD_READ_VALUE 1
+#define AZ_FIELD_READ_VALUE (1 << 3)
 /* Directly read instance of block type */
-#define AZ_FIELD_READ_INSTANCE 7
+#define AZ_FIELD_READ_INSTANCE (7 << 3)
 /* Read from packed member value */
-#define AZ_FIELD_READ_PACKED 2
+#define AZ_FIELD_READ_PACKED (2 << 3)
 /* Read via get_property method */
-#define AZ_FIELD_READ_METHOD 3
+#define AZ_FIELD_READ_METHOD (3 << 3)
 /* Read static final value stored in field */
-#define AZ_FIELD_READ_STORED_STATIC 4
+#define AZ_FIELD_READ_STORED_STATIC (4 << 3)
 
+#define AZ_FIELD_MASK_WRITE (0x3 << 6)
 /* Not writeable */
-#define AZ_FIELD_WRITE_NONE 0
+#define AZ_FIELD_WRITE_NONE (0 << 6)
 /* Directly write member value (final type or object) */
-#define AZ_FIELD_WRITE_VALUE 1
+#define AZ_FIELD_WRITE_VALUE (1 << 6)
 /* Write to packed member value */
-#define AZ_FIELD_WRITE_PACKED 2
+#define AZ_FIELD_WRITE_PACKED (2 << 6)
 /* Write via set_property method */
-#define AZ_FIELD_WRITE_METHOD 3
+#define AZ_FIELD_WRITE_METHOD (3 << 6)
 
-#define AZ_FIELD_IS_FUNCTION(f) ((f)->is_function)
-#define AZ_FIELD_IS_FINAL(f) ((f)->is_final)
-#define AZ_FIELD_SPEC(f) ((f)->spec)
-#define AZ_FIELD_READ(f) ((f)->read)
-#define AZ_FIELD_WRITE(f) ((f)->write)
+#define AZ_FIELD_IS_FUNCTION(f) ((f)->signature)
+#define AZ_FIELD_IS_FINAL(f) ((f)->flags & AZ_FIELD_FLAG_FINAL)
+#define AZ_FIELD_SPEC(f) ((f)->flags & AZ_FIELD_MASK_SPEC)
+#define AZ_FIELD_READ(f) ((f)->flags & AZ_FIELD_MASK_READ)
+#define AZ_FIELD_WRITE(f) ((f)->flags & AZ_FIELD_MASK_WRITE)
 
 struct _AZField {
 	AZString *key;
-	unsigned int type;
-	/* Shortcuts */
-	unsigned int is_function : 1;
-	/* Mutation types */
-	unsigned int is_final : 1;
-	unsigned int spec : 2;
-	unsigned int read : 3;
-	unsigned int write : 2;
+	uint32_t type;
+	uint32_t flags;
 	/* Signature for functions */
 	const AZFunctionSignature *signature;
 	union {
