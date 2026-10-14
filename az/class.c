@@ -474,6 +474,12 @@ az_class_lookup_property_default (const AZClass *klass, const AZImplementation *
 			return i;
 		}
 	}
+	/* Superclass */
+	/* NB! Superclass properties come before interface ones, otherwise 'class' and 'type' pick up the first superclass */
+	if (klass->parent) {
+		int result = az_class_lookup_property_default (klass->parent, impl, inst, key, def_class, sub_impl, sub_inst);
+		if (result >= 0) return result;
+	}
 	/* interfaces */
 	for (uint16_t i = 0; i < (int) klass->n_ifaces_self; i++) {
 		const AZIFEntry *ifentry = az_class_iface_self(klass, i);
@@ -484,11 +490,6 @@ az_class_lookup_property_default (const AZClass *klass, const AZImplementation *
 		void *if_inst = (inst) ? (void *) ((char *) inst + ifentry->inst_offset) : NULL;
 		/* Check properties of this interface */
 		int result = az_class_lookup_property_default (if_class, if_impl, if_inst, key, def_class, sub_impl, sub_inst);
-		if (result >= 0) return result;
-	}
-	/* Superclass */
-	if (klass->parent) {
-		int result = az_class_lookup_property_default (klass->parent, impl, inst, key, def_class, sub_impl, sub_inst);
 		if (result >= 0) return result;
 	}
 	return AZ_NO_SUCH_PROPERTY;
@@ -555,6 +556,11 @@ az_class_lookup_function_default (const AZClass *klass, const AZImplementation *
 #ifdef VERBOSE
 	fprintf (stderr, "    (not found)\n");
 #endif
+	/* Superclass */
+	if (klass->parent) {
+		result = az_class_lookup_function_default (klass->parent, impl, inst, key, sig, def_class, sub_impl, sub_inst);
+		if (result >= 0) return result;
+	}
 	/* interfaces */
 	for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
 		const AZIFEntry *ifentry = az_class_iface_self(klass, i);
@@ -565,11 +571,6 @@ az_class_lookup_function_default (const AZClass *klass, const AZImplementation *
 		void *if_inst = (inst) ? (void *) ((char *) inst + ifentry->inst_offset) : NULL;
 		/* Check properties of this interface */
 		result = az_class_lookup_function_default (if_class, if_impl, if_inst, key, sig, def_class, sub_impl, sub_inst);
-		if (result >= 0) return result;
-	}
-	/* Superclass */
-	if (klass->parent) {
-		result = az_class_lookup_function_default (klass->parent, impl, inst, key, sig, def_class, sub_impl, sub_inst);
 		if (result >= 0) return result;
 	}
 	return AZ_NO_SUCH_PROPERTY;
@@ -605,6 +606,10 @@ az_foreach_property_default (const AZClass *klass, const AZImplementation *impl,
 		int result = cb (klass, i, impl, inst, data);
 		if (result) return result;
 	}
+	if (klass->parent) {
+		int result = az_foreach_property_default (klass->parent, impl, inst, cb, data);
+		if (result) return result;
+	}
 	const AZIFEntry *ifentry = az_class_iface_self (klass, 0);
 	for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
 		if (ifentry->type) {
@@ -615,9 +620,6 @@ az_foreach_property_default (const AZClass *klass, const AZImplementation *impl,
 			return result;
 		}
 		ifentry += 1;
-	}
-	if (klass->parent) {
-		return az_foreach_property_default (klass->parent, impl, inst, cb, data);
 	}
 	return AZ_OK;
 }
