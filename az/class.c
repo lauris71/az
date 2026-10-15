@@ -303,17 +303,18 @@ az_class_post_init (AZClass *klass)
 #endif
 }
 
-void az_class_define_property_value (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,
+AZField *az_class_define_property_value (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,
 	unsigned int is_final, unsigned int spec, unsigned int write, unsigned int offset)
 {
 #ifdef AZ_SAFETY_CHECKS
-	arikkei_return_if_fail (klass != NULL);
-	arikkei_return_if_fail (idx < klass->n_props_self);
-	arikkei_return_if_fail (key != NULL);
-	arikkei_return_if_fail (type != AZ_TYPE_NONE);
-	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
+	arikkei_return_val_if_fail (klass != NULL, NULL);
+	arikkei_return_val_if_fail (idx < klass->n_props_self, NULL);
+	arikkei_return_val_if_fail (key != NULL, NULL);
+	arikkei_return_val_if_fail (type != AZ_TYPE_NONE, NULL);
+	arikkei_return_val_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final), NULL);
 #endif
-	az_field_setup_value (klass->props_self + idx, key, type, is_final, spec, AZ_FIELD_READ_VALUE, write, offset);
+	az_field_setup_value (&klass->props_self[idx], key, type, is_final, spec, AZ_FIELD_READ_VALUE, write, offset);
+	return &klass->props_self[idx];
 }
 
 void az_class_define_property_packed (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,

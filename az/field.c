@@ -27,14 +27,14 @@ void az_field_setup_value (AZField *prop, const unsigned char *key, unsigned int
 	arikkei_return_if_fail (type != AZ_TYPE_NONE);
 	arikkei_return_if_fail (!((write != AZ_FIELD_WRITE_NONE) && is_final));
 	arikkei_return_if_fail ((read == AZ_FIELD_READ_VALUE) || (read == AZ_FIELD_READ_INSTANCE) || (read == AZ_FIELD_READ_PACKED));
-	arikkei_return_if_fail ((write == (read << 3)) || (write == AZ_FIELD_WRITE_NONE) || (write == AZ_FIELD_WRITE_METHOD));
+	arikkei_return_if_fail ((write == read) || (write == AZ_FIELD_WRITE_NONE) || (write == AZ_FIELD_WRITE_METHOD));
 #endif
 	prop->key = az_string_new (key);
 	prop->type = type;
 	if (is_final) prop->flags |= AZ_FIELD_FLAG_FINAL;
-	prop->flags |= spec;
-	prop->flags |= read;
-	prop->flags |= write;
+	prop->flags |= ((spec & AZ_FIELD_MASK_SPEC) << AZ_FIELD_SHIFT_SPEC);
+	prop->flags |= ((read & AZ_FIELD_MASK_READ) << AZ_FIELD_SHIFT_READ);
+	prop->flags |= ((write & AZ_FIELD_MASK_WRITE) << AZ_FIELD_SHIFT_WRITE);
 	prop->offset = offset;
 	/* Masked (bit-field) values default to plain access */
 	prop->value_type_idx = 0;
@@ -58,9 +58,9 @@ void az_field_setup_stored (AZField *prop, const unsigned char *key, unsigned in
 	prop->key = az_string_new (key);
 	prop->type = type;
 	if (is_final) prop->flags |= AZ_FIELD_FLAG_FINAL;
-	prop->flags |= spec;
-	prop->flags |= read;
-	prop->flags |= write;
+	prop->flags |= ((spec & AZ_FIELD_MASK_SPEC) << AZ_FIELD_SHIFT_SPEC);
+	prop->flags |= ((read & AZ_FIELD_MASK_READ) << AZ_FIELD_SHIFT_READ);
+	prop->flags |= ((write & AZ_FIELD_MASK_WRITE) << AZ_FIELD_SHIFT_WRITE);
 	prop->value.impl = NULL;
 	if (impl) {
 		prop->value.impl = az_value_set_from_inst_autobox(impl, &prop->value.v, AZ_VALUE_MAX_SIZE, inst);
@@ -81,9 +81,9 @@ void az_field_setup_method (AZField *prop, const unsigned char *key, unsigned in
 	prop->key = az_string_new (key);
 	prop->type = type;
 	if (is_final) prop->flags |= AZ_FIELD_FLAG_FINAL;
-	prop->flags |= spec;
-	prop->flags |= read;
-	prop->flags |= write;
+	prop->flags |= ((spec & AZ_FIELD_MASK_SPEC) << AZ_FIELD_SHIFT_SPEC);
+	prop->flags |= ((read & AZ_FIELD_MASK_READ) << AZ_FIELD_SHIFT_READ);
+	prop->flags |= ((write & AZ_FIELD_MASK_WRITE) << AZ_FIELD_SHIFT_WRITE);
 }
 
 void az_field_setup_function (AZField *field, const unsigned char *key, unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, const AZFunctionSignature *sig,
@@ -118,6 +118,11 @@ void az_field_setup_function_packed (AZField *field, const unsigned char *key, u
 
 enum {
 	FIELD_PROP_NAME,
+	FIELD_PROP_TYPE,
+	FIELD_PROP_FINAL,
+	FIELD_PROP_SPEC,
+	FIELD_PROP_READ,
+	FIELD_PROP_WRITE,
 	FIELD_NUM_PROPS
 };
 
@@ -156,4 +161,22 @@ void
 az_construct_field_class (void)
 {
 	az_class_define_property_value (&AZFieldKlass, FIELD_PROP_NAME, (const uint8_t *) "name", AZ_TYPE_STRING, 1, AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZField, key));
+	az_class_define_property_value (&AZFieldKlass, FIELD_PROP_TYPE, (const uint8_t *) "type", AZ_TYPE_UINT32, 1, AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZField, type));
+	AZField *prop = az_class_define_property_value (&AZFieldKlass, FIELD_PROP_FINAL, (const uint8_t *) "final", AZ_TYPE_BOOLEAN, 1, AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZField, flags));
+	prop->value_type_idx = AZ_TYPE_IDX_UINT32;
+	prop->shift = 0;
+	prop->mask_width = 1;
+	prop->bits = 0;
+	prop = az_class_define_property_value (&AZFieldKlass, FIELD_PROP_SPEC, (const uint8_t *) "spec", AZ_TYPE_UINT32, 1, AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZField, flags));
+	prop->value_type_idx = AZ_TYPE_IDX_UINT32;
+	prop->shift = AZ_FIELD_SHIFT_SPEC;
+	prop->mask_width = AZ_FIELD_MASK_SPEC;
+	prop = az_class_define_property_value (&AZFieldKlass, FIELD_PROP_READ, (const uint8_t *) "read", AZ_TYPE_UINT32, 1, AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZField, flags));
+	prop->value_type_idx = AZ_TYPE_IDX_UINT32;
+	prop->shift = AZ_FIELD_SHIFT_READ;
+	prop->mask_width = AZ_FIELD_MASK_READ;
+	prop = az_class_define_property_value (&AZFieldKlass, FIELD_PROP_WRITE, (const uint8_t *) "write", AZ_TYPE_UINT32, 1, AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZField, flags));
+	prop->value_type_idx = AZ_TYPE_IDX_UINT32;
+	prop->shift = AZ_FIELD_SHIFT_WRITE;
+	prop->mask_width = AZ_FIELD_MASK_WRITE;
 }
