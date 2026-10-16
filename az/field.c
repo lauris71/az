@@ -123,6 +123,7 @@ enum {
 	FIELD_PROP_SPEC,
 	FIELD_PROP_READ,
 	FIELD_PROP_WRITE,
+	FIELD_PROP_SIGNATURE,
 	FIELD_NUM_PROPS
 };
 
@@ -179,4 +180,5 @@ az_construct_field_class (void)
 	prop->value_type_idx = AZ_TYPE_IDX_UINT32;
 	prop->shift = AZ_FIELD_SHIFT_WRITE;
 	prop->mask_width = AZ_FIELD_MASK_WRITE;
+	az_class_define_property_value(&AZFieldKlass, FIELD_PROP_SIGNATURE, (const uint8_t *) "signature", AZ_TYPE_FUNCTION_SIGNATURE, 1, AZ_FIELD_INSTANCE, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZField, signature));
 }

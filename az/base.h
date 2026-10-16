@@ -39,17 +39,29 @@ extern AZClass AZClassKlass;
 /**
  * @brief Fallback to_string method
  * 
- * Prints "Any" for pure Any, or "Instance of <class name> (<instance pointer>)" for subclasses
+ * Prints "Any" for pure Any, or "Instance of <class name> (<instance pointer>)" for subclasses.
+ * The inst should not be NULL, use az_null_to_string for null instances.
+ * Writes at most d_len bytes. Unless d == NULL or d_len == 0 the string is terminated with '\0'.
  * 
  * @param impl an implementation
  * @param inst an instance
  * @param d the destination buffer (may be NULL, nothing is written then)
  * @param d_len the destination buffer length
  * @return the required length of the string (excluding the terminating '\0', may be bigger than d_len)
- *
- * Writes at most d_len bytes. Unless d == NULL or d_len == 0 the string is terminated with '\0'.
  */
-unsigned int az_any_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int d_len);
+unsigned int az_any_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int d_len);
+/**
+ * @brief Prints typed or untyped null
+ * 
+ * Writes at most d_len bytes. Unless d == NULL or d_len == 0 the string is terminated with '\0'.
+ * 
+ * @param impl an implementation
+ * @param inst an instance
+ * @param d the destination buffer (may be NULL, nothing is written then)
+ * @param d_len the destination buffer length
+ * @return the required length of the string (excluding the terminating '\0', may be bigger than d_len)
+ */
+unsigned int az_null_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int d_len);
 
 #ifdef __cplusplus
 };

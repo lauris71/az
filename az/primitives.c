@@ -54,6 +54,24 @@ az_any_to_string (const AZImplementation* impl, void *inst, unsigned char *d, un
 	}
 }
 
+unsigned int
+az_null_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int d_len)
+{
+	/* Nothing is written when destination is NULL */
+	if (!d) d_len = 0;
+	if (!impl) {
+		if (inst) {
+			return arikkei_strncpy (d, d_len, (const unsigned char *) "invalid instance");
+		}
+		return arikkei_strncpy (d, d_len, (const unsigned char *) "null");
+	}
+	unsigned int pos;
+	AZClass* klass = AZ_CLASS_FROM_IMPL(impl);
+	pos = arikkei_strncpy (d, d_len, (const unsigned char *) "null ");
+	pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, klass->name);
+	return pos;
+}
+
 /* 2 Boolean */
 
 static unsigned int

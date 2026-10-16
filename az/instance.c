@@ -257,10 +257,9 @@ az_instance_serialize (const AZImplementation *impl, void *inst, unsigned char *
 unsigned int
 az_instance_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int dlen)
 {
-#ifdef AZ_SAFETY_CHECKS
-	arikkei_return_val_if_fail (impl != NULL, 0);
-	arikkei_return_val_if_fail (inst != NULL, 0);
-#endif
+	if (!impl || !inst) {
+		return az_null_to_string(impl, inst, d, dlen);
+	}
 	AZClass* klass = AZ_CLASS_FROM_IMPL(impl);
 	return klass->to_string (impl, inst, d, dlen);
 }

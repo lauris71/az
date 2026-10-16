@@ -167,7 +167,7 @@ az_active_object_get_attribute (AZActiveObject *aobj, AZString *key, const AZImp
 	AZActiveObjectClass *klass = (AZActiveObjectClass *) aobj->object.klass;
 	unsigned int flags;
 	*impl = az_attrib_dict_lookup (&klass->aa_impl, (AZAttribDict *) aobj, key, &val->value, 64, &flags);
-	return impl != NULL;
+	return *impl != NULL;
 }
 
 unsigned int
