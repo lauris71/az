@@ -68,17 +68,17 @@ enum AZErrorCode {
 	 * @brief The property value is not readable
 	 * 
 	 */
-	AZ_PROPERTY_NOT_READABLE = -9,
+	AZ_VALUE_NOT_READABLE = -9,
 	/**
 	 * @brief The property value is not writable
 	 * 
 	 */
-	AZ_PROPERTY_NOT_WRITABLE = -10,
+	AZ_VALUE_NOT_WRITABLE = -10,
 	/**
 	 * @brief The property value is final
 	 * 
 	 */
-	AZ_PROPERTY_IS_FINAL = -11,
+	AZ_VALUE_IS_FINAL = -11,
 	/**
 	 * @brief Internal inconsistency of az data
 	 * 

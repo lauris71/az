@@ -30,6 +30,18 @@ extern "C" {
  * 
  * Allows an easy access to the most common value and block types in values. The maximum size of an
  * value is 16 bytes - thus complex doubles and 4-component float vectors fit into it.
+ *
+ * There are two special cases:
+ * AZBoxedValue - if the value does not fit into allocated size, it can be boxed - i.e. wrapped into allocated reference
+ * AZBoxedInterface - holds the containing value together with interface imolementation and instance
+ * So interface values can be either
+ * - Naked interfaces (impl is the actual implementation, inst is the instance)
+ * - Boxed interfaces - the containing instance, impl and instance pointers are saved into allocated reference
+ * The rule is - whenever the holder cannot guarantee interface lifecycle, it has to wrap it into AZBoxedInterface.
+ * Naked interfaces are safe for:
+ * - function arguments (caller guarantees lifecycle - but the function should not store the interface)
+ * - temporary values in local calculations
+ * - handles to static interfaces
  */
 struct _AZValue {
 	union {

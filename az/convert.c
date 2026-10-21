@@ -787,13 +787,21 @@ convert_double (unsigned int to_type, AZValue *to_val, double val)
 		}
 	} else if (to_type == AZ_TYPE_FLOAT) {
 		float fval = (float) val;
-		if (isfinite (val) && (!isfinite (fval) || val != (double) fval)) result = AZ_CONVERSION_ROUNDED;
+		if (isfinite (val) && !isfinite (fval)) {
+			result = AZ_CONVERSION_CLAMPED;
+		} else if (val != (double) fval) {
+			result = AZ_CONVERSION_ROUNDED;
+		}
 		to_val->float_v = fval;
 	} else if (to_type == AZ_TYPE_DOUBLE) {
 		to_val->double_v = val;
 	} else if (to_type == AZ_TYPE_COMPLEX_FLOAT) {
 		float fval = (float) val;
-		if (isfinite (val) && (!isfinite (fval) || val != (double) fval)) result = AZ_CONVERSION_ROUNDED;
+		if (isfinite (val) && !isfinite (fval)) {
+			result = AZ_CONVERSION_CLAMPED;
+		} else if (val != (double) fval) {
+			result = AZ_CONVERSION_ROUNDED;
+		}
 		to_val->cfloat_v.r = fval;
 		to_val->cfloat_v.i = 0;
 	} else if (to_type == AZ_TYPE_COMPLEX_DOUBLE) {
@@ -863,15 +871,19 @@ az_convert_arithmetic_type (unsigned int to_type, AZValue *to_val, unsigned int 
 		return result;
 	} else if (from_type == AZ_TYPE_COMPLEX_DOUBLE) {
 		/* C, C, C, C, C, C, C, C, C, C, C, A */
-		double r = *((double *) from_val);
-		double i = *((double *) from_val + 1);
 		if (AZ_TYPE_INDEX(to_type) < AZ_TYPE_IDX_COMPLEX_FLOAT) {
-			result = convert_double (to_type, to_val, r);
-			if (i != 0) result = AZ_CONVERSION_CLAMPED;
+			result = convert_double (to_type, to_val, from_val->cdouble_v.r);
+			if (from_val->cdouble_v.i != 0) result = AZ_CONVERSION_CLAMPED;
 		} else {
-			/* fixme: Check ranges and precision */
-			*((float *) to_val) = (float) r;
-			*((float *) to_val + 1) = (float) i;
+			for (unsigned int i = 0; i < 2; i++) {
+				float fval = (float) from_val->cdouble_v.c[i];
+				if (isfinite (from_val->cdouble_v.c[i]) && !isfinite (fval)) {
+					result = AZ_CONVERSION_CLAMPED;
+				} else if (from_val->cdouble_v.c[i] != (double) fval) {
+					result = AZ_CONVERSION_ROUNDED;
+				}
+				to_val->cfloat_v.c[i] = fval;
+			}
 		}
 		return result;
 	}

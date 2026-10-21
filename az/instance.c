@@ -417,8 +417,8 @@ az_instance_set_property_by_id (const AZClass *def_klass, const AZClass *klass, 
 	arikkei_return_val_if_fail(def_klass != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail(klass != NULL, AZ_NULL_VALUE);
 	const AZField *prop = &def_klass->props_self[idx];
-	arikkei_return_val_if_fail(!AZ_FIELD_IS_FINAL(prop), AZ_PROPERTY_IS_FINAL);
-	arikkei_return_val_if_fail(AZ_FIELD_WRITE(prop) != AZ_FIELD_WRITE_NONE, AZ_PROPERTY_NOT_WRITABLE);
+	arikkei_return_val_if_fail(!AZ_FIELD_IS_FINAL(prop), AZ_VALUE_IS_FINAL);
+	arikkei_return_val_if_fail(AZ_FIELD_WRITE(prop) != AZ_FIELD_WRITE_NONE, AZ_VALUE_NOT_WRITABLE);
 
 	if (AZ_TYPE_IS_INTERFACE(prop->type)) {
 		arikkei_return_val_if_fail (!prop_impl || az_type_implements(AZ_IMPL_TYPE(prop_impl), prop->type), AZ_INVALID_VALUE);
@@ -507,7 +507,7 @@ az_instance_get_property_by_id(const AZClass *def_klass, const AZClass *klass, c
 	arikkei_return_val_if_fail(prop_val != NULL, AZ_NULL_DESTINATION);
 	arikkei_return_val_if_fail(idx < def_klass->n_props_self, AZ_NO_SUCH_PROPERTY);
 	const AZField *prop = &def_klass->props_self[idx];
-	arikkei_return_val_if_fail(AZ_FIELD_READ(prop) != AZ_FIELD_READ_NONE, AZ_PROPERTY_NOT_READABLE);
+	arikkei_return_val_if_fail(AZ_FIELD_READ(prop) != AZ_FIELD_READ_NONE, AZ_VALUE_NOT_READABLE);
 
 	switch(AZ_FIELD_READ(prop)) {
 		case AZ_FIELD_READ_VALUE: {
