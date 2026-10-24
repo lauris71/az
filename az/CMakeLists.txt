@@ -5,6 +5,7 @@ set(AZ_HEADERS
 	boxed-value.h
 	class.h
 	complex.h
+	context.h
 	convert.h
 	config.h
 	extend.h
@@ -32,6 +33,7 @@ set(AZ_SOURCES
 	boxed-interface.c
 	boxed-value.c
 	class.c
+	context.c
 	convert.c
 	field.c
 	function-native.c

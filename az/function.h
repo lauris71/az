@@ -91,11 +91,11 @@ unsigned int az_function_convert_args_in_place (const AZFunctionImplementation *
  * @param check_types 
  * @return unsigned int 
  */
-unsigned int az_function_invoke_packed (const AZFunctionImplementation *impl, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types);
+unsigned int az_function_invoke_packed (const AZFunctionImplementation *impl, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types, AZContext *ctx);
 
 /* Helper */
-unsigned int az_function_invoke_by_type_instance (unsigned int type, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types);
-unsigned int az_instance_invoke_function (const AZImplementation *impl, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types);
+unsigned int az_function_invoke_by_type_instance (unsigned int type, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types, AZContext *ctx);
+unsigned int az_instance_invoke_function (const AZImplementation *impl, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types, AZContext *ctx);
 
 /*
  * Native <-> az function calling rules (determined by signature)
@@ -126,9 +126,9 @@ unsigned int az_instance_invoke_function (const AZImplementation *impl, void *in
  * @param ... 
  * @return unsigned int 
  */
-unsigned int az_function_invoke_va (const AZFunctionImplementation *impl, void *inst, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
-unsigned int az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
-unsigned int az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
+unsigned int az_function_invoke_va (const AZFunctionImplementation *impl, void *inst, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
+unsigned int az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
+unsigned int az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
 
 /** @ingroup function
  * @brief Call a native C function with az arguments

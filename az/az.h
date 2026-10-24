@@ -501,6 +501,7 @@ typedef struct _AZOutputStream AZOutputStream;
 typedef struct _AZInputStream AZInputStream;
 
 /* Execution context */
+typedef struct _AZException AZException;
 typedef struct _AZContext AZContext;
 
 /**

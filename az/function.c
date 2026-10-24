@@ -187,7 +187,7 @@ az_function_convert_args_in_place (const AZFunctionImplementation *impl, void *i
 }
 
 unsigned int
-az_function_invoke_packed (const AZFunctionImplementation *impl, void *inst, AZPackedValue *thisval, AZPackedValue64 *retval, AZPackedValue *args, unsigned int checktypes)
+az_function_invoke_packed (const AZFunctionImplementation *impl, void *inst, AZPackedValue *thisval, AZPackedValue64 *retval, AZPackedValue *args, unsigned int checktypes, AZContext *ctx)
 {
 	unsigned int s, d;
 	arikkei_return_val_if_fail (impl != NULL, 0);
@@ -233,19 +233,19 @@ az_function_invoke_packed (const AZFunctionImplementation *impl, void *inst, AZP
 	}
 	if (retval) {
 		if (sig->ret_type) az_packed_value_clear (&retval->packed_val);
-		return (impl->invoke (impl, inst, arg_impls, arg_vals, &retval->impl, &retval->v, NULL));
+		return (impl->invoke (impl, inst, arg_impls, arg_vals, &retval->impl, &retval->v, ctx));
 	} else {
 		AZPackedValue64 ret_val;
 		ret_val.impl = NULL;
 		/* Need to be careful - inst may be destroyed during call */
-		if (!impl->invoke (impl, inst, arg_impls, arg_vals, &ret_val.impl, &ret_val.v, NULL)) return 0;
+		if (!impl->invoke (impl, inst, arg_impls, arg_vals, &ret_val.impl, &ret_val.v, ctx)) return 0;
 		az_packed_value_clear (&ret_val.packed_val);
 	}
 	return 1;
 }
 
 unsigned int
-az_function_invoke_by_type_instance (unsigned int type, void *instance, AZPackedValue *thisval, AZPackedValue64 *retval, AZPackedValue *args, unsigned int checktypes)
+az_function_invoke_by_type_instance (unsigned int type, void *instance, AZPackedValue *thisval, AZPackedValue64 *retval, AZPackedValue *args, unsigned int checktypes, AZContext *ctx)
 {
 	AZClass *klass;
 	AZFunctionImplementation *impl;
@@ -254,11 +254,11 @@ az_function_invoke_by_type_instance (unsigned int type, void *instance, AZPacked
 	arikkei_return_val_if_fail (instance != NULL, 0);
 	klass = az_type_get_class (type);
 	impl = (AZFunctionImplementation *) az_instance_get_interface (&klass->impl, instance, AZ_TYPE_FUNCTION, (void **) &inst);
-	return az_function_invoke_packed (impl, inst, thisval, retval, args, checktypes);
+	return az_function_invoke_packed (impl, inst, thisval, retval, args, checktypes, ctx);
 }
 
 unsigned int
-az_instance_invoke_function (const AZImplementation *impl, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types)
+az_instance_invoke_function (const AZImplementation *impl, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types, AZContext *ctx)
 {
 	AZFunctionImplementation *func_impl;
 	AZFunctionInstance *func_inst;
@@ -267,7 +267,7 @@ az_instance_invoke_function (const AZImplementation *impl, void *inst, AZPackedV
 	arikkei_return_val_if_fail (inst != NULL, 0);
 #endif
 	func_impl = (AZFunctionImplementation *) az_instance_get_interface (impl, inst, AZ_TYPE_FUNCTION, (void **) &func_inst);
-	return az_function_invoke_packed (func_impl, func_inst, this_val, ret_val, args, check_types);
+	return az_function_invoke_packed (func_impl, func_inst, this_val, ret_val, args, check_types, ctx);
 }
 
 #if defined(__x86_64__) || defined(_M_X64)
@@ -334,7 +334,7 @@ function_build_arguments_arm64 (const AZFunctionSignature *sig, va_list ap, cons
 }
 
 unsigned int
-az_function_invoke_va (const AZFunctionImplementation *impl, void *inst, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
+az_function_invoke_va (const AZFunctionImplementation *impl, void *inst, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
 {
 	const AZImplementation *arg_impls[64];
 	const AZValue *arg_ptrs[64];
@@ -348,11 +348,11 @@ az_function_invoke_va (const AZFunctionImplementation *impl, void *inst, const A
 	function_build_arguments_arm64 (sig, ap, arg_impls, arg_vals, arg_ptrs);
 	va_end(ap);
 
-	return az_function_invoke (impl, inst, arg_impls, arg_ptrs, ret_impl, ret_val, NULL);
+	return az_function_invoke (impl, inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
 }
 
 unsigned int
-az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
+az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
 {
 	const AZImplementation *arg_impls[64];
 	const AZValue *arg_ptrs[64];
@@ -365,11 +365,11 @@ az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *
 	function_build_arguments_arm64 (sig, ap, arg_impls, arg_vals, arg_ptrs);
 	va_end(ap);
 
-	return az_function_invoke (impl, inst, arg_impls, arg_ptrs, ret_impl, ret_val, NULL);
+	return az_function_invoke (impl, inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
 }
 
 unsigned int
-az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
+az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
 {
 	AZFunctionImplementation *f_impl;
 	AZFunctionInstance *f_inst;
@@ -386,7 +386,7 @@ az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZ
 	function_build_arguments_arm64 (sig, ap, arg_impls, arg_vals, arg_ptrs);
 	va_end(ap);
 
-	return f_impl->invoke (f_impl, f_inst, arg_impls, arg_ptrs, ret_impl, ret_val, NULL);
+	return f_impl->invoke (f_impl, f_inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
 }
 
 #if defined(ARCH_ARM_64) && defined(__GNUC__)
