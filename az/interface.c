@@ -73,8 +73,7 @@ implementation_init_recursive (AZInterfaceClass *ifclass, AZImplementation *impl
 		if (ifentry->type) {
 			AZInterfaceClass *sub_class = (AZInterfaceClass *) AZ_CLASS_FROM_TYPE(ifentry->type);
 			AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
-			sub_impl->type = ifentry->type;
-			implementation_init_recursive (sub_class, sub_impl);
+			az_implementation_init_by_type(sub_impl, ifentry->type);
 		}
 		ifentry += 1;
 	}

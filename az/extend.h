@@ -188,6 +188,9 @@ void az_class_define_method (AZClass *klass, unsigned int idx, const unsigned ch
 void az_class_define_method_va (AZClass *klass, unsigned int idx, const unsigned char* key,
 	unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *),
 	unsigned int ret_type, unsigned int n_args, ...);
+void az_class_define_method_native_va (AZClass *klass, unsigned int idx, const unsigned char* key,
+	void (*invoke) (void),
+	unsigned int ret_type, unsigned int n_args, ...);
 void az_class_define_static_method (AZClass *klass, unsigned int idx, const unsigned char *key,
 	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
 	unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *));

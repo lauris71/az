@@ -19,11 +19,16 @@ extern "C" {
 void
 az_exception_set(AZException *exc, unsigned int type, uint64_t category, const uint8_t *msg)
 {
+    arikkei_return_if_fail(category != 0);
     exc->level = AZ_EXCEPTION_LEVEL;
     exc->type = type;
     exc->mask = category;
     if (exc->msg) az_string_unref(exc->msg);
-    exc->msg = az_string_new(msg);
+    if (msg) {
+        exc->msg = az_string_new(msg);
+    } else {
+        exc->msg = NULL;
+    }
 }
 
 void
@@ -42,6 +47,7 @@ static uint64_t exc_categories[] = {
     0,
     AZ_EXCEPTION_CATEGORY_SYSTEM,
     AZ_EXCEPTION_CATEGORY_SYSTEM,
+    AZ_EXCEPTION_CATEGORY_RUNTIME,
     AZ_EXCEPTION_CATEGORY_RUNTIME,
     AZ_EXCEPTION_CATEGORY_RUNTIME,
     AZ_EXCEPTION_CATEGORY_RUNTIME,

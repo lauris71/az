@@ -54,6 +54,7 @@ void test_hash_map(void);
 void test_hash_set(void);
 void test_call_native();
 void test_io(void);
+void test_interface();
 
 void setUp(void) {
     // set stuff up here
@@ -92,6 +93,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_circular_reference);
         } else if (!strcmp(argv[i], "strings-mt")) {
             RUN_TEST(test_strings_mt);
+        } else if (!strcmp(argv[i], "interface")) {
+            RUN_TEST(test_interface);
         } else if (!strcmp(argv[i], "boxed-interface-conversion")) {
             RUN_TEST(test_boxed_interface_conversion);
         } else if (!strcmp(argv[i], "value-array")) {

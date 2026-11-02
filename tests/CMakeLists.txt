@@ -8,6 +8,7 @@ add_executable(az_test
     call-native.c
     array-list.c
     io.c
+    interface.c
 )
 
 target_compile_definitions(az_test PRIVATE UNITY_INCLUDE_DOUBLE)
@@ -35,6 +36,7 @@ add_test(NAME masked-field COMMAND az_test masked-field)
 add_test(NAME masked-field-widths COMMAND az_test masked-field-widths)
 add_test(NAME circular-reference COMMAND az_test circular-reference)
 add_test(NAME strings-mt COMMAND az_test strings-mt)
+add_test(NAME interface COMMAND az_test interface)
 add_test(NAME boxed-interface-conversion COMMAND az_test boxed-interface-conversion)
 add_test(NAME value-array COMMAND az_test value-array)
 add_test(NAME delegation COMMAND az_test delegation)

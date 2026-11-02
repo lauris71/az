@@ -123,21 +123,38 @@ unsigned int az_instance_to_string (const AZImplementation *impl, void *inst, un
 uint8_t *az_instance_to_string_new (const AZImplementation *impl, void *inst);
 
 /**
- * @brief Get the first interface of given type
+ * @brief Get the first interface of given type as naked interface
  * 
  * The search order is:
+ * - the instance itself (if it is an interface of right type)
  * - all interfaces implemented by given class (self-interfaces)
  * - all sub-interfaces implemented by self-interfaces (recursively)
  * - all interfaces (first self-interfaces, then sub-interfaces) implemented by parent
- * As the same interface type may be implemented at different places, only the first will be returned
+ * As the same interface type may be implemented at different places, only the first will be returned.
+ * Boxed interfaces and boxed values are transparently delegated.
  * 
  * @param impl The type implementation
  * @param inst The type instance
  * @param if_type The interface type
- * @param if_inst The output valu for interface instance
+ * @param if_inst The output value for interface instance
  * @return The implementation of an interface
  */
 const AZImplementation *az_instance_get_interface(const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
+/**
+ * @brief Get the first interface of given type as boxed interface, if boxing is possible, otherwise as naked interface
+ * 
+ * A sub or same interface of a naked interface remains naked
+ * The same interface of the boxed interface return a reference to the same box
+ * A subinterface of a boxed interface returns a new box
+ * An interface of any non-interface type creates a new box
+ * 
+ * @param impl The type implementation
+ * @param inst The type instance
+ * @param if_type The interface type
+ * @param if_inst The output value for interface instance
+ * @return The implementation of an interface
+ */
+const AZImplementation *az_instance_get_interface_autobox(const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
 
 static inline const AZImplementation *
 az_instance_get_interface_from_type (unsigned int type, void *inst, unsigned int if_type, void **if_inst)

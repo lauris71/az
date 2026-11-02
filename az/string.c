@@ -49,15 +49,46 @@ static mtx_t dict_mutex;
 typedef struct _AZStringLookup AZStringLookup;
 
 struct _AZStringLookup {
-	unsigned int len;
+	uint32_t len;
 	const unsigned char *str;
 };
+
+uint32_t
+hash_len_str (uint32_t len, const uint8_t *str)
+{
+	/* FNV 1a */
+	const uint8_t *p = (const uint8_t *) &len;
+	uint32_t hval = 2166136261;
+	for (unsigned int i = 0; i < 4; i++) {
+		hval = (hval ^ p[i]) * 16777619;
+	}
+	if (len <= 48) {
+		p = str;
+		for (unsigned int i = 0; i < len; i++) {
+			hval = (hval ^ p[i]) * 16777619;
+		}
+	} else {
+		p = str;
+		for (unsigned int i = 0; i < 16; i++) {
+			hval = (hval ^ p[i]) * 16777619;
+		}
+		p = str + len / 2;
+		for (unsigned int i = 0; i < 16; i++) {
+			hval = (hval ^ p[i]) * 16777619;
+		}
+		p = str + len - 16;
+		for (unsigned int i = 0; i < 16; i++) {
+			hval = (hval ^ p[i]) * 16777619;
+		}
+	}
+	return hval;
+}
 
 static unsigned int
 string_hash (const void *data)
 {
 	AZString *str = *((AZString **) data);
-	return arikkei_memory_hash(str->str, str->length);
+	return hash_len_str(str->length, str->str);
 }
 
 static unsigned int
@@ -73,7 +104,7 @@ static unsigned int
 string_data_hash (const void *data)
 {
 	AZStringLookup *lookup = (AZStringLookup *) data;
-	return arikkei_memory_hash(lookup->str, lookup->len);
+	return hash_len_str(lookup->len, lookup->str);
 }
 
 static unsigned int
@@ -191,6 +222,13 @@ AZ_CLASS_ALIGN AZStringClass AZStringKlass = {
 		.dispose = string_dispose
 	},
 	.chr2str = {0}
+};
+
+typedef struct _AZStrDictEntry AZStrDictEntry;
+
+struct _AZStrDictEntry {
+	ArikkeiDictEntry entry;
+	AZString str;
 };
 
 void

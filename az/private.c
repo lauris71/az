@@ -362,7 +362,8 @@ az_type_is_valid_deferred (uint32_t type)
 	if (p & 1) {
 		valid = (((AZTypeDescriptor *) (p & ~(uintptr_t) 1))->type == type);
 	} else if (p) {
-		valid = (((AZClass *) p)->impl.type == type);
+		AZClass *klass = (AZClass *) p;
+		valid = (klass->impl.type == type);
 	}
 	REGISTRY_UNLOCK();
 	return valid;

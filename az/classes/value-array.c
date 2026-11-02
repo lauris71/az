@@ -29,6 +29,7 @@ static uint64_t value_array_get_size (const AZCollectionImplementation *collecti
 static unsigned int value_array_contains (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst, const AZImplementation *impl, const void *inst);
 /* AZList implementation */
 static const AZImplementation *value_array_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
+static int value_array_set_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, const AZImplementation *impl, void *inst);
 
 unsigned int
 az_value_array_get_type (void)
@@ -67,6 +68,7 @@ value_array_class_init (AZValueArrayClass *klass)
 	klass->list_impl.collection_impl.get_size = value_array_get_size;
 	klass->list_impl.collection_impl.contains = value_array_contains;
 	klass->list_impl.get_element = value_array_get_element;
+	klass->list_impl.set_element = value_array_set_element;
 }
 
 static void
@@ -174,6 +176,14 @@ value_array_get_element (const AZListImplementation *list_impl, void *list_inst,
 		return az_value_copy_autobox(varray->values[idx].impl, val, value_array_element_value(varray, idx), size);
 	}
 	return varray->values[idx].impl;
+}
+
+static int
+value_array_set_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, const AZImplementation *impl, void *inst)
+{
+	AZValueArray *varray = (AZValueArray *) list_inst;
+	az_value_array_set_element(varray, idx, impl, inst);
+	return 0;
 }
 
 void

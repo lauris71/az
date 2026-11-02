@@ -68,6 +68,12 @@ enum AZExceptionType {
      * Category: RUNTIME
      */
     AZ_EXCEPTION_OUT_OF_BOUNDS,
+    /**
+     * @brief Function signature and arguments mismatch
+     * 
+     * Category: RUNTIME
+     */
+    AZ_EXCEPTION_SIGNATURE_MISMATCH,
     AZ_NUM_EXCEPTIONS
 };
 
