@@ -85,7 +85,7 @@ az_function_signature_new (unsigned int this_type, unsigned int ret_type, unsign
 {
 	unsigned int n_total = (this_type) ? n_args + 1 : n_args;
 	unsigned int i;
-	AZFunctionSignature* sig = (AZFunctionSignature*) malloc(sizeof(AZFunctionSignature) - 4 + n_total * 4);
+	AZFunctionSignature* sig = (AZFunctionSignature*) malloc(sizeof(AZFunctionSignature) + n_total * sizeof(uint32_t));
 	az_instance_init_by_type (sig, AZ_TYPE_FUNCTION_SIGNATURE);
 	sig->ret_type = ret_type;
 	sig->n_args = 0;
@@ -99,7 +99,7 @@ az_function_signature_new_any(unsigned int this_type, unsigned int ret_type, uns
 {
 	unsigned int n_total = (this_type) ? n_args + 1 : n_args;
 	unsigned int i;
-	AZFunctionSignature* sig = ( AZFunctionSignature*) malloc(sizeof(AZFunctionSignature) - 4 + n_total * 4);
+	AZFunctionSignature* sig = ( AZFunctionSignature*) malloc(sizeof(AZFunctionSignature) + n_total * sizeof(uint32_t));
 	az_instance_init_by_type(sig, AZ_TYPE_FUNCTION_SIGNATURE);
 	sig->ret_type = ret_type;
 	sig->n_args = 0;
@@ -120,7 +120,7 @@ az_function_signature_new_va (unsigned int ret_type, unsigned int n_args, ...)
 		arg_types[i] = va_arg (ap, unsigned int);
 	}
 	va_end (ap);
-	sig = (AZFunctionSignature *) malloc (sizeof (AZFunctionSignature) - 4 + n_args * 4);
+	sig = (AZFunctionSignature *) malloc (sizeof (AZFunctionSignature) + n_args * sizeof(uint32_t));
 	az_instance_init_by_type (sig, AZ_TYPE_FUNCTION_SIGNATURE);
 	sig->ret_type = ret_type;
 	sig->n_args = n_args;

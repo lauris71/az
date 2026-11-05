@@ -244,6 +244,42 @@ az_instance_delete_array (unsigned int type, void *elements, unsigned int neleme
 }
 
 unsigned int
+az_instance_is_a(const AZImplementation *impl, void *inst, unsigned int type)
+{
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_val_if_fail(impl != NULL, 0);
+	arikkei_return_val_if_fail(inst != NULL, 0);
+#endif
+	if (impl == &AZBoxedValueKlass.klass.impl) {
+		/* Boxed values are a special case: the underlying type is checked */
+		AZBoxedValue *boxed = (AZBoxedValue *) inst;
+		return az_type_is_a(AZ_CLASS_TYPE(boxed->klass), type);
+	} else if (impl == &AZBoxedInterfaceKlass.klass.impl) {
+		/* Boxed interfaces are a special case: the underlying type is checked */
+		AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
+		return az_type_is_a(AZ_IMPL_TYPE(boxed->impl), type);
+	}
+	return az_type_is_a(AZ_IMPL_TYPE(impl), type);
+}
+
+unsigned int
+az_instance_implements(const AZImplementation *impl, void *inst, unsigned int type)
+{
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_val_if_fail(impl != NULL, 0);
+	arikkei_return_val_if_fail(inst != NULL, 0);
+#endif
+	if (impl == &AZBoxedValueKlass.klass.impl) {
+		AZBoxedValue *boxed = (AZBoxedValue *) inst;
+		return az_type_implements(AZ_CLASS_TYPE(boxed->klass), type);
+	} else if (impl == &AZBoxedInterfaceKlass.klass.impl) {
+		AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
+		return az_type_implements(AZ_IMPL_TYPE(boxed->impl), type);
+	}
+	return az_type_implements(AZ_IMPL_TYPE(impl), type);
+}
+
+unsigned int
 az_instance_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
 {
 #ifdef AZ_SAFETY_CHECKS

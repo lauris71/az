@@ -31,7 +31,7 @@ struct _AZFunctionSignature {
 	/* Return type */
 	uint32_t ret_type;
 	uint32_t n_args;
-	uint32_t arg_types[1];
+	uint32_t arg_types[];
 };
 
 struct _AZFunctionSignature32 {

@@ -91,6 +91,26 @@ void *az_instance_new_sized (unsigned int type, unsigned int size);
 void *az_instance_new_array (unsigned int type, unsigned int nelements);
 void az_instance_delete (unsigned int type, void *inst);
 void az_instance_delete_array (unsigned int type, void *elements, unsigned int nelements);
+/**
+ * @brief Check if an instance is of a given type
+ * 
+ * For boxed values and boxed interfaces the check is performed on the underlying type.
+ * 
+ * @param impl The type implementation
+ * @param inst The instance to check
+ * @param type The typecode to compare against
+ * @return unsigned int 
+ */
+unsigned int az_instance_is_a(const AZImplementation *impl, void *inst, unsigned int type);
+/**
+ * @brief Check if an instance implements a given interface
+ * 
+ * @param impl The type implementation
+ * @param inst The instance to check
+ * @param type The interface type to check for
+ * @return unsigned int 
+ */
+unsigned int az_instance_implements(const AZImplementation *impl, void *inst, unsigned int type);
 
 unsigned int az_instance_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx);
 /**
