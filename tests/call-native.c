@@ -105,7 +105,7 @@ static void native_make_fval (void *ret)
 {
     AZFunctionValue *fv = (AZFunctionValue *) ret;
     fv->signature = (AZFunctionSignature *) (uintptr_t) 0xdeadbeef;
-    fv->invoke = NULL;
+    fv->invoke_vals = NULL;
 }
 
 static uint64_t native_fval_sig (const AZFunctionValue *fv)
@@ -120,7 +120,7 @@ call_native (void (*func) (void), unsigned int ret_type, unsigned int n_args, co
     sig32.ret_type = ret_type;
     sig32.n_args = n_args;
     if (n_args) memcpy (sig32.arg_types, arg_types, n_args * sizeof (unsigned int));
-    return az_function_call_native (func, &sig32.signature, ret_impl, ret_val, arg_impls, arg_vals);
+    return az_function_call_native (func, (AZFunctionSignature *) &sig32, ret_impl, ret_val, arg_impls, arg_vals);
 }
 
 void
@@ -326,7 +326,7 @@ test_call_native()
         TEST_ASSERT (call_native ((void (*) (void)) native_make_fval, fv_type, 0, NULL, &ret_impl, &ret_val, NULL, NULL));
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (fv_type));
         TEST_ASSERT (((AZFunctionValue *) &ret_val.value)->signature == (AZFunctionSignature *) (uintptr_t) 0xdeadbeef);
-        TEST_ASSERT (((AZFunctionValue *) &ret_val.value)->invoke == NULL);
+        TEST_ASSERT (((AZFunctionValue *) &ret_val.value)->invoke_vals == NULL);
     }
     /* uint64 (FunctionValue) - final value argument, passed by pointer */
     {
@@ -337,7 +337,7 @@ test_call_native()
         const AZValue *vals[1] = {&a};
         AZFunctionValue *fv = (AZFunctionValue *) &a;
         fv->signature = (AZFunctionSignature *) (uintptr_t) 0xdeadbeef;
-        fv->invoke = NULL;
+        fv->invoke_vals = NULL;
         memset (&ret_val, 0, sizeof (AZValue64));
         TEST_ASSERT (call_native ((void (*) (void)) native_fval_sig, AZ_TYPE_UINT64, 1, types, &ret_impl, &ret_val, impls, vals));
         TEST_ASSERT_EQUAL_UINT64 (0xdeadbeef, ret_val.value.uint64_v);
@@ -346,7 +346,7 @@ test_call_native()
     {
         unsigned int fn_type = az_function_native_get_type();
         unsigned int arg_types[2] = {AZ_TYPE_INT32, AZ_TYPE_INT32};
-        AZFunctionSignature *sig = az_function_signature_new (0, AZ_TYPE_INT32, 2, arg_types);
+        AZFunctionSignature *sig = az_function_signature_new(AZ_TYPE_INT32, 2, arg_types);
         AZFunctionNative fnat;
         const AZImplementation *f_impl;
         void *f_inst;

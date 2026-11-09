@@ -118,7 +118,7 @@ az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type,
 	 * class may only implement interfaces whose instance state is destructor-free
 	 * (see "Value type (struct) requirements" in class.h)
 	 */
-	if (!(klass->impl.flags & AZ_FLAG_BLOCK)) {
+	if (AZ_CLASS_IS_VALUE(klass)) {
 		if (iface_class->instance_finalize) {
 			fprintf (stderr, "az_class_declare_interface: value class %s implements interface %s"
 				" which has a finalizer; value instances are memcpy'd and never destructed\n",
@@ -170,7 +170,7 @@ az_class_post_init (AZClass *klass)
 	 * value class must not rely on a finalizer (see "Value type (struct)
 	 * requirements" in class.h)
 	 */
-	if (!(klass->impl.flags & (AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT)) && klass->instance_finalize) {
+	if (!(AZ_CLASS_IS_BLOCK(klass) || AZ_CLASS_IS_ABSTRACT(klass)) && klass->instance_finalize) {
 		fprintf (stderr, "az_class_post_init: value class %s has a finalizer;"
 			" value instances are memcpy'd and never destructed\n", (const char *) klass->name);
 	}
@@ -252,7 +252,7 @@ az_class_post_init (AZClass *klass)
 	if (klass->impl.flags & AZ_FLAG_HAS_DEFAULT) {
 #ifdef AZ_SAFETY_CHECKS
 		/* A default value is only valid for concrete value types with fixed storage */
-		arikkei_return_if_fail (!(klass->impl.flags & (AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT)));
+		arikkei_return_if_fail (AZ_CLASS_IS_BLOCK(klass) || AZ_CLASS_IS_ABSTRACT(klass));
 		arikkei_return_if_fail (klass->instance_size > 0);
 		arikkei_return_if_fail (klass->default_value != NULL);
 #endif
@@ -264,7 +264,7 @@ az_class_post_init (AZClass *klass)
 	for (i = 0; i < klass->n_ifaces_self; i++) {
 		const AZIFEntry *ifentry = az_class_iface_self (klass, i);
 		/* az_type_reserve sets CONSTRUCT for interfaces needing (de)construction */
-		if (!ifentry->type || !(AZ_TYPE_FLAGS(ifentry->type) & AZ_FLAG_CONSTRUCT)) continue;
+		if (!ifentry->type || !AZ_TYPE_HAS_CONSTRUCT(ifentry->type)) continue;
 		AZClass *iface_class = AZ_CLASS_FROM_TYPE (ifentry->type);
 		/*
 		 * An interface whose only construction work is zeroing its region does not
@@ -382,31 +382,31 @@ az_class_define_property_function_packed (AZClass *klass, unsigned int idx, cons
 /* fixme: Implement instance method by offset */
 void
 az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
-	unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *))
+	unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *))
 {
 	AZFunctionSignature *sig;
 	AZFunctionValue fval;
-	sig = az_function_signature_new(AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
-	az_function_value_setup (&fval, sig, invoke);
+	sig = az_function_signature_new_with_this(AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
+	az_function_value_setup (&fval, sig, invoke_vals);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class (AZ_TYPE_FUNCTION_VALUE), &fval);
 }
 
 void az_class_define_method_native (AZClass *klass, unsigned int idx, const unsigned char *key,
 	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
-	void (*invoke) (void))
+	void (*invoke_vals) (void))
 {
 	AZFunctionSignature *sig;
 	AZFunctionNative fval;
-	sig = az_function_signature_new (AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
-	az_function_native_setup (&fval, sig, invoke);
+	sig = az_function_signature_new_with_this(AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
+	az_function_native_setup (&fval, sig, invoke_vals);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_NATIVE), &fval);
 }
 
 void
 az_class_define_method_va(AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *),
+	unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *),
 	unsigned int ret_type, unsigned int n_args, ...)
 {
 	va_list ap;
@@ -417,11 +417,11 @@ az_class_define_method_va(AZClass *klass, unsigned int idx, const unsigned char 
 		arg_types[i] = va_arg(ap, unsigned int);
 	}
 	va_end(ap);
-	az_class_define_method(klass, idx, key, ret_type, n_args, arg_types, invoke);
+	az_class_define_method(klass, idx, key, ret_type, n_args, arg_types, invoke_vals);
 }
 
 void az_class_define_method_native_va (AZClass *klass, unsigned int idx, const unsigned char *key,
-	void (*invoke) (void),
+	void (*invoke_vals) (void),
 	unsigned int ret_type, unsigned int n_args, ...)
 {
 	va_list ap;
@@ -433,35 +433,35 @@ void az_class_define_method_native_va (AZClass *klass, unsigned int idx, const u
 		arg_types[i] = va_arg (ap, unsigned int);
 	}
 	va_end (ap);
-	az_class_define_method_native(klass, idx, key, ret_type, n_args, arg_types, invoke);
+	az_class_define_method_native(klass, idx, key, ret_type, n_args, arg_types, invoke_vals);
 }
 
 void
 az_class_define_static_method (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
-	unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *))
+	unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *))
 {
 	AZFunctionSignature *sig;
 	AZFunctionValue fval;
-	sig = az_function_signature_new (AZ_TYPE_NONE, ret_type, n_args, arg_types);
-	az_function_value_setup (&fval, sig, invoke);
+	sig = az_function_signature_new(ret_type, n_args, arg_types);
+	az_function_value_setup (&fval, sig, invoke_vals);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_VALUE), &fval);
 }
 
-void az_class_define_static_method_native (AZClass *klass, unsigned int idx, const unsigned char *key,
+void az_class_define_static_method_native(AZClass *klass, unsigned int idx, const unsigned char *key,
 	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
-	void (*invoke) (void))
+	void (*invoke_vals) (void))
 {
 	AZFunctionSignature *sig;
 	AZFunctionNative fval;
-	sig = az_function_signature_new (AZ_TYPE_NONE, ret_type, n_args, arg_types);
-	az_function_native_setup (&fval, sig, invoke);
+	sig = az_function_signature_new(ret_type, n_args, arg_types);
+	az_function_native_setup (&fval, sig, invoke_vals);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_NATIVE), &fval);
 }
 
 void az_class_define_static_method_va (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *),
+	unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *),
 	unsigned int ret_type, unsigned int n_args, ...)
 {
 	va_list ap;
@@ -473,11 +473,11 @@ void az_class_define_static_method_va (AZClass *klass, unsigned int idx, const u
 		arg_types[i] = va_arg (ap, unsigned int);
 	}
 	va_end (ap);
-	az_class_define_static_method (klass, idx, key, ret_type, n_args, arg_types, invoke);
+	az_class_define_static_method (klass, idx, key, ret_type, n_args, arg_types, invoke_vals);
 }
 
 void az_class_define_static_method_native_va (AZClass *klass, unsigned int idx, const unsigned char *key,
-	void (*invoke) (void),
+	void (*invoke_vals) (void),
 	unsigned int ret_type, unsigned int n_args, ...)
 {
 	va_list ap;
@@ -489,7 +489,7 @@ void az_class_define_static_method_native_va (AZClass *klass, unsigned int idx, 
 		arg_types[i] = va_arg (ap, unsigned int);
 	}
 	va_end (ap);
-	az_class_define_static_method_native(klass, idx, key, ret_type, n_args, arg_types, invoke);
+	az_class_define_static_method_native(klass, idx, key, ret_type, n_args, arg_types, invoke_vals);
 }
 
 /* The default (non-delegating) recursive worker: never consults delegate_idx,
@@ -674,7 +674,7 @@ az_foreach_iface_tree (const AZClass *if_class, const AZImplementation *impl, vo
 	}
 	/* Super-interfaces are at offset 0 within the interface implementation/instance */
 	AZClass *super = if_class->parent;
-	if (super && (super->impl.flags & AZ_FLAG_INTERFACE) && (super->impl.type != AZ_TYPE_INTERFACE)) {
+	if (super && AZ_CLASS_IS_INTERFACE(super) && (super->impl.type != AZ_TYPE_INTERFACE)) {
 		int result = cb (impl, inst, super->impl.type, level, data);
 		if (result) return result;
 		result = az_foreach_iface_tree (super, impl, inst, level + 1, cb, data);

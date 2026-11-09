@@ -13,7 +13,7 @@ set(AZ_HEADERS
 	function-native.h
 	function-value.h
 	function.h
-	instance.c
+	instance.h
 	interface.h
 	object.h
 	packed-value.h
@@ -22,9 +22,11 @@ set(AZ_HEADERS
 	reference-of.h
 	reference.h
 	serialization.h
+	signature.h
 	string.h
 	types.h
 	value.h
+	value-store.h
 	weak-reference.h
 )
 
@@ -40,7 +42,7 @@ set(AZ_SOURCES
 	function-value.c
 	function.c
 	interface.c
-	instance.h
+	instance.c
 	object.c
 	packed-value.c
 	primitives.c
@@ -48,9 +50,11 @@ set(AZ_SOURCES
 	reference-of.c
 	reference.c
 	serialization.c
+	signature.c
 	string.c
 	types.c
 	value.c
+	value-store.c
 	weak-reference.c
 )
 

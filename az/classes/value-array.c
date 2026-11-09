@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include <arikkei/arikkei-utils.h>
+#include <arikkei/arikkei-iolib.h>
 
 #include <az/boxed-value.h>
 #include <az/private.h>
@@ -78,7 +79,7 @@ value_array_init (AZValueArrayClass *klass, AZValueArray *varray)
 	varray->allocated_size = klass->default_size;
 	varray->data_size = 0;
 	varray->size = 0;
-	varray->values = (AZValueArrayEntry *) malloc (varray->allocated_size * sizeof (AZValueArrayEntry));
+	varray->values = (AZStoreElement *) malloc(varray->allocated_size * sizeof(AZStoreElement));
 	varray->data = NULL;
 }
 
@@ -92,23 +93,17 @@ value_array_element_size8 (AZValueArray *varray, unsigned int idx)
 static AZValue *
 value_array_element_value (AZValueArray *varray, unsigned int idx)
 {
-	if (!value_array_element_size8 (varray, idx)) {
-		return (AZValue *) varray->values[idx].value;
-	} else {
-		return varray->data + varray->values[idx].val_idx;
-	}
+	return az_value_store_value_at(varray->values, idx, varray->data);
 }
 
 static void
 value_array_finalize (AZValueArrayClass *klass, AZValueArray *varray)
 {
 	for (unsigned int i = 0; i < varray->size; i++) {
-		if (varray->values[i].impl) {
-			az_value_clear (varray->values[i].impl, value_array_element_value (varray, i));
-		}
+		az_value_store_clear_at(varray->values, i);
 	}
-	free (varray->values);
-	if (varray->data) free (varray->data);
+	free(varray->values);
+	if (varray->data) arikkei_aligned_free(varray->data);
 }
 
 static unsigned int
@@ -125,10 +120,8 @@ varray_to_string (const AZImplementation *impl, void *inst, unsigned char *d, un
 			if (d && (pos < dlen)) d[pos] = ',';
 			pos++;
 		}
-		const AZImplementation *el_impl = varray->values[i].impl;
-		const AZValue *el_val = value_array_element_value(varray, i);
 		void *el_inst;
-		el_impl = az_value_get_inst_autobox(el_impl, el_val, &el_inst);
+		const AZImplementation *el_impl = az_value_store_instance_at_autobox(varray->values, i, varray->data, &el_inst);
 		pos += az_instance_to_string (el_impl, el_inst, (d) ? d + pos : NULL, (dlen > pos) ? dlen - pos : 0);
 	}
 	if (d && (pos < dlen)) d[pos] = ']';
@@ -159,10 +152,11 @@ value_array_contains (const AZCollectionImplementation *collection_impl, AZColle
 		if (varray->values[i].impl != impl) continue;
 		if (!impl) return 1;
 		if (!AZ_IMPL_VALUE_SIZE(varray->values[i].impl)) return 1;
-		if (AZ_TYPE_IS_VALUE(AZ_IMPL_TYPE(varray->values[i].impl))) {
-			if (!memcmp (value_array_element_value (varray, i), inst, AZ_IMPL_VALUE_SIZE(varray->values[i].impl))) return 1;
+		const AZValue *val = az_value_store_value_at(varray->values, i, varray->data);
+		if (AZ_IMPL_IS_BLOCK(impl)) {
+			if (inst == val->block) return 1;
 		} else {
-			if (!memcmp (value_array_element_value (varray, i), &inst, AZ_IMPL_VALUE_SIZE(varray->values[i].impl))) return 1;
+			if (!memcmp (val, inst, AZ_IMPL_VALUE_SIZE(varray->values[i].impl))) return 1;
 		}
 	}
 	return 0;
@@ -173,7 +167,7 @@ value_array_get_element (const AZListImplementation *list_impl, void *list_inst,
 {
 	AZValueArray *varray = (AZValueArray *) list_inst;
 	if (varray->values[idx].impl) {
-		return az_value_copy_autobox(varray->values[idx].impl, val, value_array_element_value(varray, idx), size);
+		return az_value_copy_autobox(varray->values[idx].impl, val, az_value_store_value_at(varray->values, idx, varray->data), size);
 	}
 	return varray->values[idx].impl;
 }
@@ -195,15 +189,13 @@ az_value_array_set_length (AZValueArray* varray, unsigned int length)
 		 * pool's tail (the pool is packed in element order), so the remaining
 		 * elements stay compact - no compaction needed */
 		for (i = length; i < varray->size; i++) {
-			if (varray->values[i].impl) {
-				az_value_clear (varray->values[i].impl, value_array_element_value (varray, i));
-			}
+			az_value_store_clear_at(varray->values, i);
 		}
 		varray->size = length;
 	} else if (length > varray->size) {
 		if (length > varray->allocated_size) {
 			varray->allocated_size = length;
-			varray->values = (AZValueArrayEntry *) realloc (varray->values, varray->allocated_size * sizeof (AZValueArrayEntry));
+			varray->values = (AZStoreElement *) realloc (varray->values, varray->allocated_size * sizeof(AZStoreElement));
 		}
 		for (i = varray->size; i < length; i++) {
 			varray->values[i].impl = NULL;
@@ -216,7 +208,7 @@ const AZImplementation *
 az_value_array_get_element(AZValueArray *varray, unsigned int idx, AZValue *val, unsigned int size)
 {
 	if (varray->values[idx].impl) {
-		return az_value_copy_autobox(varray->values[idx].impl, val, value_array_element_value(varray, idx), size);
+		return az_value_copy_autobox(varray->values[idx].impl, val, az_value_store_value_at(varray->values, idx, varray->data), size);
 	}
 	return varray->values[idx].impl;
 }
@@ -239,12 +231,12 @@ value_array_ensure_room16 (AZValueArray* varray, unsigned int idx, unsigned int 
 		}
 	}
 	if (!total16) {
-		if (varray->data) free (varray->data);
+		if (varray->data) arikkei_aligned_free(varray->data);
 		varray->data = NULL;
 		varray->data_size = 0;
 		return 0;
 	}
-	AZValue *newdata = (AZValue *) malloc (total16 * sizeof (AZValue));
+	AZValue *newdata = (AZValue *) arikkei_aligned_alloc(16, total16 * sizeof (AZValue));
 	unsigned int pos = 0;
 	unsigned int result = 0;
 	for (i = 0; i < varray->size; i++) {
@@ -263,7 +255,7 @@ value_array_ensure_room16 (AZValueArray* varray, unsigned int idx, unsigned int 
 			}
 		}
 	}
-	if (varray->data) free (varray->data);
+	if (varray->data) arikkei_aligned_free (varray->data);
 	varray->data = newdata;
 	varray->data_size = total16;
 	return result;
@@ -274,19 +266,17 @@ az_value_array_set_element(AZValueArray *varray, unsigned int idx, const AZImple
 {
 	unsigned int old_big = 0;
 	if (varray->values[idx].impl) {
-		old_big = value_array_element_size8 (varray, idx);
-		az_value_clear (varray->values[idx].impl, value_array_element_value (varray, idx));
+		old_big = az_value_store_clear_at(varray->values, idx);
 	}
 	varray->values[idx].impl = impl;
-	unsigned int new_big = (impl && (AZ_IMPL_VALUE_SIZE(impl) > 8)) ? 1 : 0;
+	unsigned int new_big = az_value_store_block_size(impl);
 	if (old_big || new_big) {
 		/* Rebuild the pool with the new requirement (reclaims the old slots if any) */
-		unsigned int req16 = (new_big) ? (AZ_IMPL_VALUE_SIZE(impl) + 15) >> 4 : 0;
-		varray->values[idx].val_idx = value_array_ensure_room16 (varray, idx, req16);
+		varray->values[idx].val_idx = value_array_ensure_room16 (varray, idx, new_big);
 	}
 	if (impl) {
 		if (!new_big) {
-			az_value_set_from_inst(impl, (AZValue *) varray->values[idx].value, inst);
+			az_value_set_from_inst(impl, (AZValue *) varray->values[idx].val, inst);
 		} else {
 			az_value_set_from_inst(impl, varray->data + varray->values[idx].val_idx, inst);
 		}
@@ -296,12 +286,9 @@ az_value_array_set_element(AZValueArray *varray, unsigned int idx, const AZImple
 void
 az_value_array_set_element_from_val (AZValueArray* varray, unsigned int idx, const AZImplementation* impl, const AZValue* val)
 {
-	if (impl == AZ_IMPL_FROM_TYPE(AZ_TYPE_BOXED_VALUE)) {
-		AZBoxedValue *boxed = (AZBoxedValue *) val->reference;
-		az_value_array_set_element(varray, idx, &boxed->klass->impl, &boxed->val);
-	} else {
-		az_value_array_set_element(varray, idx, impl, az_value_get_inst(impl, val));
-	}
+	void *inst;
+	impl = az_value_get_inst_autobox(impl, val, &inst);
+	az_value_array_set_element(varray, idx, impl, inst);
 }
 
 void
@@ -314,18 +301,16 @@ az_value_array_transfer_element (AZValueArray* varray, unsigned int idx, const A
 	}
 	unsigned int old_big = 0;
 	if (varray->values[idx].impl) {
-		old_big = value_array_element_size8 (varray, idx);
-		az_value_clear (varray->values[idx].impl, value_array_element_value (varray, idx));
+		old_big = az_value_store_clear_at(varray->values, idx);
 	}
 	varray->values[idx].impl = impl;
-	unsigned int new_big = (impl && (AZ_IMPL_VALUE_SIZE(impl) > 8)) ? 1 : 0;
+	unsigned int new_big = az_value_store_block_size(impl);
 	if (old_big || new_big) {
-		unsigned int req16 = (new_big) ? (AZ_IMPL_VALUE_SIZE(impl) + 15) >> 4 : 0;
-		varray->values[idx].val_idx = value_array_ensure_room16 (varray, idx, req16);
+		varray->values[idx].val_idx = value_array_ensure_room16 (varray, idx, new_big);
 	}
 	if (impl) {
 		if (!new_big) {
-			az_value_transfer(impl, (AZValue *) varray->values[idx].value, val);
+			az_value_transfer(impl, (AZValue *) varray->values[idx].val, val);
 		} else {
 			az_value_transfer(impl, varray->data + varray->values[idx].val_idx, val);
 		}

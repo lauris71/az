@@ -9,51 +9,16 @@
 
 #define AZ_FUNCTION_MAX_RETURN_VALUE_SIZE 64
 
-typedef struct _AZFunctionSignature AZFunctionSignature;
-typedef struct _AZFunctionSignature32 AZFunctionSignature32;
-
 typedef struct _AZFunctionImplementation AZFunctionImplementation;
 
 #include <az/interface.h>
+#include <az/signature.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /** @defgroup function Function interface
- *  A callable interface
- */
-
-extern AZClass AZFunctionSignatureKlass;
-extern AZInterfaceClass AZFunctionKlass;
-
-struct _AZFunctionSignature {
-	/* Return type */
-	uint32_t ret_type;
-	uint32_t n_args;
-	uint32_t arg_types[];
-};
-
-struct _AZFunctionSignature32 {
-	union {
-		struct {
-			uint32_t ret_type;
-			uint32_t n_args;
-			uint32_t arg_types[32];
-		};
-		AZFunctionSignature signature;
-	};
-};
-
-AZFunctionSignature* az_function_signature_new (unsigned int this_type, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[]);
-AZFunctionSignature* az_function_signature_new_any(unsigned int this_type, unsigned int ret_type, unsigned int n_args);
-AZFunctionSignature *az_function_signature_new_va (unsigned int ret_type, unsigned int n_args, ...);
-/* Strict compatibility check, i.e. only subclass types accepted */
-unsigned int az_function_signature_is_assignable_to (const AZFunctionSignature *sig, const AZFunctionSignature *other, unsigned int test_ret_val);
-
-void az_function_signature_delete(AZFunctionSignature* sig);
-
-/** @ingroup function
  * @brief Polymorphic implementation of all function types
  * 
  */
@@ -69,7 +34,7 @@ struct _AZFunctionImplementation {
 	 * @brief Invoke function
 	 * 
 	 */
-	unsigned int (*invoke) (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
+	unsigned int (*invoke_vals) (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
 };
 
 const AZFunctionSignature *az_function_get_signature (const AZFunctionImplementation *impl, void *inst);
@@ -92,10 +57,6 @@ unsigned int az_function_convert_args_in_place (const AZFunctionImplementation *
  * @return unsigned int 
  */
 unsigned int az_function_invoke_packed (const AZFunctionImplementation *impl, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types, AZContext *ctx);
-
-/* Helper */
-unsigned int az_function_invoke_by_type_instance (unsigned int type, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types, AZContext *ctx);
-unsigned int az_instance_invoke_function (const AZImplementation *impl, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types, AZContext *ctx);
 
 /*
  * Native <-> az function calling rules (determined by signature)

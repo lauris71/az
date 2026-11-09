@@ -13,21 +13,11 @@ typedef struct _AZValueArray AZValueArray;
 typedef struct _AZValueArrayClass AZValueArrayClass;
 
 #include <az/collections/list.h>
-#include <az/reference.h>
+#include <az/value-store.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct _AZValueArrayEntry AZValueArrayEntry;
-
-struct _AZValueArrayEntry {
-	const AZImplementation *impl;
-	union {
-		unsigned char value[8];
-		unsigned int val_idx;
-	};
-};
 
 /**
  * @brief A compact dynamic array of values of any type (reference-counted).
@@ -48,7 +38,7 @@ struct _AZValueArray {
 	unsigned int size;
 	unsigned int allocated_size;
 	unsigned int data_size;
-	AZValueArrayEntry *values;
+	AZStoreElement *values;
 	AZValue *data;
 };
 

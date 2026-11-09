@@ -41,7 +41,7 @@ function_native_class_init (AZFunctionNativeClass *klass)
 {
 	az_class_declare_interface (&klass->klass, 0, AZ_TYPE_FUNCTION, ARIKKEI_OFFSET (AZFunctionNativeClass, function_impl), 0);
 	klass->function_impl.signature = fnat_signature;
-	klass->function_impl.invoke = function_native_invoke;
+	klass->function_impl.invoke_vals = function_native_invoke;
 }
 
 const AZFunctionSignature *

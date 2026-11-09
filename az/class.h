@@ -103,6 +103,7 @@ struct _AZImplementation {
 #define AZ_CLASS_IS_INTERFACE(c) ((c)->impl.flags & AZ_FLAG_INTERFACE)
 
 #define AZ_CLASS_IS_FINAL(c) ((c)->impl.flags & AZ_FLAG_FINAL)
+#define AZ_CLASS_HAS_CONSTRUCT(c) ((c)->impl.flags & AZ_FLAG_CONSTRUCT)
 #define AZ_CLASS_VALUE_SIZE(c) (((c)->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : (c)->instance_size)
 #define AZ_CLASS_ELEMENT_SIZE(c) (((c)->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : ((c)->instance_size + (c)->alignment) & ~(c)->alignment)
 #define AZ_IMPL_VALUE_SIZE(i) (AZ_IMPL_IS_BLOCK(i) ? sizeof(void *) : ((AZClass *) (i))->instance_size)
@@ -331,7 +332,7 @@ az_class_iface_all(const AZClass *klass, uint16_t idx)
 static inline unsigned int
 az_class_value_size(const AZClass *klass)
 {
-	return (klass->impl.flags & AZ_FLAG_BLOCK) ? sizeof(void *) : klass->instance_size;
+	return AZ_CLASS_IS_BLOCK(klass) ? sizeof(void *) : klass->instance_size;
 }
 
 static inline unsigned int

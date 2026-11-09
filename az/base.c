@@ -35,8 +35,10 @@ az_init (void)
 	az_init_interface_class();
 	/* AZ_TYPE_FIELD (21) */
 	az_init_field_class();
-	/* AZ_TYPE_FUNCTION_SIGNATURE, AZ_TYPE_FUNCTION (22,23) */
-	az_init_function_classes();
+	/* AZ_TYPE_FUNCTION_SIGNATURE (22) */
+	az_init_signature_class();
+	/* AZ_TYPE_FUNCTION (22,23) */
+	az_init_function_class();
 	/* AZ_TYPE_REFERENCE (24) */
 	az_init_reference_class();
 	/* AZ_TYPE_STRING (25) */

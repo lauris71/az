@@ -168,7 +168,7 @@ az_class_publish (AZClass *klass)
 	 * (az_instance_init_by_type/az_instance_finalize_by_type): any class-level
 	 * construction work must be visible in the typecode (the reverse is allowed -
 	 * the typecode bit is inherited and thus a conservative superset) */
-	arikkei_return_if_fail (!(klass->impl.flags & (AZ_INIT_WORK_MASK | AZ_FINALIZE_WORK_MASK | AZ_FLAG_ZERO_MEMORY)) || (klass->impl.type & AZ_FLAG_CONSTRUCT));
+	arikkei_return_if_fail (!(klass->impl.flags & (AZ_INIT_WORK_MASK | AZ_FINALIZE_WORK_MASK | AZ_FLAG_ZERO_MEMORY)) || AZ_TYPE_HAS_CONSTRUCT(klass->impl.type));
 #endif
 #if defined(AZ_GLOBALS_STATIC)
 #ifdef AZ_SAFETY_CHECKS
@@ -426,15 +426,15 @@ az_classes_print_stats (void)
 		n_classes += 1;
 		if (i < AZ_NUM_FUNDAMENTAL_TYPES) n_fundamental += 1;
 		/* Categories are exclusive by priority: iface > object > reference > block > struct */
-		if (flags & AZ_FLAG_INTERFACE) {
+		if (AZ_CLASS_IS_INTERFACE(klass)) {
 			n_iface += 1;
-		} else if (flags & AZ_FLAG_OBJECT) {
+		} else if (AZ_CLASS_IS_OBJECT(klass)) {
 			n_obj += 1;
-		} else if (flags & AZ_FLAG_REFERENCE) {
+		} else if (AZ_CLASS_IS_REFERENCE(klass)) {
 			n_ref += 1;
-		} else if (flags & AZ_FLAG_BLOCK) {
+		} else if (AZ_CLASS_IS_BLOCK(klass)) {
 			n_block += 1;
-		} else if (!(flags & AZ_FLAG_ABSTRACT)) {
+		} else if (!AZ_CLASS_IS_ABSTRACT(klass)) {
 			unsigned int vsize = az_class_value_size (klass);
 			n_struct += 1;
 			if (vsize > 16) n_struct_gt16 += 1;
@@ -444,11 +444,11 @@ az_classes_print_stats (void)
 				max_instance_size_class = klass;
 			}
 		}
-		if (flags & AZ_FLAG_ABSTRACT) n_abstract += 1;
-		if (flags & AZ_FLAG_FINAL) n_final += 1;
+		if (AZ_CLASS_IS_ABSTRACT(klass)) n_abstract += 1;
+		if (AZ_CLASS_IS_FINAL(klass)) n_final += 1;
 		if (flags & AZ_FLAG_ZERO_MEMORY) n_zero_memory += 1;
 		if (flags & AZ_FLAG_VARIABLE_SIZE) n_variable_size += 1;
-		if (flags & AZ_FLAG_CONSTRUCT) n_construct += 1;
+		if (AZ_CLASS_HAS_CONSTRUCT(klass)) n_construct += 1;
 		if (klass->instance_init) n_init += 1;
 		if (klass->instance_finalize) n_finalize += 1;
 		if (klass->n_ifaces_self) n_self_ifaces += 1;

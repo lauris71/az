@@ -116,6 +116,9 @@ extern "C" {
 #define AZ_TYPE_IS_BOXED(t) ((AZ_TYPE_INDEX(t) == AZ_TYPE_IDX_BOXED_VALUE) || (AZ_TYPE_INDEX(t) == AZ_TYPE_IDX_BOXED_INTERFACE))
 #define AZ_TYPE_IS_OBJECT(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_OBJECT)
 #define AZ_TYPE_IS_FINAL(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_FINAL)
+/* The coarse construction gate: inherited by subtypes and set at registration for any class-level */
+/* construction work; az_instance_init_by_type/az_instance_finalize_by_type are no-ops without it */
+#define AZ_TYPE_HAS_CONSTRUCT(t) (AZ_TYPE_FLAGS(t) & AZ_FLAG_CONSTRUCT)
 #define AZ_TYPE_IS_ABSTRACT(t) (AZ_CLASS_FLAGS(AZ_CLASS_FROM_TYPE(t)) & AZ_FLAG_ABSTRACT)
 
 #if defined(AZ_GLOBALS_SINGLE_THREAD)

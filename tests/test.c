@@ -1406,7 +1406,109 @@ test_value_array()
     az_value_clear (AZ_IMPL_FROM_TYPE(AZ_TYPE_VALUE_ARRAY), &stored);
     TEST_ASSERT_EQUAL_UINT (1, va->reference.refcount);
 
+    /*
+     * Untyped nulls (AZ_TYPE_NONE): write, overwrite, read back
+     */
+    az_value_array_set_length (va, 0);
+    az_value_array_set_length (va, 4);
+    for (unsigned int i = 0; i < 4; i++) {
+        /* Fresh elements are untyped nulls; writing NULL again is a no-op */
+        TEST_ASSERT (va->values[i].impl == NULL);
+        az_value_array_set_element (va, i, NULL, NULL);
+        TEST_ASSERT (va->values[i].impl == NULL);
+    }
+    /* A null element reads back as NULL implementation */
+    AZValue64 nv;
+    TEST_ASSERT (az_value_array_get_element (va, 2, &nv.value, sizeof (AZValue64)) == NULL);
+
+    /* Overwriting a value with NULL clears the element (inline value) */
+    AZValue64 v;
+    va_fill (&v.value, 8, 90);
+    az_value_array_set_element_from_val (va, 0, AZ_IMPL_FROM_TYPE(va_type_get (1)), &v.value);
+    va_verify_element (va, 0, 1, 90);
+    az_value_array_set_element (va, 0, NULL, NULL);
+    TEST_ASSERT (va->values[0].impl == NULL);
+
+    /* Same for a data-pool value: the pool slots are reclaimed */
+    va_fill (&v.value, 40, 91);
+    az_value_array_set_element_from_val (va, 0, AZ_IMPL_FROM_TYPE(va_type_get (4)), &v.value);
+    va_verify_element (va, 0, 4, 91);
+    az_value_array_set_element (va, 0, NULL, NULL);
+    TEST_ASSERT (va->values[0].impl == NULL);
+
+    /* NULL -> value: writing into a cleared slot works */
+    va_fill (&v.value, 4, 92);
+    az_value_array_set_element_from_val (va, 0, AZ_IMPL_FROM_TYPE(va_type_get (0)), &v.value);
+    va_verify_element (va, 0, 0, 92);
+    az_value_array_set_element (va, 0, NULL, NULL);
+
+    /* A null element is found by contains(NULL) */
+    {
+        void *coll_inst;
+        const AZImplementation *coll_impl = az_instance_get_interface (AZ_IMPL_FROM_TYPE(AZ_TYPE_VALUE_ARRAY), va, AZ_TYPE_COLLECTION, &coll_inst);
+        TEST_ASSERT (az_collection_contains ((const AZCollectionImplementation *) coll_impl, (AZCollection *) coll_inst, NULL, NULL));
+    }
+
+    /* to_string works over nulls */
+    {
+        uint8_t buf[128];
+        unsigned int len = az_instance_to_string (AZ_IMPL_FROM_TYPE(AZ_TYPE_VALUE_ARRAY), va, buf, sizeof (buf));
+        TEST_ASSERT (len < sizeof (buf));
+        TEST_ASSERT_EQUAL_STRING ("[null,null,null,null]", (char *) buf);
+    }
+
+    /*
+     * Reference elements: write/overwrite/clear must not leak references
+     */
+    az_value_array_set_length (va, 0);
+    az_value_array_set_length (va, 6);
+    AZString *rs[9];
+    for (unsigned int i = 0; i < 9; i++) {
+        uint8_t name[16];
+        snprintf ((char *) name, 16, "ref%u", i);
+        rs[i] = az_string_new (name);
+        TEST_ASSERT_EQUAL_UINT (1, rs[i]->reference.refcount);
+    }
+
+    /* Writing a reference stores a counted reference */
+    for (unsigned int i = 0; i < 6; i++) {
+        az_value_array_set_element (va, i, AZ_IMPL_FROM_TYPE(AZ_TYPE_STRING), rs[i]);
+        TEST_ASSERT_EQUAL_UINT (2, rs[i]->reference.refcount);
+    }
+
+    /* Overwriting releases the old reference and holds the new one */
+    for (unsigned int i = 0; i < 3; i++) {
+        az_value_array_set_element (va, i, AZ_IMPL_FROM_TYPE(AZ_TYPE_STRING), rs[6 + i]);
+        TEST_ASSERT_EQUAL_UINT (1, rs[i]->reference.refcount);
+        TEST_ASSERT_EQUAL_UINT (2, rs[6 + i]->reference.refcount);
+    }
+
+    /* Clearing an element releases its reference */
+    az_value_array_set_element (va, 3, NULL, NULL);
+    TEST_ASSERT_EQUAL_UINT (1, rs[3]->reference.refcount);
+
+    /* Shrinking clears the tail (slots 4,5 hold rs[4], rs[5]) */
+    az_value_array_set_length (va, 4);
+    TEST_ASSERT_EQUAL_UINT (1, rs[4]->reference.refcount);
+    TEST_ASSERT_EQUAL_UINT (1, rs[5]->reference.refcount);
+
+    /* Transfer moves a reference into the array without adding one (slot 1 holds rs[7]) */
+    az_string_ref (rs[0]);
+    TEST_ASSERT_EQUAL_UINT (2, rs[0]->reference.refcount);
+    az_value_array_transfer_element (va, 1, AZ_IMPL_FROM_TYPE(AZ_TYPE_STRING), (const AZValue *) &rs[0]);
+    TEST_ASSERT_EQUAL_UINT (2, rs[0]->reference.refcount);
+    TEST_ASSERT_EQUAL_UINT (1, rs[7]->reference.refcount);
+    az_value_array_set_element (va, 1, NULL, NULL);
+    TEST_ASSERT_EQUAL_UINT (1, rs[0]->reference.refcount);
+
+    /* Deleting the array releases all remaining element references (slots 0..2 hold rs[6..8]) */
     az_instance_delete (AZ_TYPE_VALUE_ARRAY, va);
+    for (unsigned int i = 0; i < 9; i++) {
+        TEST_ASSERT_EQUAL_UINT (1, rs[i]->reference.refcount);
+    }
+    for (unsigned int i = 0; i < 9; i++) {
+        az_string_unref (rs[i]);
+    }
 }
 
 /* Delegation test helpers: collect the enumerated interface views */

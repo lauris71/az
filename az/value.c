@@ -21,6 +21,8 @@
 
 #include <az/value.h>
 
+_Static_assert (sizeof(AZValue) == 16, "AZValue size is not 16");
+
 void
 az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *inst)
 {
@@ -40,9 +42,9 @@ az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *inst)
 	arikkei_return_if_fail (inst != NULL);
 #endif
 	klass = AZ_CLASS_FROM_IMPL(impl);
-	if (klass->impl.flags & AZ_FLAG_BLOCK) {
+	if (AZ_CLASS_IS_BLOCK(klass)) {
 		dst->block = inst;
-		if (klass->impl.flags & AZ_FLAG_REFERENCE) {
+		if (AZ_CLASS_IS_REFERENCE(klass)) {
 			if (inst) az_reference_ref (dst->reference);
 		}
 	} else {
@@ -85,7 +87,7 @@ az_value_equals_instance (const AZImplementation *impl, const AZValue *lhs, cons
 {
 	AZClass *klass;
 	klass = AZ_CLASS_FROM_IMPL(impl);
-	if (klass->impl.flags & AZ_FLAG_BLOCK) {
+	if (AZ_CLASS_IS_BLOCK(klass)) {
 		return lhs->block == rhs;
 	}
 	if (AZ_CLASS_IS_VALUE(klass) && klass->instance_size) {

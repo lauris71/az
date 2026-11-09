@@ -21,44 +21,6 @@
 
 #include <az/function.h>
 
-static unsigned int
-function_signature_to_string(const AZImplementation *impl, void *inst, uint8_t *d, unsigned int d_len)
-{
-	AZFunctionSignature *sig = (AZFunctionSignature *) inst;
-	if (!d) d_len = 0;
-	unsigned int len = 0, l = 0;
-	len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) "(");
-	l = (len <= d_len) ? len : d_len;
-	for (unsigned int i = 0; i < sig->n_args; i++) {
-		if (i > 0) {
-			len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) ", ");
-			l = (len <= d_len) ? len : d_len;
-		}
-		AZClass *klass = AZ_CLASS_FROM_TYPE(sig->arg_types[i]);
-		len += arikkei_strncpy(d + l, d_len - l, klass->name);
-		l = (len <= d_len) ? len : d_len;
-	}
-	len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) ") => ");
-	l = (len <= d_len) ? len : d_len;
-	if (sig->ret_type) {
-		AZClass *klass = AZ_CLASS_FROM_TYPE(sig->ret_type);
-		len += arikkei_strncpy(d + l, d_len - l, klass->name);
-	} else {
-		len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) "void");
-	}
-	return len;
-}
-
-AZ_CLASS_ALIGN AZClass AZFunctionSignatureKlass = {
-	.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_FUNCTION_SIGNATURE },
-	.parent = &AZBlockKlass,
-	.name = (const uint8_t *) "signature",
-	.alignment = 7,
-	.class_size = sizeof(AZClass),
-	.instance_size = 0,
-	.to_string = function_signature_to_string
-};
-
 AZ_CLASS_ALIGN AZInterfaceClass AZFunctionKlass = {
 	.klass = {
 		.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_ABSTRACT | AZ_FLAG_INTERFACE | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_FUNCTION },
@@ -74,64 +36,9 @@ AZ_CLASS_ALIGN AZInterfaceClass AZFunctionKlass = {
 };
 
 void
-az_init_function_classes (void)
+az_init_function_class (void)
 {
-	az_class_new_with_value(&AZFunctionSignatureKlass);
 	az_class_new_with_value(&AZFunctionKlass.klass);
-}
-
-AZFunctionSignature *
-az_function_signature_new (unsigned int this_type, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
-{
-	unsigned int n_total = (this_type) ? n_args + 1 : n_args;
-	unsigned int i;
-	AZFunctionSignature* sig = (AZFunctionSignature*) malloc(sizeof(AZFunctionSignature) + n_total * sizeof(uint32_t));
-	az_instance_init_by_type (sig, AZ_TYPE_FUNCTION_SIGNATURE);
-	sig->ret_type = ret_type;
-	sig->n_args = 0;
-	if (this_type) sig->arg_types[sig->n_args++] = this_type;
-	for (i = 0; i < n_args; i++) sig->arg_types[sig->n_args++] = arg_types[i];
-	return sig;
-}
-
-AZFunctionSignature*
-az_function_signature_new_any(unsigned int this_type, unsigned int ret_type, unsigned int n_args)
-{
-	unsigned int n_total = (this_type) ? n_args + 1 : n_args;
-	unsigned int i;
-	AZFunctionSignature* sig = ( AZFunctionSignature*) malloc(sizeof(AZFunctionSignature) + n_total * sizeof(uint32_t));
-	az_instance_init_by_type(sig, AZ_TYPE_FUNCTION_SIGNATURE);
-	sig->ret_type = ret_type;
-	sig->n_args = 0;
-	if (this_type) sig->arg_types[sig->n_args++] = this_type;
-	for (i = 0; i < n_args; i++) sig->arg_types[sig->n_args++] = AZ_TYPE_ANY;
-	return sig;
-}
-
-AZFunctionSignature *
-az_function_signature_new_va (unsigned int ret_type, unsigned int n_args, ...)
-{
-	AZFunctionSignature *sig;
-	unsigned int arg_types[64], i;
-	va_list ap;
-	arikkei_return_val_if_fail (n_args < 64, NULL);
-	va_start (ap, n_args);
-	for (i = 0; i < n_args; i++) {
-		arg_types[i] = va_arg (ap, unsigned int);
-	}
-	va_end (ap);
-	sig = (AZFunctionSignature *) malloc (sizeof (AZFunctionSignature) + n_args * sizeof(uint32_t));
-	az_instance_init_by_type (sig, AZ_TYPE_FUNCTION_SIGNATURE);
-	sig->ret_type = ret_type;
-	sig->n_args = n_args;
-	for (i = 0; i < n_args; i++) sig->arg_types[i] = arg_types[i];
-	return sig;
-}
-
-void
-az_function_signature_delete(AZFunctionSignature* sig)
-{
-	az_instance_delete(AZ_TYPE_FUNCTION_SIGNATURE, sig);
 }
 
 unsigned int
@@ -165,7 +72,7 @@ az_function_invoke (const AZFunctionImplementation *impl, void *inst, const AZIm
 	arikkei_return_val_if_fail (az_type_is_a (AZ_IMPL_TYPE(&impl->implementation), AZ_TYPE_FUNCTION), 0);
 	arikkei_return_val_if_fail (inst != NULL, 0);
 #endif
-	unsigned int result = impl->invoke (impl, inst, arg_impls, arg_vals, ret_impl, ret_val, ctx);
+	unsigned int result = impl->invoke_vals (impl, inst, arg_impls, arg_vals, ret_impl, ret_val, ctx);
 	return result;
 }
 
@@ -233,41 +140,15 @@ az_function_invoke_packed (const AZFunctionImplementation *impl, void *inst, AZP
 	}
 	if (retval) {
 		if (sig->ret_type) az_packed_value_clear (&retval->packed_val);
-		return (impl->invoke (impl, inst, arg_impls, arg_vals, &retval->impl, &retval->v, ctx));
+		return (impl->invoke_vals (impl, inst, arg_impls, arg_vals, &retval->impl, &retval->v, ctx));
 	} else {
 		AZPackedValue64 ret_val;
 		ret_val.impl = NULL;
 		/* Need to be careful - inst may be destroyed during call */
-		if (!impl->invoke (impl, inst, arg_impls, arg_vals, &ret_val.impl, &ret_val.v, ctx)) return 0;
+		if (!impl->invoke_vals (impl, inst, arg_impls, arg_vals, &ret_val.impl, &ret_val.v, ctx)) return 0;
 		az_packed_value_clear (&ret_val.packed_val);
 	}
 	return 1;
-}
-
-unsigned int
-az_function_invoke_by_type_instance (unsigned int type, void *instance, AZPackedValue *thisval, AZPackedValue64 *retval, AZPackedValue *args, unsigned int checktypes, AZContext *ctx)
-{
-	AZClass *klass;
-	AZFunctionImplementation *impl;
-	AZFunctionInstance *inst;
-	arikkei_return_val_if_fail (az_type_implements (type, AZ_TYPE_FUNCTION), 0);
-	arikkei_return_val_if_fail (instance != NULL, 0);
-	klass = az_type_get_class (type);
-	impl = (AZFunctionImplementation *) az_instance_get_interface (&klass->impl, instance, AZ_TYPE_FUNCTION, (void **) &inst);
-	return az_function_invoke_packed (impl, inst, thisval, retval, args, checktypes, ctx);
-}
-
-unsigned int
-az_instance_invoke_function (const AZImplementation *impl, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types, AZContext *ctx)
-{
-	AZFunctionImplementation *func_impl;
-	AZFunctionInstance *func_inst;
-#if AZ_SAFETY_CHECKS
-	arikkei_return_val_if_fail (az_type_implements(AZ_IMPL_TYPE(impl), AZ_TYPE_FUNCTION), 0);
-	arikkei_return_val_if_fail (inst != NULL, 0);
-#endif
-	func_impl = (AZFunctionImplementation *) az_instance_get_interface (impl, inst, AZ_TYPE_FUNCTION, (void **) &func_inst);
-	return az_function_invoke_packed (func_impl, func_inst, this_val, ret_val, args, check_types, ctx);
 }
 
 #if defined(__x86_64__) || defined(_M_X64)
@@ -277,7 +158,7 @@ az_instance_invoke_function (const AZImplementation *impl, void *inst, AZPackedV
 #endif
 
 static void
-function_build_arguments_arm64 (const AZFunctionSignature *sig, va_list ap, const AZImplementation *arg_impls[], AZValue arg_vals[], const AZValue *arg_ptrs[])
+function_build_arguments_vals (const AZFunctionSignature *sig, va_list ap, const AZImplementation *arg_impls[], AZValue arg_vals[], const AZValue *arg_ptrs[])
 {
 	unsigned int i;
 	for (i = 0; i < sig->n_args; i++) {
@@ -345,7 +226,7 @@ az_function_invoke_va (const AZFunctionImplementation *impl, void *inst, AZConte
 	AZValue arg_vals[64];
 	va_list ap;
 	va_start(ap, ret_val);
-	function_build_arguments_arm64 (sig, ap, arg_impls, arg_vals, arg_ptrs);
+	function_build_arguments_vals (sig, ap, arg_impls, arg_vals, arg_ptrs);
 	va_end(ap);
 
 	return az_function_invoke (impl, inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
@@ -362,7 +243,7 @@ az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *
 	AZValue arg_vals[64];
 	va_list ap;
 	va_start(ap, ret_val);
-	function_build_arguments_arm64 (sig, ap, arg_impls, arg_vals, arg_ptrs);
+	function_build_arguments_vals (sig, ap, arg_impls, arg_vals, arg_ptrs);
 	va_end(ap);
 
 	return az_function_invoke (impl, inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
@@ -383,10 +264,10 @@ az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZ
 	AZValue arg_vals[64];
 	va_list ap;
 	va_start(ap, ret_val);
-	function_build_arguments_arm64 (sig, ap, arg_impls, arg_vals, arg_ptrs);
+	function_build_arguments_vals (sig, ap, arg_impls, arg_vals, arg_ptrs);
 	va_end(ap);
 
-	return f_impl->invoke (f_impl, f_inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
+	return f_impl->invoke_vals (f_impl, f_inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
 }
 
 #if defined(ARCH_ARM_64) && defined(__GNUC__)

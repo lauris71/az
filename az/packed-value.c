@@ -107,7 +107,7 @@ az_packed_value_can_convert (unsigned int to_type, const AZPackedValue *from)
 	/* None can be converted to NULL block */
 	if (!from->impl) {
 		AZClass *klass = az_type_get_class (to_type);
-		return (AZ_CLASS_FLAGS(klass) & AZ_FLAG_REFERENCE) != 0;
+		return AZ_CLASS_IS_REFERENCE(klass) != 0;
 	}
 	/* Anything can be converted to supertype */
 	if (az_type_is_a(AZ_PACKED_VALUE_TYPE(from), to_type)) return 1;
@@ -131,7 +131,7 @@ az_packed_value_convert (AZPackedValue *dst, unsigned int to_type, const AZPacke
 	/* None can be converted to NULL reference */
 	if (!from->impl) {
 		AZClass *klass = az_type_get_class (to_type);
-		if (AZ_CLASS_FLAGS(klass) & AZ_FLAG_REFERENCE) {
+		if (AZ_CLASS_IS_REFERENCE(klass)) {
 			az_packed_value_clear (dst);
 			return 1;
 		}

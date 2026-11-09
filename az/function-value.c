@@ -41,7 +41,7 @@ function_value_class_init (AZFunctionValueClass *klass)
 {
 	az_class_declare_interface (&klass->klass, 0, AZ_TYPE_FUNCTION, ARIKKEI_OFFSET (AZFunctionValueClass, function_impl), 0);
 	klass->function_impl.signature = fval_signature;
-	klass->function_impl.invoke = function_value_invoke;
+	klass->function_impl.invoke_vals = function_value_invoke;
 }
 
 const AZFunctionSignature *
@@ -55,14 +55,14 @@ static unsigned int
 function_value_invoke (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
 {
 	AZFunctionValue *fval = (AZFunctionValue *) inst;
-	unsigned int result = fval->invoke (arg_impls, arg_vals, ret_impl, ret_val, ctx);
+	unsigned int result = fval->invoke_vals (arg_impls, arg_vals, ret_impl, ret_val, ctx);
 	return result;
 }
 
 void
 az_function_value_setup (AZFunctionValue *fval, const AZFunctionSignature *sig,
-unsigned int (*invoke) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *))
+unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *))
 {
 	fval->signature = sig;
-	fval->invoke = invoke;
+	fval->invoke_vals = invoke_vals;
 }

@@ -53,7 +53,7 @@ az_instance_init_recursive (const AZClass *klass, const AZImplementation *impl, 
 			/* Rejected declarations (type == 0) and construct-free interfaces are skipped;
 			 * the typecode CONSTRUCT bit is set for interfaces with init/finalize/zero-memory
 			 * (az_type_reserve), so no class lookup is needed for the common case */
-			if (AZ_TYPE_FLAGS(ifentry->type) & AZ_FLAG_CONSTRUCT) {
+			if (AZ_TYPE_HAS_CONSTRUCT(ifentry->type)) {
 				AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
 				AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
 				void *sub_inst = (void *) ((char *) inst + ifentry->inst_offset);
@@ -86,7 +86,7 @@ az_instance_finalize_recursive (const AZClass *klass, const AZImplementation *im
 	if (flags & AZ_FLAG_HAS_IFACE_CONSTRUCT) {
 		const AZIFEntry *ifentry = az_class_iface_self(klass, 0);
 		for (uint16_t i = 0; i < klass->n_ifaces_self; i++) {
-			if (AZ_TYPE_FLAGS(ifentry->type) & AZ_FLAG_CONSTRUCT) {
+			if (AZ_TYPE_HAS_CONSTRUCT(ifentry->type)) {
 				AZClass *sub_class = AZ_CLASS_FROM_TYPE(ifentry->type);
 				AZImplementation *sub_impl = (AZImplementation *) ((char *) impl + ifentry->impl_offset);
 				void *sub_inst = (void *) ((char *) inst + ifentry->inst_offset);
@@ -115,7 +115,7 @@ az_instance_init (const AZImplementation *impl, void *inst)
 	if (flags & AZ_FLAG_ZERO_MEMORY) memset (inst, 0, klass->instance_size);
 	/* References are counted from one; this is inlined here so reference base
 	 * classes do not need constructors (the flag test reads an already-hot word) */
-	if (flags & AZ_FLAG_REFERENCE) ((AZReference *) inst)->refcount = 1;
+	if (AZ_CLASS_IS_REFERENCE(klass)) ((AZReference *) inst)->refcount = 1;
 	if (flags & AZ_INIT_WORK_MASK) az_instance_init_recursive (klass, impl, inst, flags & AZ_FLAG_ZERO_MEMORY);
 }
 
