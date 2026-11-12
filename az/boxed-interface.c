@@ -7,8 +7,7 @@
 */
 
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <stddef.h>
 
 #include <arikkei/allocator.h>
 #include <arikkei/arikkei-strlib.h>
@@ -251,7 +250,7 @@ az_boxed_interface_new_from_impl_value_autobox (const AZImplementation *impl, co
 		cont_val = &boxed->val;
 	} else {
 		/* The containing value cannot be an interface (lifecycle guard) */
-		arikkei_return_val_if_fail (AZ_IMPL_IS_CLASS(cont_impl), NULL);
+		arikkei_return_val_if_fail (AZ_IMPL_IS_CLASS(impl), NULL);
 		cont_impl = impl;
 		cont_val = val;
 	}
