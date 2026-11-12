@@ -6,6 +6,7 @@
 * Copyright (C) Lauris Kaplinski 2016-2026
 */
 
+#include <assert.h>
 #include <stdlib.h>
 #include <stdarg.h>
 
@@ -20,13 +21,6 @@
 #ifdef AZ_MT_REFERENCES
 #include <arikkei/arikkei-threads.h>
 #endif
-
-typedef struct _AZFunctionSignature255 AZFunctionSignature255;
-
-struct _AZFunctionSignature255 {
-	AZFunctionSignature base;
-	uint32_t filler[254];
-};
 
 #ifdef AZ_MT_REFERENCES
 static mtx_t dict_mutex;
@@ -50,7 +44,7 @@ sig_equal (const void *lhs, const void *rhs)
 {
     AZFunctionSignature *sig1 = *((AZFunctionSignature **) lhs);
     AZFunctionSignature *sig2 = *((AZFunctionSignature **) rhs);
-    if (sig1->n_args != sig2->n_args) return 0;
+    if (sig1->n_params != sig2->n_params) return 0;
     unsigned int size = AZ_SIGNATURE_SIZE(sig1) - 4;
 	return memcmp(&sig1->head_type, &sig2->head_type, size) == 0;
 }
@@ -87,19 +81,24 @@ function_signature_to_string(const AZImplementation *impl, void *inst, uint8_t *
 	unsigned int len = 0, l = 0;
 	len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) "(");
 	l = (len <= d_len) ? len : d_len;
-	for (unsigned int i = 0; i < sig->n_args; i++) {
+	for (unsigned int i = 0; i < sig->n_params - 1; i++) {
 		if (i > 0) {
 			len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) ", ");
 			l = (len <= d_len) ? len : d_len;
 		}
-		AZClass *klass = AZ_CLASS_FROM_TYPE(AZ_SIGNATURE_ARG_TYPE(sig, i));
-		len += arikkei_strncpy(d + l, d_len - l, klass->name);
+		unsigned int type = AZ_SIGNATURE_ARG_TYPE(sig, i);
+		if (type) {
+			AZClass *klass = AZ_CLASS_FROM_TYPE(type);
+			len += arikkei_strncpy(d + l, d_len - l, klass->name);
+		} else {
+			len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) "void");
+		}
 		l = (len <= d_len) ? len : d_len;
 	}
 	len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) ") => ");
 	l = (len <= d_len) ? len : d_len;
-	if (sig->ret_type) {
-		AZClass *klass = AZ_CLASS_FROM_TYPE(sig->ret_type);
+	if (AZ_SIGNATURE_RET_TYPE(sig)) {
+		AZClass *klass = AZ_CLASS_FROM_TYPE(AZ_SIGNATURE_RET_TYPE(sig));
 		len += arikkei_strncpy(d + l, d_len - l, klass->name);
 	} else {
 		len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) "void");
@@ -130,24 +129,24 @@ az_init_signature_class (void)
 #define SIGNATURE_POOL_SIZE 4096
 
 static AZFunctionSignature *
-signature_new_from_template(AZFunctionSignature255 *sig_255)
+signature_new_from_template(const AZFunctionSignature *sig)
 {
     AZ_SIGNATURE_LOCK();
-    AZFunctionSignature **known = (AZFunctionSignature **) arikkei_dict_lookup(&sig_dict, &sig_255);
+    AZFunctionSignature **known = (AZFunctionSignature **) arikkei_dict_lookup(&sig_dict, &sig);
     if (!known) {
         static uint8_t *pool = NULL;
         static uint8_t *pool_end = NULL;
-        unsigned int sig_size = AZ_SIGNATURE_SIZE(&sig_255->base);
+        unsigned int sig_size = AZ_SIGNATURE_SIZE(sig);
         if (!pool || pool + sig_size > pool_end) {
             pool = (uint8_t *) malloc(SIGNATURE_POOL_SIZE);
             pool_end = pool + SIGNATURE_POOL_SIZE;
         }
-        AZFunctionSignature *sig = (AZFunctionSignature *) pool;
+        AZFunctionSignature *new_sig = (AZFunctionSignature *) pool;
         pool += sig_size;
-        memcpy(sig, sig_255, sig_size);
-        arikkei_dict_insert(&sig_dict, &sig, &sig);
+        memcpy(new_sig, sig, sig_size);
+        arikkei_dict_insert(&sig_dict, &new_sig, &new_sig);
 	    AZ_SIGNATURE_UNLOCK();
-		return sig;
+		return new_sig;
     }
     AZ_SIGNATURE_UNLOCK();
     return *known;
@@ -157,56 +156,46 @@ AZFunctionSignature *
 az_function_signature_new(unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
 {
 	arikkei_return_val_if_fail(n_args <= 255, NULL);
-    AZFunctionSignature255 sig_255 = {0};
-	sig_255.base.ret_type = ret_type;
-	sig_255.base.n_args = n_args;
-	memcpy (AZ_SIGNATURE_ARG_TYPES((&sig_255.base)), arg_types, n_args * sizeof (uint32_t));
-    return signature_new_from_template(&sig_255);
+	uint32_t buf[260] = {0};
+    AZFunctionSignature *sig = (AZFunctionSignature *) buf;
+	sig->head_type = AZ_TYPE_FUNCTION;
+	sig->n_params = n_args + 1;
+	sig->params[0] = ret_type;
+	memcpy (AZ_SIGNATURE_ARG_TYPES(sig), arg_types, n_args * sizeof (uint32_t));
+    return signature_new_from_template(sig);
 }
 
 AZFunctionSignature *
 az_function_signature_new_va (unsigned int ret_type, unsigned int n_args, ...)
 {
 	arikkei_return_val_if_fail(n_args <= 255, NULL);
-    AZFunctionSignature255 sig_255 = {0};
-	sig_255.base.ret_type = ret_type;
-	sig_255.base.n_args = n_args;
-	uint32_t *dst_args = AZ_SIGNATURE_ARG_TYPES((&sig_255.base));
+	uint32_t buf[260] = {0};
+	AZFunctionSignature *sig = (AZFunctionSignature *) buf;
+	sig->head_type = AZ_TYPE_FUNCTION;
+	sig->n_params = n_args + 1;
+	sig->params[0] = ret_type;
+	uint32_t *dst_args = AZ_SIGNATURE_ARG_TYPES(sig);
 	va_list ap;
 	va_start (ap, n_args);
 	for (unsigned int i = 0; i < n_args; i++) {
 		dst_args[i] = va_arg (ap, unsigned int);
 	}
 	va_end (ap);
-	return signature_new_from_template(&sig_255);
+	return signature_new_from_template(sig);
 }
 
 AZFunctionSignature *
 az_function_signature_new_with_this(unsigned int this_type, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
 {
 	arikkei_return_val_if_fail(n_args < 255, NULL);
-    AZFunctionSignature255 sig_255 = {0};
+	uint32_t buf[260] = {0};
+    AZFunctionSignature *sig = (AZFunctionSignature *) buf;
 	unsigned int n_total = (this_type) ? n_args + 1 : n_args;
 	unsigned int i;
-	uint32_t *dst_args = AZ_SIGNATURE_ARG_TYPES((&sig_255.base));
-	sig_255.base.ret_type = ret_type;
-	sig_255.base.n_args = 0;
-	if (this_type) dst_args[sig_255.base.n_args++] = this_type;
-	for (i = 0; i < n_args; i++) dst_args[sig_255.base.n_args++] = arg_types[i];
-    return signature_new_from_template(&sig_255);
-}
-
-AZFunctionSignature*
-az_function_signature_new_with_this_any(unsigned int this_type, unsigned int ret_type, unsigned int n_args)
-{
-	arikkei_return_val_if_fail(n_args < 255, NULL);
-    AZFunctionSignature255 sig_255;
-	unsigned int n_total = (this_type) ? n_args + 1 : n_args;
-	unsigned int i;
-	uint32_t *dst_args = AZ_SIGNATURE_ARG_TYPES((&sig_255.base));
-	sig_255.base.ret_type = ret_type;
-	sig_255.base.n_args = 0;
-	if (this_type) dst_args[sig_255.base.n_args++] = this_type;
-	for (i = 0; i < n_args; i++) dst_args[sig_255.base.n_args++] = AZ_TYPE_ANY;
-    return signature_new_from_template(&sig_255);
+	sig->head_type = AZ_TYPE_FUNCTION;
+	sig->n_params = 1;
+	sig->params[0] = ret_type;
+	if (this_type) sig->params[sig->n_params++] = this_type;
+	for (i = 0; i < n_args; i++) sig->params[sig->n_params++] = arg_types[i];
+    return signature_new_from_template(sig);
 }

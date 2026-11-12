@@ -114,12 +114,12 @@ enum AZTypeFlags {
 	 * @brief A special reference type that contains a pointer to it's class
 	 * 
 	 */
-	AZ_FLAG_OBJECT = 0x10000000,
+	AZ_FLAG_OBJECT = 0x08000000,
 	/**
 	 * @brief Type is final, no further subclassing is allowed
 	 * 
 	 */
-	AZ_FLAG_FINAL = 0x20000000,
+	AZ_FLAG_FINAL = 0x10000000,
 	/**
 	 * @brief The type instances have constructor or destructor
 	 * 
@@ -134,7 +134,7 @@ enum AZTypeFlags {
 	 * locking). It is a conservative superset of the actual construction work;
 	 * the precise work is described by the class-level flags below.
 	 */
-	AZ_FLAG_CONSTRUCT = 0x80000000,
+	AZ_FLAG_CONSTRUCT = 0x20000000,
 };
 
 /** @ingroup types

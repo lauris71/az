@@ -45,11 +45,11 @@ unsigned int
 az_function_signature_is_assignable_to (const AZFunctionSignature *sig, const AZFunctionSignature *other, unsigned int test_ret_val)
 {
 	unsigned int i;
-	if (sig->n_args != other->n_args) return 0;
+	if (sig->n_params != other->n_params) return 0;
 	if (test_ret_val && (AZ_SIGNATURE_RET_TYPE(sig) || AZ_SIGNATURE_RET_TYPE(other))) {
 		if (!az_type_is_a (AZ_SIGNATURE_RET_TYPE(sig), AZ_SIGNATURE_RET_TYPE(other))) return 0;
 	}
-	for (i = 0; i < sig->n_args; i++) {
+	for (i = 0; i < sig->n_params - 1; i++) {
 		/* fixme: For now we have to accept conditional conversion (should be fixed in Aosora first) */
 		if (az_type_get_conversion_to (AZ_SIGNATURE_ARG_TYPE(other, i), AZ_SIGNATURE_ARG_TYPE(sig, i)) > AZ_CONVERT_CONDITIONAL) return 0;
 	}
@@ -89,7 +89,7 @@ az_function_convert_args_in_place (const AZFunctionImplementation *impl, void *i
 #endif
 	const AZFunctionSignature *sig = az_function_get_signature(impl, inst);
 	/* fixme: Not sure whether converting this is meaningful or not */
-	for (i = 0; i < sig->n_args; i++) {
+	for (i = 0; i < sig->n_params - 1; i++) {
 		if (az_value_convert_in_place (&arg_impls[i], arg_vals[i], AZ_SIGNATURE_ARG_TYPE(sig, i), AZ_CONVERT_CONDITIONAL) == AZ_CONVERSION_FAILED) return 0;
 	}
 	return 1;
@@ -105,7 +105,7 @@ static void
 function_build_arguments_vals (const AZFunctionSignature *sig, va_list ap, const AZImplementation *arg_impls[], AZValue arg_vals[], const AZValue *arg_ptrs[])
 {
 	unsigned int i;
-	for (i = 0; i < sig->n_args; i++) {
+	for (i = 0; i < sig->n_params - 1; i++) {
 		unsigned int arg_type = AZ_SIGNATURE_ARG_TYPE(sig, i);
 		AZClass *klass = AZ_CLASS_FROM_TYPE(arg_type);
 		if (AZ_TYPE_IS_OBJECT(arg_type)) {
@@ -166,7 +166,7 @@ az_function_invoke_va (const AZFunctionImplementation *impl, void *inst, AZConte
 	const AZValue *arg_ptrs[64];
 
 	const AZFunctionSignature *sig = az_function_get_signature(impl, inst);
-	arikkei_return_val_if_fail (sig->n_args < 64, 0);
+	arikkei_return_val_if_fail (sig->n_params < 64, 0);
 
 	AZValue arg_vals[64];
 	va_list ap;
@@ -183,7 +183,7 @@ az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *
 	const AZImplementation *arg_impls[64];
 	const AZValue *arg_ptrs[64];
 
-	arikkei_return_val_if_fail (sig->n_args < 64, 0);
+	arikkei_return_val_if_fail (sig->n_params < 64, 0);
 
 	AZValue arg_vals[64];
 	va_list ap;
@@ -202,7 +202,7 @@ az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZ
 	const AZImplementation *arg_impls[64];
 	const AZValue *arg_ptrs[64];
 	arikkei_return_val_if_fail (impl != NULL, 0);
-	arikkei_return_val_if_fail (sig->n_args < 64, 0);
+	arikkei_return_val_if_fail (sig->n_params < 64, 0);
 	f_impl = (AZFunctionImplementation *) az_instance_get_interface (impl, az_value_get_inst(impl, val), AZ_TYPE_FUNCTION, (void **) &f_inst);
 	arikkei_return_val_if_fail (f_impl != NULL, 0);
 
@@ -365,7 +365,7 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 
 	arikkei_return_val_if_fail (func != NULL, 0);
 	arikkei_return_val_if_fail (sig != NULL, 0);
-	arikkei_return_val_if_fail (sig->n_args < 64, 0);
+	arikkei_return_val_if_fail (sig->n_params < 64, 0);
 
 	if (!ret_val) ret_val = &tmp_ret;
 
@@ -383,7 +383,7 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 	}
 
 	/* Arguments */
-	for (i = 0; i < sig->n_args; i++) {
+	for (i = 0; i < sig->n_params - 1; i++) {
 		unsigned int type = AZ_SIGNATURE_ARG_TYPE(sig, i);
 		AZClass *klass = AZ_CLASS_FROM_TYPE (type);
 		if (AZ_TYPE_IS_OBJECT (type)) {
