@@ -98,7 +98,7 @@ reference_of_delegate_lookup_property (const AZClass *klass, const AZImplementat
 }
 
 static int
-reference_of_delegate_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+reference_of_delegate_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
 	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) klass;
 	AZClass *inst_class = AZ_CLASS_FROM_TYPE (ref_class->instance_type);

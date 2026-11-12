@@ -28,6 +28,14 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Test call-native",
+            "program": "${workspaceFolder}/build/tests/az_test",
+            "args": ["call-native"],
+            "cwd": "${workspaceFolder}/build/tests/"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Test ValueArray",
             "program": "${workspaceFolder}/build/tests/az_test",
             "args": ["value-array"],

@@ -46,10 +46,12 @@ az_function_signature_is_assignable_to (const AZFunctionSignature *sig, const AZ
 {
 	unsigned int i;
 	if (sig->n_args != other->n_args) return 0;
-	if (test_ret_val && (sig->ret_type || other->ret_type) && !az_type_is_a (sig->ret_type, other->ret_type)) return 0;
+	if (test_ret_val && (AZ_SIGNATURE_RET_TYPE(sig) || AZ_SIGNATURE_RET_TYPE(other))) {
+		if (!az_type_is_a (AZ_SIGNATURE_RET_TYPE(sig), AZ_SIGNATURE_RET_TYPE(other))) return 0;
+	}
 	for (i = 0; i < sig->n_args; i++) {
 		/* fixme: For now we have to accept conditional conversion (should be fixed in Aosora first) */
-		if (az_type_get_conversion_to (other->arg_types[i], sig->arg_types[i]) > AZ_CONVERT_CONDITIONAL) return 0;
+		if (az_type_get_conversion_to (AZ_SIGNATURE_ARG_TYPE(other, i), AZ_SIGNATURE_ARG_TYPE(sig, i)) > AZ_CONVERT_CONDITIONAL) return 0;
 	}
 	return 1;
 }
@@ -88,65 +90,7 @@ az_function_convert_args_in_place (const AZFunctionImplementation *impl, void *i
 	const AZFunctionSignature *sig = az_function_get_signature(impl, inst);
 	/* fixme: Not sure whether converting this is meaningful or not */
 	for (i = 0; i < sig->n_args; i++) {
-		if (az_value_convert_in_place (&arg_impls[i], arg_vals[i], sig->arg_types[i], AZ_CONVERT_CONDITIONAL) == AZ_CONVERSION_FAILED) return 0;
-	}
-	return 1;
-}
-
-unsigned int
-az_function_invoke_packed (const AZFunctionImplementation *impl, void *inst, AZPackedValue *thisval, AZPackedValue64 *retval, AZPackedValue *args, unsigned int checktypes, AZContext *ctx)
-{
-	unsigned int s, d;
-	arikkei_return_val_if_fail (impl != NULL, 0);
-	arikkei_return_val_if_fail (az_type_is_a (AZ_IMPL_TYPE(&impl->implementation), AZ_TYPE_FUNCTION), 0);
-	arikkei_return_val_if_fail (inst != NULL, 0);
-	const AZFunctionSignature *sig = az_function_get_signature(impl, inst);
-	if (checktypes) {
-		s = d = 0;
-		if (thisval->impl) {
-			if (!az_type_is_a (AZ_IMPL_TYPE(thisval->impl), sig->arg_types[d])) {
-				fprintf (stderr, ".");
-			}
-			arikkei_return_val_if_fail (az_type_is_a(AZ_IMPL_TYPE(thisval->impl), sig->arg_types[d]), 0);
-			d += 1;
-		}
-		while (d < sig->n_args) {
-			if (!args[s].impl && AZ_TYPE_IS_BLOCK (sig->arg_types[d])) {
-				s += 1;
-				d += 1;
-				continue;
-			}
-			if (!az_type_is_a (AZ_PACKED_VALUE_TYPE(&args[s]), sig->arg_types[d])) {
-				fprintf (stderr, "az_function_invoke: Invalid argument type (%u) %u is not %u\n", d, AZ_PACKED_VALUE_TYPE(&args[s]), sig->arg_types[d]);
-				return 0;
-			}
-			s += 1;
-			d += 1;
-		}
-	}
-	const AZImplementation *arg_impls[32];
-	const AZValue *arg_vals[32];
-	s = d = 0;
-	if (thisval->impl) {
-		arg_impls[d] = thisval->impl;
-		arg_vals[d] = &thisval->v;
-		d += 1;
-	}
-	while (d < sig->n_args) {
-		arg_impls[d] = args[s].impl;
-		arg_vals[d] = &args[s].v;
-		s += 1;
-		d += 1;
-	}
-	if (retval) {
-		if (sig->ret_type) az_packed_value_clear (&retval->packed_val);
-		return (impl->invoke_vals (impl, inst, arg_impls, arg_vals, &retval->impl, &retval->v, ctx));
-	} else {
-		AZPackedValue64 ret_val;
-		ret_val.impl = NULL;
-		/* Need to be careful - inst may be destroyed during call */
-		if (!impl->invoke_vals (impl, inst, arg_impls, arg_vals, &ret_val.impl, &ret_val.v, ctx)) return 0;
-		az_packed_value_clear (&ret_val.packed_val);
+		if (az_value_convert_in_place (&arg_impls[i], arg_vals[i], AZ_SIGNATURE_ARG_TYPE(sig, i), AZ_CONVERT_CONDITIONAL) == AZ_CONVERSION_FAILED) return 0;
 	}
 	return 1;
 }
@@ -162,18 +106,19 @@ function_build_arguments_vals (const AZFunctionSignature *sig, va_list ap, const
 {
 	unsigned int i;
 	for (i = 0; i < sig->n_args; i++) {
-		AZClass *klass = AZ_CLASS_FROM_TYPE(sig->arg_types[i]);
-		if (AZ_TYPE_IS_OBJECT(sig->arg_types[i])) {
+		unsigned int arg_type = AZ_SIGNATURE_ARG_TYPE(sig, i);
+		AZClass *klass = AZ_CLASS_FROM_TYPE(arg_type);
+		if (AZ_TYPE_IS_OBJECT(arg_type)) {
 			/* Objects - [pointer] */
 			AZObject *obj = (AZObject *) va_arg(ap, AZObject *);
 			arg_impls[i] = (obj) ? (AZImplementation *) obj->klass : &klass->impl;
 			arg_vals[i].block = obj;
-		} else if (AZ_TYPE_IS_FINAL(sig->arg_types[i])) {
+		} else if (AZ_TYPE_IS_FINAL(arg_type)) {
 			/* Final type, no implementation */
 			arg_impls[i] = &klass->impl;
-			if (AZ_TYPE_IS_PRIMITIVE(sig->arg_types[i])) {
+			if (AZ_TYPE_IS_PRIMITIVE(arg_type)) {
 				/* Primitive types - [value] */
-				switch(sig->arg_types[i]) {
+				switch(arg_type) {
 					case AZ_TYPE_BOOLEAN:
 					case AZ_TYPE_INT8:
 					case AZ_TYPE_UINT8:
@@ -425,12 +370,13 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 	if (!ret_val) ret_val = &tmp_ret;
 
 	/* Hidden return storage argument */
-	if (sig->ret_type && !AZ_TYPE_IS_OBJECT (sig->ret_type) && !AZ_TYPE_IS_PRIMITIVE (sig->ret_type)) {
-		if (!AZ_TYPE_IS_FINAL (sig->ret_type) || !AZ_TYPE_IS_BLOCK (sig->ret_type)) {
+	unsigned int ret_type = AZ_SIGNATURE_RET_TYPE(sig);
+	if (ret_type && !AZ_TYPE_IS_OBJECT (ret_type) && !AZ_TYPE_IS_PRIMITIVE (ret_type)) {
+		if (!AZ_TYPE_IS_FINAL (ret_type) || !AZ_TYPE_IS_BLOCK (ret_type)) {
 			/* Final values and all non-final types: the first argument is a pointer to the return storage */
-			void *storage = (AZ_TYPE_IS_BLOCK (sig->ret_type)) ? (void *) &ret_val->value.block : (void *) ret_val;
-			if (!AZ_TYPE_IS_BLOCK (sig->ret_type)) {
-				arikkei_return_val_if_fail (AZ_CLASS_FROM_TYPE (sig->ret_type)->instance_size <= AZ_FUNCTION_MAX_RETURN_VALUE_SIZE, 0);
+			void *storage = (AZ_TYPE_IS_BLOCK (ret_type)) ? (void *) &ret_val->value.block : (void *) ret_val;
+			if (!AZ_TYPE_IS_BLOCK (ret_type)) {
+				arikkei_return_val_if_fail (AZ_CLASS_FROM_TYPE (ret_type)->instance_size <= AZ_FUNCTION_MAX_RETURN_VALUE_SIZE, 0);
 			}
 			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) storage)) return 0;
 		}
@@ -438,7 +384,7 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 
 	/* Arguments */
 	for (i = 0; i < sig->n_args; i++) {
-		unsigned int type = sig->arg_types[i];
+		unsigned int type = AZ_SIGNATURE_ARG_TYPE(sig, i);
 		AZClass *klass = AZ_CLASS_FROM_TYPE (type);
 		if (AZ_TYPE_IS_OBJECT (type)) {
 			/* Objects - [pointer] */
@@ -516,11 +462,11 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 
 	az_native_call_frame_arm64 (func, &frame, stack_bytes, &result);
 
-	if (!sig->ret_type) {
+	if (!ret_type) {
 		if (ret_impl) *ret_impl = NULL;
 		return 1;
 	}
-	rtype = sig->ret_type;
+	rtype = ret_type;
 	rklass = AZ_CLASS_FROM_TYPE (rtype);
 	if (AZ_TYPE_IS_OBJECT (rtype)) {
 		/* Objects - returned by pointer */
@@ -765,12 +711,13 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 	if (!ret_val) ret_val = &tmp_ret;
 
 	/* Hidden return storage argument */
-	if (sig->ret_type && !AZ_TYPE_IS_OBJECT (sig->ret_type) && !AZ_TYPE_IS_PRIMITIVE (sig->ret_type)) {
-		if (!AZ_TYPE_IS_FINAL (sig->ret_type) || !AZ_TYPE_IS_BLOCK (sig->ret_type)) {
+	unsigned int ret_type = AZ_SIGNATURE_RET_TYPE(sig);
+	if (ret_type && !AZ_TYPE_IS_OBJECT (ret_type) && !AZ_TYPE_IS_PRIMITIVE (ret_type)) {
+		if (!AZ_TYPE_IS_FINAL (ret_type) || !AZ_TYPE_IS_BLOCK (ret_type)) {
 			/* Final values and all non-final types: the first argument is a pointer to the return storage */
-			void *storage = (AZ_TYPE_IS_BLOCK (sig->ret_type)) ? (void *) &ret_val->value.block : (void *) ret_val;
-			if (!AZ_TYPE_IS_BLOCK (sig->ret_type)) {
-				arikkei_return_val_if_fail (AZ_CLASS_FROM_TYPE (sig->ret_type)->instance_size <= AZ_FUNCTION_MAX_RETURN_VALUE_SIZE, 0);
+			void *storage = (AZ_TYPE_IS_BLOCK (ret_type)) ? (void *) &ret_val->value.block : (void *) ret_val;
+			if (!AZ_TYPE_IS_BLOCK (ret_type)) {
+				arikkei_return_val_if_fail (AZ_CLASS_FROM_TYPE (ret_type)->instance_size <= AZ_FUNCTION_MAX_RETURN_VALUE_SIZE, 0);
 			}
 			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) storage)) return 0;
 		}
@@ -856,11 +803,11 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 	frame.n_fpr = n_fpr;
 	az_native_call_frame_sysv64 (func, &frame, stack_bytes, &result);
 
-	if (!sig->ret_type) {
+	if (!ret_type) {
 		if (ret_impl) *ret_impl = NULL;
 		return 1;
 	}
-	rtype = sig->ret_type;
+	rtype = ret_type;
 	rklass = AZ_CLASS_FROM_TYPE (rtype);
 	if (AZ_TYPE_IS_OBJECT (rtype)) {
 		/* Objects - returned by pointer */
@@ -1030,16 +977,17 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 	if (!ret_val) ret_val = &tmp_ret;
 
 	/* Hidden return storage argument */
-	if (sig->ret_type) {
-		if (sig->ret_type == AZ_TYPE_COMPLEX_DOUBLE) {
+	unsigned int ret_type = AZ_SIGNATURE_RET_TYPE(sig);
+	if (ret_type) {
+		if (ret_type == AZ_TYPE_COMPLEX_DOUBLE) {
 			/* 16-byte aggregate - returned through a hidden storage pointer by the ABI */
 			if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) ret_val)) return 0;
-		} else if (!AZ_TYPE_IS_OBJECT (sig->ret_type) && !AZ_TYPE_IS_PRIMITIVE (sig->ret_type)) {
-			if (!AZ_TYPE_IS_FINAL (sig->ret_type) || !AZ_TYPE_IS_BLOCK (sig->ret_type)) {
+		} else if (!AZ_TYPE_IS_OBJECT (ret_type) && !AZ_TYPE_IS_PRIMITIVE (ret_type)) {
+			if (!AZ_TYPE_IS_FINAL (ret_type) || !AZ_TYPE_IS_BLOCK (ret_type)) {
 				/* Final values and all non-final types: the first argument is a pointer to the return storage */
-				void *storage = (AZ_TYPE_IS_BLOCK (sig->ret_type)) ? (void *) &ret_val->value.block : (void *) ret_val;
-				if (!AZ_TYPE_IS_BLOCK (sig->ret_type)) {
-					arikkei_return_val_if_fail (AZ_CLASS_FROM_TYPE (sig->ret_type)->instance_size <= AZ_FUNCTION_MAX_RETURN_VALUE_SIZE, 0);
+				void *storage = (AZ_TYPE_IS_BLOCK (ret_type)) ? (void *) &ret_val->value.block : (void *) ret_val;
+				if (!AZ_TYPE_IS_BLOCK (ret_type)) {
+					arikkei_return_val_if_fail (AZ_CLASS_FROM_TYPE (ret_type)->instance_size <= AZ_FUNCTION_MAX_RETURN_VALUE_SIZE, 0);
 				}
 				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) storage)) return 0;
 			}
@@ -1119,11 +1067,11 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 
 	az_native_call_frame_win64 (func, &frame, stack_bytes, &result);
 
-	if (!sig->ret_type) {
+	if (!ret_type) {
 		if (ret_impl) *ret_impl = NULL;
 		return 1;
 	}
-	rtype = sig->ret_type;
+	rtype = ret_type;
 	rklass = AZ_CLASS_FROM_TYPE (rtype);
 	if (AZ_TYPE_IS_OBJECT (rtype)) {
 		/* Objects - returned by pointer */

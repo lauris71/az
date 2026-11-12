@@ -45,19 +45,6 @@ const AZFunctionSignature *az_function_get_signature (const AZFunctionImplementa
 unsigned int az_function_invoke (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
 unsigned int az_function_convert_args_in_place (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], AZValue *arg_vals[]);
 
-/** @ingroup function
- * @brief Invoke function using packed arguments
- * 
- * @param impl 
- * @param inst 
- * @param this_val 
- * @param ret_val 
- * @param args 
- * @param check_types 
- * @return unsigned int 
- */
-unsigned int az_function_invoke_packed (const AZFunctionImplementation *impl, void *inst, AZPackedValue *this_val, AZPackedValue64 *ret_val, AZPackedValue *args, unsigned int check_types, AZContext *ctx);
-
 /*
  * Native <-> az function calling rules (determined by signature)
  *

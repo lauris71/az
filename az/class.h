@@ -363,7 +363,7 @@ az_class_parent(const AZClass *klass) {
  * @return the property index in def_class or error code
  */
 int az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
-int az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
+int az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
 
 /**
  * @brief Iterate over all visible properties of an instance or type

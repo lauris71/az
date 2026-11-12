@@ -149,7 +149,7 @@ typedef struct _AZClassDelegate AZClassDelegate;
 struct _AZClassDelegate {
 	const AZImplementation *(*get_interface) (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
 	int (*lookup_property) (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
-	int (*lookup_function) (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
+	int (*lookup_function) (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
 	int (*foreach_property) (const AZClass *klass, const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data);
 	int (*foreach_interface) (const AZClass *klass, const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data);
 };

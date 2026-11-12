@@ -545,7 +545,7 @@ az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, vo
 #define noVERBOSE
 
 static int
-az_class_lookup_function_default (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+az_class_lookup_function_default (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
 	int result;
 #ifdef VERBOSE
@@ -608,7 +608,7 @@ az_class_lookup_function_default (const AZClass *klass, const AZImplementation *
 }
 
 int
-az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
 	arikkei_return_val_if_fail (klass != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (key != NULL, AZ_NULL_VALUE);

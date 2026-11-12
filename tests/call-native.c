@@ -116,11 +116,8 @@ static uint64_t native_fval_sig (const AZFunctionValue *fv)
 static unsigned int
 call_native (void (*func) (void), unsigned int ret_type, unsigned int n_args, const unsigned int *arg_types, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation **arg_impls, const AZValue **arg_vals)
 {
-    AZFunctionSignature32 sig32;
-    sig32.ret_type = ret_type;
-    sig32.n_args = n_args;
-    if (n_args) memcpy (sig32.arg_types, arg_types, n_args * sizeof (unsigned int));
-    return az_function_call_native (func, (AZFunctionSignature *) &sig32, ret_impl, ret_val, arg_impls, arg_vals);
+    const AZFunctionSignature *sig = az_function_signature_new(ret_type, n_args, arg_types);
+    return az_function_call_native (func, sig, ret_impl, ret_val, arg_impls, arg_vals);
 }
 
 void

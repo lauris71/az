@@ -65,7 +65,7 @@ boxed_interface_delegate_lookup_property (const AZClass *klass, const AZImplemen
 }
 
 static int
-boxed_interface_delegate_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+boxed_interface_delegate_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
 	if (!inst) return AZ_NULL_VALUE;
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
