@@ -725,7 +725,7 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 
 	/* Arguments */
 	for (i = 0; i < sig->n_args; i++) {
-		unsigned int type = sig->arg_types[i];
+		unsigned int type = AZ_SIGNATURE_ARG_TYPE(sig, i);
 		AZClass *klass = AZ_CLASS_FROM_TYPE (type);
 		if (AZ_TYPE_IS_OBJECT (type)) {
 			/* Objects - [pointer] */
@@ -758,7 +758,7 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) arg_vals[i]->int64_v)) return 0;
 				break;
 			case AZ_TYPE_UINT64:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, arg_vals[i]->uint64_v)) return 0;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) arg_vals[i]->uint64_v)) return 0;
 				break;
 			case AZ_TYPE_FLOAT:
 				if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, arg_vals[i]->float_v)) return 0;
@@ -996,7 +996,7 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 
 	/* Arguments */
 	for (i = 0; i < sig->n_args; i++) {
-		unsigned int type = sig->arg_types[i];
+		unsigned int type = AZ_SIGNATURE_ARG_TYPE(sig, i);
 		AZClass *klass = AZ_CLASS_FROM_TYPE (type);
 		if (AZ_TYPE_IS_OBJECT (type)) {
 			/* Objects - [pointer] */

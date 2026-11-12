@@ -160,7 +160,7 @@ az_function_signature_new(unsigned int ret_type, unsigned int n_args, const unsi
     AZFunctionSignature255 sig_255 = {0};
 	sig_255.base.ret_type = ret_type;
 	sig_255.base.n_args = n_args;
-	for (unsigned int i = 0; i < n_args; i++) sig_255.base.arg_types[i] = arg_types[i];
+	memcpy (AZ_SIGNATURE_ARG_TYPES((&sig_255.base)), arg_types, n_args * sizeof (uint32_t));
     return signature_new_from_template(&sig_255);
 }
 
@@ -171,10 +171,11 @@ az_function_signature_new_va (unsigned int ret_type, unsigned int n_args, ...)
     AZFunctionSignature255 sig_255 = {0};
 	sig_255.base.ret_type = ret_type;
 	sig_255.base.n_args = n_args;
+	uint32_t *dst_args = AZ_SIGNATURE_ARG_TYPES((&sig_255.base));
 	va_list ap;
 	va_start (ap, n_args);
 	for (unsigned int i = 0; i < n_args; i++) {
-		sig_255.base.arg_types[i] = va_arg (ap, unsigned int);
+		dst_args[i] = va_arg (ap, unsigned int);
 	}
 	va_end (ap);
 	return signature_new_from_template(&sig_255);
@@ -187,10 +188,11 @@ az_function_signature_new_with_this(unsigned int this_type, unsigned int ret_typ
     AZFunctionSignature255 sig_255 = {0};
 	unsigned int n_total = (this_type) ? n_args + 1 : n_args;
 	unsigned int i;
+	uint32_t *dst_args = AZ_SIGNATURE_ARG_TYPES((&sig_255.base));
 	sig_255.base.ret_type = ret_type;
 	sig_255.base.n_args = 0;
-	if (this_type) sig_255.base.arg_types[sig_255.base.n_args++] = this_type;
-	for (i = 0; i < n_args; i++) sig_255.base.arg_types[sig_255.base.n_args++] = arg_types[i];
+	if (this_type) dst_args[sig_255.base.n_args++] = this_type;
+	for (i = 0; i < n_args; i++) dst_args[sig_255.base.n_args++] = arg_types[i];
     return signature_new_from_template(&sig_255);
 }
 
@@ -201,9 +203,10 @@ az_function_signature_new_with_this_any(unsigned int this_type, unsigned int ret
     AZFunctionSignature255 sig_255;
 	unsigned int n_total = (this_type) ? n_args + 1 : n_args;
 	unsigned int i;
+	uint32_t *dst_args = AZ_SIGNATURE_ARG_TYPES((&sig_255.base));
 	sig_255.base.ret_type = ret_type;
 	sig_255.base.n_args = 0;
-	if (this_type) sig_255.base.arg_types[sig_255.base.n_args++] = this_type;
-	for (i = 0; i < n_args; i++) sig_255.base.arg_types[sig_255.base.n_args++] = AZ_TYPE_ANY;
-	return signature_new_from_template(&sig_255);
+	if (this_type) dst_args[sig_255.base.n_args++] = this_type;
+	for (i = 0; i < n_args; i++) dst_args[sig_255.base.n_args++] = AZ_TYPE_ANY;
+    return signature_new_from_template(&sig_255);
 }

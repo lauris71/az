@@ -551,7 +551,7 @@ az_class_lookup_function_default (const AZClass *klass, const AZImplementation *
 #ifdef VERBOSE
 	fprintf(stderr, "Lookup function in %s: %s (", (const char *) klass->name, (const char *) key->str);
 	for (unsigned int i = 0; i < sig->n_args; i++) {
-		AZClass *arg_class = AZ_CLASS_FROM_TYPE(sig->arg_types[i]);
+		AZClass *arg_class = AZ_CLASS_FROM_TYPE(AZ_SIGNATURE_ARG_TYPE(sig, i));
 		fprintf(stderr, "%s ", (arg_class) ? (const char *) arg_class->name : "NULL");
 	}
 	AZClass *ret_class = (sig->ret_type) ? AZ_CLASS_FROM_TYPE(sig->ret_type) : NULL;
@@ -563,7 +563,7 @@ az_class_lookup_function_default (const AZClass *klass, const AZImplementation *
 #ifdef VERBOSE
 			fprintf(stderr, "    (");
 			for (unsigned int j = 0; j < prop_sig->n_args; j++) {
-				AZClass *arg_class = AZ_CLASS_FROM_TYPE(prop_sig->arg_types[j]);
+				AZClass *arg_class = AZ_CLASS_FROM_TYPE(AZ_SIGNATURE_ARG_TYPE(prop_sig, j));
 				fprintf(stderr, "%s ", arg_class ? (const char *) arg_class->name : "NULL");
 			}
 			ret_class = (prop_sig->ret_type) ? AZ_CLASS_FROM_TYPE(prop_sig->ret_type) : NULL;

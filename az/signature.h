@@ -20,8 +20,11 @@ extern AZClass AZFunctionSignatureKlass;
  */
 #define AZ_SIGNATURE_SIZE(sig) (sizeof(AZFunctionSignature) - 4 + ((sig)->n_args) * 4)
 #define AZ_SIGNATURE_N_ARGS(sig) ((sig)->n_args)
-#define AZ_SIGNATURE_ARG_TYPES(sig) (&(sig)->arg_types[0])
-#define AZ_SIGNATURE_ARG_TYPE(sig,i) ((sig)->arg_types[i])
+/* NB: arg_types is declared as arg_types[1] but holds up to 255 entries (struct hack).
+ * Accesses have to go through a void pointer cast so the compiler cannot use the
+ * declared array bound to optimize them away (gcc does this at -O2/-O3). */
+#define AZ_SIGNATURE_ARG_TYPES(sig) ((uint32_t *) (void *) (sig)->arg_types)
+#define AZ_SIGNATURE_ARG_TYPE(sig,i) (((const uint32_t *) (const void *) (sig)->arg_types)[i])
 #define AZ_SIGNATURE_RET_TYPE(sig) ((sig)->ret_type)
 
 struct _AZFunctionSignature {

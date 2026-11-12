@@ -396,12 +396,12 @@ test_boxed_value()
     TEST_ASSERT(impl == &AZComplexDoubleKlass.impl);
     TEST_ASSERT(val1.cdouble_v.r == 1.0 && val1.cdouble_v.i == -1.0);
     /* Big value is boxed into a small destination and unboxed back */
-    AZValue big_src;
-    az_value_init(&big_klass->impl, &big_src);
+    AZValue64 big_src;
+    az_value_init(&big_klass->impl, &big_src.value);
     ((BigVal *) &big_src)->v[0] = 3.0;
     ((BigVal *) &big_src)->v[3] = -7.0;
     AZValue big_dst;
-    impl = az_value_copy_autobox(&big_klass->impl, &big_dst, &big_src, 16);
+    impl = az_value_copy_autobox(&big_klass->impl, &big_dst, &big_src.value, 16);
     TEST_ASSERT(impl == AZ_BOXED_VALUE_IMPL);
     TEST_ASSERT(big_dst.block != NULL);
     /* Copy back out of the box into a full-size value */
