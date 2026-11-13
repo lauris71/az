@@ -729,7 +729,7 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 
 	arikkei_return_val_if_fail (func != NULL, 0);
 	arikkei_return_val_if_fail (sig != NULL, 0);
-	arikkei_return_val_if_fail (sig->n_args < 64, 0);
+	arikkei_return_val_if_fail (sig->n_params < 64, 0);
 
 	if (!ret_val) ret_val = &tmp_ret;
 
@@ -747,7 +747,7 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 	}
 
 	/* Arguments */
-	for (i = 0; i < sig->n_args; i++) {
+	for (i = 0; i < sig->n_params - 1; i++) {
 		unsigned int type = AZ_SIGNATURE_ARG_TYPE(sig, i);
 		AZClass *klass = AZ_CLASS_FROM_TYPE (type);
 		if (AZ_TYPE_IS_OBJECT (type)) {
@@ -995,7 +995,7 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 
 	arikkei_return_val_if_fail (func != NULL, 0);
 	arikkei_return_val_if_fail (sig != NULL, 0);
-	arikkei_return_val_if_fail (sig->n_args < 64, 0);
+	arikkei_return_val_if_fail (sig->n_params < 64, 0);
 
 	if (!ret_val) ret_val = &tmp_ret;
 
@@ -1018,7 +1018,7 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 	}
 
 	/* Arguments */
-	for (i = 0; i < sig->n_args; i++) {
+	for (i = 0; i < sig->n_params - 1; i++) {
 		unsigned int type = AZ_SIGNATURE_ARG_TYPE(sig, i);
 		AZClass *klass = AZ_CLASS_FROM_TYPE (type);
 		if (AZ_TYPE_IS_OBJECT (type)) {
