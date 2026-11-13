@@ -36,7 +36,8 @@ typedef enum AZConversionType {
      * (fixme: temporarily AUTO, should be EXPLICIT - has to be fixed in dependent projects first)
      * Result is always EXACT
      */
-    AZ_CONVERT_AUTO,
+    AZ_CONVERT_SAME,
+    AZ_CONVERT_AUTO = AZ_CONVERT_SAME,
     /** 
      * @brief Value-preserving conversion may be possible depending on actual value
      * 

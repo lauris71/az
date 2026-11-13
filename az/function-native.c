@@ -59,7 +59,7 @@ function_native_invoke (const AZFunctionImplementation *impl, void *inst, const 
 }
 
 void
-az_function_native_setup (AZFunctionNative *fnat, AZFunctionSignature *sig, void (*func) (void))
+az_function_native_setup (AZFunctionNative *fnat, const AZFunctionSignature *sig, void (*func) (void))
 {
 	fnat->signature = sig;
 	fnat->func = func;

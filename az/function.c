@@ -41,21 +41,6 @@ az_init_function_class (void)
 	az_class_new_with_value(&AZFunctionKlass.klass);
 }
 
-unsigned int
-az_function_signature_is_assignable_to (const AZFunctionSignature *sig, const AZFunctionSignature *other, unsigned int test_ret_val)
-{
-	unsigned int i;
-	if (sig->n_params != other->n_params) return 0;
-	if (test_ret_val && (AZ_SIGNATURE_RET_TYPE(sig) || AZ_SIGNATURE_RET_TYPE(other))) {
-		if (!az_type_is_a (AZ_SIGNATURE_RET_TYPE(sig), AZ_SIGNATURE_RET_TYPE(other))) return 0;
-	}
-	for (i = 0; i < sig->n_params - 1; i++) {
-		/* fixme: For now we have to accept conditional conversion (should be fixed in Aosora first) */
-		if (az_type_get_conversion_to (AZ_SIGNATURE_ARG_TYPE(other, i), AZ_SIGNATURE_ARG_TYPE(sig, i)) > AZ_CONVERT_CONDITIONAL) return 0;
-	}
-	return 1;
-}
-
 const AZFunctionSignature *
 az_function_get_signature (const AZFunctionImplementation *impl, void *inst)
 {
@@ -64,6 +49,44 @@ az_function_get_signature (const AZFunctionImplementation *impl, void *inst)
 	arikkei_return_val_if_fail (impl->signature != NULL, NULL);
 #endif
 	return impl->signature (impl, inst);
+}
+
+unsigned int
+az_function_signature_is_assignable_to (const AZFunctionSignature *sig, const AZFunctionSignature *other, unsigned int test_ret_val)
+{
+	// fixme: Varargs and pure
+	if (sig->n_params != other->n_params) return 0;
+	if (test_ret_val && (AZ_SIGNATURE_RET_TYPE(sig) || AZ_SIGNATURE_RET_TYPE(other))) {
+		if (!az_type_is_a (AZ_SIGNATURE_RET_TYPE(sig), AZ_SIGNATURE_RET_TYPE(other))) return 0;
+	}
+	for (unsigned int i = 0; i < sig->n_params - 1; i++) {
+		if (!az_type_is_a(AZ_SIGNATURE_ARG_TYPE(other, i), AZ_SIGNATURE_ARG_TYPE(sig, i))) {
+			return 0;
+		}
+		/* fixme: For now we have to accept conditional conversion (should be fixed in Aosora first) */
+		//if (az_type_get_conversion_to (AZ_SIGNATURE_ARG_TYPE(other, i), AZ_SIGNATURE_ARG_TYPE(sig, i)) > AZ_CONVERT_CONDITIONAL) return 0;
+	}
+	return 1;
+}
+
+unsigned int
+az_function_signature_is_callable_as(const AZFunctionSignature *sig, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
+{
+	// fixme: Varargs and pure
+	if (sig->n_params != (n_args + 1)) return AZ_CANNOT_CONVERT;
+	unsigned int max_conversion = AZ_CONVERT_SAME;
+	if (ret_type) {
+		if (!AZ_SIGNATURE_RET_TYPE(sig)) return AZ_CANNOT_CONVERT;
+		unsigned int conversion = az_type_get_conversion_to(AZ_SIGNATURE_RET_TYPE(sig), ret_type);
+		if (conversion == AZ_CANNOT_CONVERT) return AZ_CANNOT_CONVERT;
+		if (conversion > max_conversion) max_conversion = conversion;
+	}
+	for (unsigned int i = 0; i < n_args; i++) {
+		unsigned int conversion = az_type_get_conversion_to(arg_types[i], AZ_SIGNATURE_ARG_TYPE(sig, i));
+		if (conversion == AZ_CANNOT_CONVERT) return AZ_CANNOT_CONVERT;
+		if (conversion > max_conversion) max_conversion = conversion;
+	}
+	return max_conversion;
 }
 
 unsigned int

@@ -361,7 +361,7 @@ az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const
 }
 
 int
-az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size)
+az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size)
 {
 	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (key != NULL, AZ_NULL_VALUE);

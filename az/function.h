@@ -13,6 +13,7 @@ typedef struct _AZFunctionImplementation AZFunctionImplementation;
 
 #include <az/interface.h>
 #include <az/signature.h>
+#include <az/value-store.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,6 +32,28 @@ struct _AZFunctionImplementation {
 	 */
 	const AZFunctionSignature *(*signature) (const AZFunctionImplementation *impl, void *inst);
 	/**
+	 * @brief Invoke function using value store
+	 * 
+	 * The arguments have to match signature (is_a), i.e.
+	 * - nulls typed
+	 * - arithmetic values exact
+	 * - interfaces resolved
+	 * Boxed values and boxed interfaces are allowed
+	 * 
+	 * @param impl The function implementation
+	 * @param inst The instance data
+	 * @param n_args Number of arguments
+	 * @param args Array of argument elements
+	 * @param data Data buffer of arguments
+	 * @param data_end Pointer to data end position
+	 * @param ret_val Pointer to return value
+	 * @param ret_size Size of return value
+	 * @param ctx The context
+	 * @return Exception code or AZ_OK
+	 */
+	unsigned int (*invoke) (const AZFunctionImplementation *impl, void *inst, unsigned int n_args,
+		AZStoreElement args[], AZValue data[], AZValue *ret_val, unsigned int ret_size, AZContext *ctx);
+	/**
 	 * @brief Invoke function
 	 * 
 	 */
@@ -38,6 +61,19 @@ struct _AZFunctionImplementation {
 };
 
 const AZFunctionSignature *az_function_get_signature (const AZFunctionImplementation *impl, void *inst);
+
+/* Strict compatibility check, i.e. only subclass types accepted */
+unsigned int az_function_signature_is_assignable_to(const AZFunctionSignature *sig, const AZFunctionSignature *other, unsigned int test_ret_val);
+/**
+ * @brief Check whether a function with the given signature is callable with the given return type and argument types
+ * 
+ * @param sig The function signature
+ * @param ret_type The return type (NONE to ignore return value)
+ * @param n_args The number of arguments
+ * @param arg_types Array of argument types
+ * @return The required conversion type
+ */
+unsigned int az_function_signature_is_callable_as(const AZFunctionSignature *sig, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[]);
 
 /** @ingroup function
  *  First value is this (if applicable)
@@ -67,11 +103,12 @@ unsigned int az_function_convert_args_in_place (const AZFunctionImplementation *
 /** @ingroup function
  * @brief Invoke function interface
  * 
- * @param impl 
- * @param inst 
- * @param ret_impl 
- * @param ret_val 
- * @param ... 
+ * @param impl The function implementation
+ * @param inst The instance data
+ * @param ctx The context
+ * @param ret_impl The return implementation pointer
+ * @param ret_val The return value buffer
+ * @param ... Variadic arguments for the function
  * @return unsigned int 
  */
 unsigned int az_function_invoke_va (const AZFunctionImplementation *impl, void *inst, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);

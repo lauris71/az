@@ -135,6 +135,12 @@ enum AZTypeFlags {
 	 * the precise work is described by the class-level flags below.
 	 */
 	AZ_FLAG_CONSTRUCT = 0x20000000,
+	/**
+	 * @brief Type represents signature
+	 * 
+	 * Class resolving (get_class) and tests (is_a, implements) have to go through signature path
+	 */
+	AZ_FLAG_SIGNATURE = 0x80000000,
 };
 
 /** @ingroup types
@@ -492,7 +498,8 @@ typedef struct _AZPackedValue AZPackedValue;
 typedef struct _AZPackedValue64 AZPackedValue64;
 typedef struct _AZObject AZObject;
 
-typedef struct _AZFunctionSignature AZFunctionSignature;
+typedef struct _AZSignature AZSignature;
+typedef struct _AZSignature AZFunctionSignature;
 typedef struct _AZFunctionImplementation AZFunctionImplementation;
 typedef struct _AZFunctionInstance AZFunctionInstance;
 

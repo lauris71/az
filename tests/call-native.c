@@ -333,7 +333,7 @@ test_call_native()
         AZValue a;
         const AZValue *vals[1] = {&a};
         AZFunctionValue *fv = (AZFunctionValue *) &a;
-        fv->signature = (AZFunctionSignature *) (uintptr_t) 0xdeadbeef;
+        fv->signature = (const AZFunctionSignature *) (uintptr_t) 0xdeadbeef;
         fv->invoke_vals = NULL;
         memset (&ret_val, 0, sizeof (AZValue64));
         TEST_ASSERT (call_native ((void (*) (void)) native_fval_sig, AZ_TYPE_UINT64, 1, types, &ret_impl, &ret_val, impls, vals));
@@ -343,7 +343,7 @@ test_call_native()
     {
         unsigned int fn_type = az_function_native_get_type();
         unsigned int arg_types[2] = {AZ_TYPE_INT32, AZ_TYPE_INT32};
-        AZFunctionSignature *sig = az_function_signature_new(AZ_TYPE_INT32, 2, arg_types);
+        const AZFunctionSignature *sig = az_function_signature_new(AZ_TYPE_INT32, 2, arg_types);
         AZFunctionNative fnat;
         const AZImplementation *f_impl;
         void *f_inst;

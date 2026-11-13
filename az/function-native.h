@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 struct _AZFunctionNative {
-	AZFunctionSignature *signature;
+	const AZFunctionSignature *signature;
 	void (*func) (void);
 };
 
@@ -34,7 +34,7 @@ struct _AZFunctionNativeClass {
 
 unsigned int az_function_native_get_type (void);
 
-void az_function_native_setup (AZFunctionNative *fnat, AZFunctionSignature *sig, void (*func) (void));
+void az_function_native_setup (AZFunctionNative *fnat, const AZFunctionSignature *sig, void (*func) (void));
 
 #ifdef __cplusplus
 };

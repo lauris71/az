@@ -196,7 +196,7 @@ az_instance_get_interface_from_type (unsigned int type, void *inst, unsigned int
  * @return AZ_OK or error code
  */
 int az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation **dst_impl, AZValue64 *dst_val, unsigned int dst_size);
-int az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size);
+int az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size);
 /**
  * @brief Set property by key and instance
  * 

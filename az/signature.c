@@ -106,7 +106,7 @@ function_signature_to_string(const AZImplementation *impl, void *inst, uint8_t *
 	return len;
 }
 
-AZ_CLASS_ALIGN AZClass AZFunctionSignatureKlass = {
+AZ_CLASS_ALIGN AZClass AZSignatureKlass = {
 	.impl = { .flags = AZ_FLAG_BLOCK | AZ_FLAG_FINAL | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_FUNCTION_SIGNATURE },
 	.parent = &AZBlockKlass,
 	.name = (const uint8_t *) "signature",
@@ -122,11 +122,15 @@ az_init_signature_class (void)
 #ifdef AZ_MT_REFERENCES
 	mtx_init (&dict_mutex, mtx_plain);
 #endif
-	az_class_new_with_value(&AZFunctionSignatureKlass);
+	az_class_new_with_value(&AZSignatureKlass);
     arikkei_dict_setup(&sig_dict, 701);
 }
 
 #define SIGNATURE_POOL_SIZE 4096
+
+static AZSignature *signatures = NULL;
+static unsigned int n_signatures = 0;
+static unsigned int signatures_size = 0;
 
 static AZFunctionSignature *
 signature_new_from_template(const AZFunctionSignature *sig)
@@ -144,15 +148,22 @@ signature_new_from_template(const AZFunctionSignature *sig)
         AZFunctionSignature *new_sig = (AZFunctionSignature *) pool;
         pool += sig_size;
         memcpy(new_sig, sig, sig_size);
+		/* Create signature type (index + head flags + signature flag) */
+		new_sig->sig_type = (sig->head_type & ~AZ_TYPE_MASK) | n_signatures | AZ_FLAG_SIGNATURE;
+		if (n_signatures >= signatures_size) {
+			signatures_size = signatures_size ? signatures_size * 2 : 16;
+			signatures = (AZSignature *) realloc(signatures, signatures_size * sizeof(AZSignature));
+		}
+		signatures[n_signatures++] = *new_sig;
         arikkei_dict_insert(&sig_dict, &new_sig, &new_sig);
-	    AZ_SIGNATURE_UNLOCK();
+		AZ_SIGNATURE_UNLOCK();
 		return new_sig;
     }
     AZ_SIGNATURE_UNLOCK();
     return *known;
 }
 
-AZFunctionSignature *
+const AZFunctionSignature *
 az_function_signature_new(unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
 {
 	arikkei_return_val_if_fail(n_args <= 255, NULL);
@@ -165,7 +176,7 @@ az_function_signature_new(unsigned int ret_type, unsigned int n_args, const unsi
     return signature_new_from_template(sig);
 }
 
-AZFunctionSignature *
+const AZFunctionSignature *
 az_function_signature_new_va (unsigned int ret_type, unsigned int n_args, ...)
 {
 	arikkei_return_val_if_fail(n_args <= 255, NULL);
@@ -184,7 +195,7 @@ az_function_signature_new_va (unsigned int ret_type, unsigned int n_args, ...)
 	return signature_new_from_template(sig);
 }
 
-AZFunctionSignature *
+const AZFunctionSignature *
 az_function_signature_new_with_this(unsigned int this_type, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
 {
 	arikkei_return_val_if_fail(n_args < 255, NULL);

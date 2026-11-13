@@ -384,9 +384,8 @@ void
 az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
 	unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *))
 {
-	AZFunctionSignature *sig;
 	AZFunctionValue fval;
-	sig = az_function_signature_new_with_this(AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
+	const AZFunctionSignature *sig = az_function_signature_new_with_this(AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
 	az_function_value_setup (&fval, sig, invoke_vals);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class (AZ_TYPE_FUNCTION_VALUE), &fval);
@@ -396,9 +395,8 @@ void az_class_define_method_native (AZClass *klass, unsigned int idx, const unsi
 	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
 	void (*invoke_vals) (void))
 {
-	AZFunctionSignature *sig;
 	AZFunctionNative fval;
-	sig = az_function_signature_new_with_this(AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
+	const AZFunctionSignature *sig = az_function_signature_new_with_this(AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
 	az_function_native_setup (&fval, sig, invoke_vals);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_NATIVE), &fval);
@@ -440,9 +438,8 @@ void
 az_class_define_static_method (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
 	unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *))
 {
-	AZFunctionSignature *sig;
 	AZFunctionValue fval;
-	sig = az_function_signature_new(ret_type, n_args, arg_types);
+	const AZFunctionSignature *sig = az_function_signature_new(ret_type, n_args, arg_types);
 	az_function_value_setup (&fval, sig, invoke_vals);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_VALUE), &fval);
@@ -452,9 +449,8 @@ void az_class_define_static_method_native(AZClass *klass, unsigned int idx, cons
 	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
 	void (*invoke_vals) (void))
 {
-	AZFunctionSignature *sig;
 	AZFunctionNative fval;
-	sig = az_function_signature_new(ret_type, n_args, arg_types);
+	const AZFunctionSignature *sig = az_function_signature_new(ret_type, n_args, arg_types);
 	az_function_native_setup (&fval, sig, invoke_vals);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_NATIVE), &fval);
@@ -569,11 +565,15 @@ az_class_lookup_function_default (const AZClass *klass, const AZImplementation *
 			ret_class = (prop_sig->ret_type) ? AZ_CLASS_FROM_TYPE(prop_sig->ret_type) : NULL;
 			fprintf(stderr, ") -> %s", ret_class ? (const char *) ret_class->name : "NULL");
 #endif
-			if (prop_sig && !az_function_signature_is_assignable_to (prop_sig, sig, 0)) {
+			if (prop_sig) {
+
+				unsigned int conversion = az_function_signature_is_callable_as(prop_sig, AZ_SIGNATURE_RET_TYPE(sig), AZ_SIGNATURE_N_ARGS(sig), AZ_SIGNATURE_ARG_TYPES(sig));
+				if (conversion > AZ_CONVERT_CONDITIONAL) {
 #ifdef VERBOSE
-				fprintf(stderr, " -\n");
+					fprintf(stderr, " -\n");
 #endif
-				continue;
+					continue;
+				}
 			}
 #ifdef VERBOSE
 			fprintf(stderr, " OK\n");
