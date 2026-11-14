@@ -56,15 +56,17 @@ az_function_signature_is_assignable_to (const AZFunctionSignature *sig, const AZ
 {
 	// fixme: Varargs and pure
 	if (sig->n_params != other->n_params) return 0;
-	if (test_ret_val && (AZ_SIGNATURE_RET_TYPE(sig) || AZ_SIGNATURE_RET_TYPE(other))) {
-		if (!az_type_is_a (AZ_SIGNATURE_RET_TYPE(sig), AZ_SIGNATURE_RET_TYPE(other))) return 0;
+	if (test_ret_val) {
+		if (AZ_SIGNATURE_RET_TYPE(sig)) {
+			/* Signature with return value is assignable to void or superclass slot */
+			if (AZ_SIGNATURE_RET_TYPE(other) && !az_type_is_a (AZ_SIGNATURE_RET_TYPE(sig), AZ_SIGNATURE_RET_TYPE(other))) return 0;
+		} else {
+			/* Void signature can only be assigned to void slot */
+			if (AZ_SIGNATURE_RET_TYPE(other)) return 0;
+		}
 	}
 	for (unsigned int i = 0; i < sig->n_params - 1; i++) {
-		if (!az_type_is_a(AZ_SIGNATURE_ARG_TYPE(other, i), AZ_SIGNATURE_ARG_TYPE(sig, i))) {
-			return 0;
-		}
-		/* fixme: For now we have to accept conditional conversion (should be fixed in Aosora first) */
-		//if (az_type_get_conversion_to (AZ_SIGNATURE_ARG_TYPE(other, i), AZ_SIGNATURE_ARG_TYPE(sig, i)) > AZ_CONVERT_CONDITIONAL) return 0;
+		if (!az_type_is_a(AZ_SIGNATURE_ARG_TYPE(other, i), AZ_SIGNATURE_ARG_TYPE(sig, i))) return 0;
 	}
 	return 1;
 }
@@ -90,15 +92,35 @@ az_function_signature_is_callable_as(const AZFunctionSignature *sig, unsigned in
 }
 
 unsigned int
-az_function_invoke (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
+az_function_invoke_vals (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
 {
 #if AZ_SAFETY_CHECKS
 	arikkei_return_val_if_fail (impl != NULL, 0);
 	arikkei_return_val_if_fail (az_type_is_a (AZ_IMPL_TYPE(&impl->implementation), AZ_TYPE_FUNCTION), 0);
 	arikkei_return_val_if_fail (inst != NULL, 0);
 #endif
-	unsigned int result = impl->invoke_vals (impl, inst, arg_impls, arg_vals, ret_impl, ret_val, ctx);
-	return result;
+	if (impl->invoke) {
+		AZStoreElement elements[255];
+		const AZFunctionSignature *sig = az_function_get_signature(impl, inst);
+		for (unsigned int i = 0; i < sig->n_params - 1; i++) {
+			elements[i].impl = arg_impls[i];
+			if (arg_impls[i]) {
+				AZClass *klass = AZ_CLASS_FROM_IMPL(arg_impls[i]);
+				if (AZ_CLASS_IS_BLOCK(klass)) {
+					elements[i].block = arg_vals[i]->block;
+				} else if (klass->instance_size <= 8) {
+					memcpy(elements[i].val, arg_vals[i], klass->instance_size);
+				} else {
+					/* fixme: For now emulate datablock in full memory */
+					elements[i].val_idx = (uintptr_t) arg_vals[i] >> 4;
+				}
+			}
+		}
+		impl->invoke(impl, inst, sig->n_params - 1, elements, (AZValue *) NULL, ret_impl, &ret_val->value, 64, ctx);
+	} else {
+		return impl->invoke_vals (impl, inst, arg_impls, arg_vals, ret_impl, ret_val, ctx);
+	}
+	return 0;
 }
 
 unsigned int
@@ -183,7 +205,7 @@ function_build_arguments_vals (const AZFunctionSignature *sig, va_list ap, const
 }
 
 unsigned int
-az_function_invoke_va (const AZFunctionImplementation *impl, void *inst, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
+az_function_invoke_vals_va (const AZFunctionImplementation *impl, void *inst, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
 {
 	const AZImplementation *arg_impls[64];
 	const AZValue *arg_ptrs[64];
@@ -197,11 +219,11 @@ az_function_invoke_va (const AZFunctionImplementation *impl, void *inst, AZConte
 	function_build_arguments_vals (sig, ap, arg_impls, arg_vals, arg_ptrs);
 	va_end(ap);
 
-	return az_function_invoke (impl, inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
+	return az_function_invoke_vals (impl, inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
 }
 
 unsigned int
-az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
+az_function_invoke_vals_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
 {
 	const AZImplementation *arg_impls[64];
 	const AZValue *arg_ptrs[64];
@@ -214,11 +236,11 @@ az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *
 	function_build_arguments_vals (sig, ap, arg_impls, arg_vals, arg_ptrs);
 	va_end(ap);
 
-	return az_function_invoke (impl, inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
+	return az_function_invoke_vals (impl, inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
 }
 
 unsigned int
-az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
+az_function_invoke_vals_by_value_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
 {
 	AZFunctionImplementation *f_impl;
 	AZFunctionInstance *f_inst;
@@ -235,7 +257,7 @@ az_function_invoke_by_value_signature_va (const AZImplementation *impl, const AZ
 	function_build_arguments_vals (sig, ap, arg_impls, arg_vals, arg_ptrs);
 	va_end(ap);
 
-	return f_impl->invoke_vals (f_impl, f_inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
+	return az_function_invoke_vals (f_impl, f_inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
 }
 
 #if defined(ARCH_ARM_64) && defined(__GNUC__)

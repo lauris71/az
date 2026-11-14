@@ -6,6 +6,7 @@
 * Copyright (C) Lauris Kaplinski 2026
 */
 
+#include <az/boxed-value.h>
 #include <az/value-store.h>
 
 _Static_assert (sizeof(AZStoreElement) == 16, "AZStoreElement size is not 16");
@@ -17,14 +18,19 @@ az_value_store_instance_at_autobox(AZStoreElement elements[], unsigned int idx, 
         *inst = NULL;
         return NULL;
     }
+    if (elements[idx].impl == &AZBoxedValueKlass.klass.impl) {
+        AZBoxedValue *boxed = (AZBoxedValue *) elements[idx].val;
+        *inst = &boxed->val;
+        return &boxed->klass->impl;
+    }
     AZClass *klass = AZ_CLASS_FROM_IMPL(elements[idx].impl);
     if (AZ_CLASS_IS_BLOCK(klass)) {
-        return az_value_get_inst_autobox(elements[idx].impl, (const AZValue *) elements[idx].val, inst);
+        *inst = elements[idx].block;
     } else if (klass->instance_size <= 8) {
-        *inst = (void *) &elements[idx].val;
-        return elements[idx].impl;
+        *inst = &elements[idx].val;
+    } else {
+        *inst = data + elements[idx].val_idx;
     }
-    *inst = (void *) (data + elements[idx].val_idx);
     return elements[idx].impl;
 }
 

@@ -895,14 +895,12 @@ az_type_get_conversion_to (unsigned int type, unsigned int to_type)
 {
 #ifdef AZ_SAFETY_CHECKS
 	ENSURE_INITIALIZED();
-	// fixme: Disallowing 0 breaks azo
 	arikkei_return_val_if_fail (!type || az_type_is_valid(type), AZ_CANNOT_CONVERT);
 	arikkei_return_val_if_fail (az_type_is_valid(to_type), AZ_CANNOT_CONVERT);
 #endif
 	if (type == AZ_TYPE_NONE) {
 		/* NONE can be converted to typed null (i.e. block type with null block pointer) */
-		/* fixme: temporarily AUTO, should be EXPLICIT (has to be fixed in Aosora first) */
-		return (AZ_TYPE_IS_BLOCK(to_type)) ? AZ_CONVERT_AUTO : AZ_CANNOT_CONVERT;
+		return (AZ_TYPE_IS_BLOCK(to_type)) ? AZ_CONVERT_EXPLICIT : AZ_CANNOT_CONVERT;
 	}
 	/* Everything can be converted to itself, it's supertype and to an interface implemented by it */
 	if (az_type_is_assignable_to (type, to_type)) return AZ_CONVERT_AUTO;

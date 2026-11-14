@@ -34,7 +34,9 @@ struct _AZStoreElement {
     const AZImplementation *impl;
     union {
         uint8_t val[8];
-        uint32_t val_idx;
+        // fixme: This should be uint32_t but atm we want to emulate data storage in the whole memory
+        // Once invoke is completely ported we can switch it back
+        uint64_t val_idx;
         /* Convenience */
 		uint32_t boolean_v;
 		int8_t int8_v;

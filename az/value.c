@@ -39,7 +39,6 @@ az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *inst)
 	if (inst == NULL) {
 		fprintf(stderr, ".");
 	}
-	arikkei_return_if_fail (inst != NULL);
 #endif
 	klass = AZ_CLASS_FROM_IMPL(impl);
 	if (AZ_CLASS_IS_BLOCK(klass)) {
@@ -128,14 +127,13 @@ az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, 
 	/* The value storage is never smaller than AZValue */
 	arikkei_return_val_if_fail (!autobox || dst_size >= AZ_VALUE_MAX_SIZE, AZ_CONVERSION_FAILED);
 	/* None is converted to typed null (the value carries the target type) */
-	/* fixme: temporarily automatic, should require AZ_CONVERT_EXPLICIT (has to be fixed in Aosora first) */
 	if (!src_impl) {
 		if (to_type == AZ_TYPE_ANY) {
 			*dst_impl = NULL;
 			dst_val->reference = NULL;
 			return AZ_CONVERSION_EXACT;
 		}
-		if (AZ_TYPE_IS_BLOCK(to_type)) {
+		if (AZ_TYPE_IS_BLOCK(to_type) && (conversion_type < AZ_CONVERT_EXPLICIT)) {
 			*dst_impl = AZ_IMPL_FROM_TYPE(to_type);
 			dst_val->block = NULL;
 			return AZ_CONVERSION_EXACT;
