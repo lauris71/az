@@ -38,6 +38,7 @@
 
 static void test_compile();
 static void test_types_mt();
+static void test_refcount_mt();
 static void test_to_string();
 static void test_boxed_value();
 static void test_array();
@@ -74,6 +75,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_compile);
         } else if (!strcmp(argv[i], "types-mt")) {
             RUN_TEST(test_types_mt);
+        } else if (!strcmp(argv[i], "refcount-mt")) {
+            RUN_TEST(test_refcount_mt);
         } else if (!strcmp(argv[i], "to-string")) {
             RUN_TEST(test_to_string);
         } else if (!strcmp(argv[i], "boxed-value")) {
@@ -261,6 +264,396 @@ test_types_mt()
         }
     }
 }
+
+/*
+ * R3: reference locking hardening tests (docs/mt-reference-locking.md)
+ *
+ * - churn: ref/unref storms on shared objects; the count must not corrupt
+ * - deterministic promotion races, via freeze points in the drop virtual and
+ *   in a dispose listener:
+ *   - promote BEFORE the DEAD claim (frozen in drop): promotion wins, the
+ *     revived unref releases its reference and the object survives
+ *   - promote AFTER the DEAD claim (frozen in dispose): promotion fails
+ *   - drop-claim revival: a cache claiming ownership in drop keeps the object
+ * - revival-leak storm (regression for the fetch_sub==1 fix): a drop claims,
+ *   a second thread releases the claim ref immediately; every object must end
+ *   either alive (refcount >= 1) or disposed exactly once - never refcount 0
+ *   and undisposed
+ * - promotion storm: promoters hammer a weak ref while the anchor is dropped;
+ *   all post-death acquires must fail, the object is disposed exactly once
+ *
+ * ST builds have no races by construction, so the whole test is MT-only.
+ */
+#ifdef AZ_MT_REFERENCES
+
+#define RT_CHURN_THREADS 8
+#define RT_CHURN_ITERS 20000
+#define RT_STORM_PROMOTERS 4
+#define RT_STORM_ITERS 100000
+#define RT_LEAK_OBJECTS 1000
+
+static unsigned int test_active_object_get_type (void);
+
+static unsigned int rt_type = 0;
+
+/* Freeze gate: lets a test stop a drop/dispose callback mid-death and release it */
+typedef struct {
+    mtx_t mtx;
+    cnd_t cnd;
+    unsigned int armed;          /* drop freezes when set */
+    unsigned int claim;          /* drop claims (re-acquires) when set */
+    unsigned int dispose_freeze; /* dispose listener freezes when set */
+    unsigned int entered;
+    unsigned int release;
+    unsigned int drop_calls;
+    unsigned int dispose_calls;
+} RTGate;
+
+static RTGate rt_gate;
+
+static void
+rt_gate_reset (RTGate *g)
+{
+    g->armed = 0;
+    g->claim = 0;
+    g->dispose_freeze = 0;
+    g->entered = 0;
+    g->release = 0;
+    g->drop_calls = 0;
+    g->dispose_calls = 0;
+}
+
+static void
+rt_gate_init_once (RTGate *g)
+{
+    static unsigned int initialized = 0;
+    if (!initialized) {
+        mtx_init (&g->mtx, mtx_plain);
+        cnd_init (&g->cnd);
+        initialized = 1;
+    }
+}
+
+/* Inside the virtual: mark entered, wait for release */
+static void
+rt_gate_freeze (RTGate *g)
+{
+    mtx_lock (&g->mtx);
+    g->entered = 1;
+    cnd_broadcast (&g->cnd);
+    while (!g->release) cnd_wait (&g->cnd, &g->mtx);
+    mtx_unlock (&g->mtx);
+}
+
+static void
+rt_gate_wait_entered (RTGate *g)
+{
+    mtx_lock (&g->mtx);
+    while (!g->entered) cnd_wait (&g->cnd, &g->mtx);
+    mtx_unlock (&g->mtx);
+}
+
+static void
+rt_gate_release (RTGate *g)
+{
+    mtx_lock (&g->mtx);
+    g->release = 1;
+    cnd_broadcast (&g->cnd);
+    mtx_unlock (&g->mtx);
+}
+
+static unsigned int
+rt_drop (AZReferenceClass *klass, AZReference *ref)
+{
+    if (rt_gate.claim) {
+        /* Simulate a resource cache claiming ownership */
+        az_reference_ref (ref);
+        mtx_lock (&rt_gate.mtx);
+        rt_gate.drop_calls += 1;
+        mtx_unlock (&rt_gate.mtx);
+        return 0;
+    }
+    if (rt_gate.armed) rt_gate_freeze (&rt_gate);
+    mtx_lock (&rt_gate.mtx);
+    rt_gate.drop_calls += 1;
+    mtx_unlock (&rt_gate.mtx);
+    return 1;
+}
+
+/* Counts disposals, optionally freezing mid-dispose (post-DEAD-claim) */
+static void
+rt_listener_dispose (AZActiveObject *object, void *data)
+{
+    RTGate *g = (RTGate *) data;
+    mtx_lock (&g->mtx);
+    g->dispose_calls += 1;
+    mtx_unlock (&g->mtx);
+    if (g->dispose_freeze) rt_gate_freeze (g);
+}
+
+static AZObjectEventVector rt_event_vec = { rt_listener_dispose };
+
+static void
+rt_class_init (AZClass *klass)
+{
+    ((AZReferenceClass *) klass)->drop = rt_drop;
+}
+
+static unsigned int
+rt_get_type (void)
+{
+    if (!rt_type) {
+        az_register_type (&rt_type, (const unsigned char *) "RTObject", test_active_object_get_type (), sizeof (AZActiveObjectClass), sizeof (AZActiveObject), 0, 0, 0, rt_class_init, NULL, NULL);
+    }
+    return rt_type;
+}
+
+/* Churn: ref/unref storms on shared objects; the count must not corrupt */
+
+static int
+rt_churn_thread (void *arg)
+{
+    AZObject *obj = (AZObject *) arg;
+    for (unsigned int i = 0; i < RT_CHURN_ITERS; i++) {
+        az_object_ref (obj);
+        az_object_unref (obj);
+    }
+    return 0;
+}
+
+static int
+rt_churn_string_thread (void *arg)
+{
+    AZString *str = (AZString *) arg;
+    for (unsigned int i = 0; i < RT_CHURN_ITERS; i++) {
+        az_string_ref (str);
+        az_string_unref (str);
+    }
+    return 0;
+}
+
+/* Unref thread for the deterministic scenarios */
+static int
+rt_unref_thread (void *arg)
+{
+    az_object_unref ((AZObject *) arg);
+    return 0;
+}
+
+/* Promotion storm */
+typedef struct {
+    AZWeakReference *weak;
+    _Atomic unsigned int *first_success;
+    unsigned int *got;
+    unsigned int *nulls;
+} RTStormThreadCtx;
+
+static int
+rt_promote_thread (void *arg)
+{
+    RTStormThreadCtx *ctx = (RTStormThreadCtx *) arg;
+    unsigned int reported = 0;
+    for (unsigned int i = 0; i < RT_STORM_ITERS && !*ctx->nulls; i++) {
+        AZActiveObject *a = az_weak_reference_acquire (ctx->weak);
+        if (a) {
+            *ctx->got += 1;
+            if (!reported) {
+                reported = 1;
+                atomic_fetch_add_explicit (ctx->first_success, 1, memory_order_relaxed);
+            }
+            az_object_unref ((AZObject *) a);
+        } else {
+            *ctx->nulls += 1;
+        }
+    }
+    return 0;
+}
+
+/* Revival-leak storm: releases the claim reference as soon as it is visible */
+static int
+rt_leak_spinner (void *arg)
+{
+    AZObject *obj = (AZObject *) arg;
+    unsigned int spins = 0;
+    while (atomic_load_explicit (&obj->reference.refcount, memory_order_relaxed) != 2 && spins < 100000) spins += 1;
+    az_object_unref (obj);
+    return 0;
+}
+
+typedef struct {
+    int disposed;
+} RTLeakStatus;
+
+static void
+rt_leak_listener_dispose (AZActiveObject *object, void *data)
+{
+    ((RTLeakStatus *) data)->disposed = 1;
+}
+
+static AZObjectEventVector rt_leak_event_vec = { rt_leak_listener_dispose };
+
+static AZActiveObject *rt_leak_objects[RT_LEAK_OBJECTS];
+static RTLeakStatus rt_leak_status[RT_LEAK_OBJECTS];
+
+static void
+test_refcount_mt()
+{
+    az_init();
+    rt_gate_init_once (&rt_gate);
+    unsigned int type = rt_get_type ();
+    thrd_t threads[RT_CHURN_THREADS];
+
+    /* Churn: no count corruption under contention */
+    {
+        AZActiveObject *obj = (AZActiveObject *) az_object_new (type);
+        for (unsigned int i = 0; i < RT_CHURN_THREADS; i++) {
+            TEST_ASSERT (thrd_create (&threads[i], rt_churn_thread, obj) == thrd_success);
+        }
+        for (unsigned int i = 0; i < RT_CHURN_THREADS; i++) {
+            TEST_ASSERT (thrd_join (threads[i], NULL) == thrd_success);
+        }
+        TEST_ASSERT_EQUAL_UINT (1, obj->object.reference.refcount);
+        az_object_unref ((AZObject *) obj);
+    }
+    {
+        AZString *str = az_string_new ((const unsigned char *) "churn");
+        for (unsigned int i = 0; i < RT_CHURN_THREADS; i++) {
+            TEST_ASSERT (thrd_create (&threads[i], rt_churn_string_thread, str) == thrd_success);
+        }
+        for (unsigned int i = 0; i < RT_CHURN_THREADS; i++) {
+            TEST_ASSERT (thrd_join (threads[i], NULL) == thrd_success);
+        }
+        TEST_ASSERT_EQUAL_UINT (1, str->reference.refcount);
+        az_string_unref (str);
+    }
+
+    /* Promotion BEFORE the DEAD claim wins; the revived unref releases its ref */
+    {
+        rt_gate_reset (&rt_gate);
+        rt_gate.armed = 1;
+        AZActiveObject *obj = (AZActiveObject *) az_object_new (type);
+        az_active_object_add_listener (obj, &rt_event_vec, sizeof (AZObjectEventVector), &rt_gate);
+        AZWeakReference weak = { NULL };
+        az_weak_reference_set (&weak, obj);
+        thrd_t t;
+        TEST_ASSERT (thrd_create (&t, rt_unref_thread, obj) == thrd_success);
+        rt_gate_wait_entered (&rt_gate);
+        /* The final unref is frozen inside drop, before the DEAD claim */
+        AZActiveObject *a = az_weak_reference_acquire (&weak);
+        TEST_ASSERT (a == obj);
+        TEST_ASSERT_EQUAL_UINT (2, obj->object.reference.refcount);
+        rt_gate_release (&rt_gate);
+        TEST_ASSERT (thrd_join (t, NULL) == thrd_success);
+        /* Revival path: the unref released its reference, object survives on ours */
+        TEST_ASSERT_EQUAL_UINT (1, obj->object.reference.refcount);
+        TEST_ASSERT_EQUAL_UINT (0, rt_gate.dispose_calls);
+        /* Final unref dies (drop is disarmed) */
+        rt_gate.armed = 0;
+        az_object_unref ((AZObject *) obj);
+        TEST_ASSERT_EQUAL_UINT (1, rt_gate.dispose_calls);
+        TEST_ASSERT (weak.ptr == NULL);
+    }
+
+    /* Promotion AFTER the DEAD claim fails */
+    {
+        rt_gate_reset (&rt_gate);
+        rt_gate.dispose_freeze = 1;
+        AZActiveObject *obj = (AZActiveObject *) az_object_new (type);
+        az_active_object_add_listener (obj, &rt_event_vec, sizeof (AZObjectEventVector), &rt_gate);
+        AZWeakReference weak = { NULL };
+        az_weak_reference_set (&weak, obj);
+        thrd_t t;
+        TEST_ASSERT (thrd_create (&t, rt_unref_thread, obj) == thrd_success);
+        rt_gate_wait_entered (&rt_gate);
+        /* The object is DEAD, frozen mid-dispose */
+        TEST_ASSERT (az_weak_reference_acquire (&weak) == NULL);
+        rt_gate_release (&rt_gate);
+        TEST_ASSERT (thrd_join (t, NULL) == thrd_success);
+        TEST_ASSERT_EQUAL_UINT (1, rt_gate.dispose_calls);
+        TEST_ASSERT (weak.ptr == NULL);
+    }
+
+    /* drop-claim revival: a cache claiming ownership keeps the object alive */
+    {
+        rt_gate_reset (&rt_gate);
+        rt_gate.claim = 1;
+        AZActiveObject *obj = (AZActiveObject *) az_object_new (type);
+        az_active_object_add_listener (obj, &rt_event_vec, sizeof (AZObjectEventVector), &rt_gate);
+        az_object_unref ((AZObject *) obj);
+        /* The cache's reference survives (count back to 1), no disposal */
+        TEST_ASSERT_EQUAL_UINT (1, obj->object.reference.refcount);
+        TEST_ASSERT_EQUAL_UINT (0, rt_gate.dispose_calls);
+        /* Releasing the cache reference dies (claim disarmed) */
+        rt_gate.claim = 0;
+        az_object_unref ((AZObject *) obj);
+        TEST_ASSERT_EQUAL_UINT (1, rt_gate.dispose_calls);
+    }
+
+    /* Revival-leak storm: claim + immediate claim-release vs the claim CAS.
+     * Invariant: every object ends alive (refcount >= 1) or disposed exactly
+     * once - never refcount 0 and undisposed (the fetch_sub==1 regression) */
+    {
+        for (unsigned int i = 0; i < RT_LEAK_OBJECTS; i++) {
+            rt_leak_status[i].disposed = 0;
+            rt_gate.claim = 1;
+            AZActiveObject *obj = (AZActiveObject *) az_object_new (type);
+            rt_leak_objects[i] = obj;
+            az_active_object_add_listener (obj, &rt_leak_event_vec, sizeof (AZObjectEventVector), &rt_leak_status[i]);
+            thrd_t t;
+            TEST_ASSERT (thrd_create (&t, rt_leak_spinner, obj) == thrd_success);
+            az_object_unref ((AZObject *) obj);
+            TEST_ASSERT (thrd_join (t, NULL) == thrd_success);
+        }
+        rt_gate.claim = 0;
+        for (unsigned int i = 0; i < RT_LEAK_OBJECTS; i++) {
+            /* Undisposed means leaked: refcount must be >= 1 (short-circuit
+             * avoids touching freed memory) */
+            TEST_ASSERT (rt_leak_status[i].disposed || (rt_leak_objects[i]->object.reference.refcount >= 1));
+            if (!rt_leak_status[i].disposed) {
+                az_object_unref ((AZObject *) rt_leak_objects[i]);
+                TEST_ASSERT (rt_leak_status[i].disposed);
+            }
+        }
+    }
+
+    /* Promotion storm: all pre-death acquires succeed, all post-death fail */
+    {
+        rt_gate_reset (&rt_gate);
+        AZActiveObject *anchor = (AZActiveObject *) az_object_new (type);
+        az_active_object_add_listener (anchor, &rt_event_vec, sizeof (AZObjectEventVector), &rt_gate);
+        AZWeakReference weak = { NULL };
+        az_weak_reference_set (&weak, anchor);
+        _Atomic unsigned int first_success = 0;
+        unsigned int got[RT_STORM_PROMOTERS] = {0};
+        unsigned int nulls[RT_STORM_PROMOTERS] = {0};
+        RTStormThreadCtx ctx[RT_STORM_PROMOTERS];
+        thrd_t t[RT_STORM_PROMOTERS];
+        for (unsigned int i = 0; i < RT_STORM_PROMOTERS; i++) {
+            ctx[i].weak = &weak;
+            ctx[i].first_success = &first_success;
+            ctx[i].got = &got[i];
+            ctx[i].nulls = &nulls[i];
+            TEST_ASSERT (thrd_create (&t[i], rt_promote_thread, &ctx[i]) == thrd_success);
+        }
+        /* Anchor dies only after every promoter had a successful acquire */
+        while (atomic_load_explicit (&first_success, memory_order_relaxed) < RT_STORM_PROMOTERS) thrd_yield ();
+        az_object_unref ((AZObject *) anchor);
+        for (unsigned int i = 0; i < RT_STORM_PROMOTERS; i++) {
+            TEST_ASSERT (thrd_join (t[i], NULL) == thrd_success);
+            TEST_ASSERT (got[i] >= 1);
+            TEST_ASSERT (nulls[i] >= 1);
+        }
+        TEST_ASSERT_EQUAL_UINT (1, rt_gate.dispose_calls);
+        TEST_ASSERT (weak.ptr == NULL);
+    }
+}
+#else
+static void
+test_refcount_mt()
+{
+    /* No races in single-threaded builds by construction */
+}
+#endif
 
 /*
  * Verify the to_string contract:

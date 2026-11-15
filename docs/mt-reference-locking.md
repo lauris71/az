@@ -278,18 +278,26 @@ Functional test added (acquire promotes on live object; NULL after shutdown).
 *Exit: no open-coded weak extraction left in the tree; 29/29 tests pass;
 ST variant compiles.*
 
-**R3 — hardening tests.**
-- Deterministic race: test hook that yields between `try_ref`'s load and
-  CAS (reuse `AZ_REFERENCE_HOOKS` or a dedicated hook) + concurrent final
-  drop → acquire must return NULL or a valid strong ref; refcounts end at
-  expected values (no leak), no crash.
-- Promotion storm: N threads promoting, M threads dropping, shared objects;
-  run under TSan.
-- Shared-object churn: ref/unref storms on the same objects from many
-  threads (no promotion), verifying no count corruption under atomics.
-- `drop`-claim revival test: cache re-acquires during `drop` while a third
-  thread promotes.
-*Exit: TSan-clean; existing 29 suites green.*
+**R3 — hardening tests. DONE (2026-11-15).** New `refcount-mt` suite
+(tests/test.c): ref/unref churn on shared objects/strings (atomicity);
+deterministic promotion races via freeze points in the drop virtual and a
+dispose listener (promote-before-claim wins with the revival path releasing
+the unref's reference; promote-after-claim fails); drop-claim revival;
+revival-leak storm asserting the fetch_sub==1 regression invariant (every
+object ends alive or disposed exactly once); promotion storm (pre-death
+acquires succeed, post-death fail, disposed exactly once).
+*TSan caught one real race the design review missed*: dispose clears the
+weak pointer unlocked, so the pointer *word* itself raced with
+`az_weak_reference_acquire`'s read — fixed by making `AZWeakReference.ptr`
+`_Atomic` in MT builds (the lifecycle lock protects the object memory, the
+atomic word protects the pointer).
+*Exit: 30/30 suites green in the normal build; 30/30 green under
+`-fsanitize=thread` (build-tsan); ST variant compiles.*
+Known remaining pre-existing issue (out of scope): `AZWeakObjectList`'s
+dispose handler mutates the entries array (`remove_object_internal`,
+memmove/free) without list-level synchronization — concurrent
+`get_element` is only protected for the object memory, not the array
+mutation. Needs a per-list lock design if the list is ever used cross-thread.
 
 ## 10. Risks and open questions
 

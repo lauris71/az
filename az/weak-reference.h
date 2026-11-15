@@ -27,7 +27,13 @@ extern "C" {
 #endif
 
 struct _AZWeakReference {
+	/* The pointer word is atomic in MT builds: dispose (which clears it) runs
+	 * unlocked, so plain accesses must be race-free against az_weak_reference_acquire */
+#ifdef AZ_MT_REFERENCES
+	_Atomic(AZActiveObject *) ptr;
+#else
 	AZActiveObject *ptr;
+#endif
 };
 
 void az_weak_reference_set (AZWeakReference *ref, AZActiveObject *object);
