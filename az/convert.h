@@ -18,7 +18,7 @@ extern "C" {
 /**
  * @brief Conversion types
  * 
- * A possible conversion from one type to another falls into one of the following categories:
+ * A conversion type is a (directed) relation between two types and has the following possible values:
  * 
  */
 typedef enum AZConversionType {
@@ -33,7 +33,6 @@ typedef enum AZConversionType {
      * Double can be converted to complex double
      * Complex float can be converted to complex double
      * NONE can be converted to typed null, i.e. block type with null block pointer
-     * (fixme: temporarily AUTO, should be EXPLICIT - has to be fixed in dependent projects first)
      * Result is always EXACT
      */
     AZ_CONVERT_SAME,

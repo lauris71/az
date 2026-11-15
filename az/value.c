@@ -120,27 +120,67 @@ void az_value_delete_array(const AZImplementation *impl, void *data, unsigned in
 static AZConversionResult
 az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size, const AZImplementation *src_impl, const AZValue *src_val, unsigned int to_type, AZConversionType conversion_type, unsigned int autobox, unsigned int transfer)
 {
-	/* The box to release after the content has been converted/moved out (transfer only) */
-	AZBoxedValue *value_box = NULL;
-	/* Nothing can be converted to None */
+	/* Nothing can be converted to NONE */
 	if (!to_type) return AZ_CONVERSION_FAILED;
-	/* The value storage is never smaller than AZValue */
-	arikkei_return_val_if_fail (!autobox || dst_size >= AZ_VALUE_MAX_SIZE, AZ_CONVERSION_FAILED);
-	/* None is converted to typed null (the value carries the target type) */
+
+	/* NONE can be converted to any (stays NONE) and typed null (the value carries the target type) */
 	if (!src_impl) {
 		if (to_type == AZ_TYPE_ANY) {
 			*dst_impl = NULL;
 			dst_val->reference = NULL;
 			return AZ_CONVERSION_EXACT;
 		}
-		if (AZ_TYPE_IS_BLOCK(to_type) && (conversion_type < AZ_CONVERT_EXPLICIT)) {
+		if (AZ_TYPE_IS_BLOCK(to_type)) {
 			*dst_impl = AZ_IMPL_FROM_TYPE(to_type);
 			dst_val->block = NULL;
 			return AZ_CONVERSION_EXACT;
 		}
 		return AZ_CONVERSION_FAILED;
 	}
+
 	unsigned int src_type = AZ_IMPL_TYPE(src_impl);
+
+	/* Primitives do not have interfaces, cannot be boxed and have special conversion rules */
+	if (AZ_TYPE_IS_PRIMITIVE(src_type)) {
+		/* The only common supertype is ANY */
+		if ((to_type == src_type) || (to_type == AZ_TYPE_ANY)) return AZ_CONVERSION_EXACT;
+		/* Arithmetic types */
+		if (AZ_TYPE_IS_ARITHMETIC (to_type) && AZ_TYPE_IS_ARITHMETIC (src_type)) {
+			if (az_primitive_can_convert (to_type, src_type) <= conversion_type) {
+				/* In-place safe (az_convert_arithmetic_type allows to_val == from_val) */
+				AZConversionResult res = (AZConversionResult) az_convert_arithmetic_type (to_type, dst_val, src_type, src_val);
+				*dst_impl = AZ_IMPL_FROM_TYPE(to_type);
+				return res;
+			}
+			return AZ_CONVERSION_FAILED;
+		}
+		/* Explicit conversions change the value or type semantics */
+		if (conversion_type >= AZ_CONVERT_EXPLICIT) {
+			if ((src_type == AZ_TYPE_UINT64) && (to_type == AZ_TYPE_POINTER)) {
+				*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_POINTER);
+				dst_val->pointer_v = (void *) (uintptr_t) src_val->uint64_v;
+				return AZ_CONVERSION_EXACT;
+			}
+			if ((src_type == AZ_TYPE_POINTER) && (to_type == AZ_TYPE_UINT64)) {
+				*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_UINT64);
+				dst_val->uint64_v = (uint64_t) (uintptr_t) src_val->pointer_v;
+				return AZ_CONVERSION_EXACT;
+			}
+			if (AZ_TYPE_IS_BLOCK(src_type) && (to_type == AZ_TYPE_POINTER)) {
+				*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_POINTER);
+				dst_val->pointer_v = src_val->block;
+				return AZ_CONVERSION_EXACT;
+			}
+		}
+		return AZ_CONVERSION_FAILED;
+	}
+
+	/* The remaining conversions are is/implements kind and have to deal with boxing */
+
+	/* The box to release after the content has been converted/moved out (transfer only) */
+	AZBoxedValue *value_box = NULL;
+	/* The value storage is never smaller than AZValue */
+	arikkei_return_val_if_fail (!autobox || dst_size >= AZ_VALUE_MAX_SIZE, AZ_CONVERSION_FAILED);
 	if (autobox) {
 		/* Boxed values are treated transparently: unboxed at input; if the content fits
 		 * into dst it is copied directly, otherwise az_value_copy_autobox re-boxes it.
@@ -244,39 +284,6 @@ az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, 
 		*dst_impl = sub_impl;
 		dst_val->block = sub_inst;
 		return AZ_CONVERSION_EXACT;
-	}
-	/* Arithmetic types */
-	if (AZ_TYPE_IS_ARITHMETIC (to_type) && AZ_TYPE_IS_ARITHMETIC (src_type)) {
-		if (az_primitive_can_convert (to_type, src_type) <= conversion_type) {
-			AZClass *to_klass = AZ_CLASS_FROM_TYPE(to_type);
-			/* In-place safe (az_convert_arithmetic_type allows to_val == from_val) */
-			AZConversionResult res = (AZConversionResult) az_convert_arithmetic_type (to_type, dst_val, src_type, src_val);
-			*dst_impl = &to_klass->impl;
-			if (value_box) az_boxed_value_unref (value_box);
-			return res;
-		}
-		return AZ_CONVERSION_FAILED;
-	}
-	/* Explicit conversions change the value or type semantics */
-	if (conversion_type >= AZ_CONVERT_EXPLICIT) {
-		if ((src_type == AZ_TYPE_UINT64) && (to_type == AZ_TYPE_POINTER)) {
-			*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_POINTER);
-			dst_val->pointer_v = (void *) (uintptr_t) src_val->uint64_v;
-			if (value_box) az_boxed_value_unref (value_box);
-			return AZ_CONVERSION_EXACT;
-		}
-		if ((src_type == AZ_TYPE_POINTER) && (to_type == AZ_TYPE_UINT64)) {
-			*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_UINT64);
-			dst_val->uint64_v = (uint64_t) (uintptr_t) src_val->pointer_v;
-			if (value_box) az_boxed_value_unref (value_box);
-			return AZ_CONVERSION_EXACT;
-		}
-		if (AZ_TYPE_IS_BLOCK(src_type) && (to_type == AZ_TYPE_POINTER)) {
-			*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_POINTER);
-			dst_val->pointer_v = src_val->block;
-			if (value_box) az_boxed_value_unref (value_box);
-			return AZ_CONVERSION_EXACT;
-		}
 	}
 	/* Nothing else can be converted */
 	return AZ_CONVERSION_FAILED;

@@ -900,7 +900,7 @@ az_type_get_conversion_to (unsigned int type, unsigned int to_type)
 #endif
 	if (type == AZ_TYPE_NONE) {
 		/* NONE can be converted to typed null (i.e. block type with null block pointer) */
-		return (AZ_TYPE_IS_BLOCK(to_type)) ? AZ_CONVERT_EXPLICIT : AZ_CANNOT_CONVERT;
+		return (AZ_TYPE_IS_BLOCK(to_type)) ? AZ_CONVERT_AUTO : AZ_CANNOT_CONVERT;
 	}
 	/* Everything can be converted to itself, it's supertype and to an interface implemented by it */
 	if (az_type_is_assignable_to (type, to_type)) return AZ_CONVERT_AUTO;

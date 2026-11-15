@@ -91,6 +91,28 @@ az_function_signature_is_callable_as(const AZFunctionSignature *sig, unsigned in
 	return max_conversion;
 }
 
+unsigned int az_function_invoke (const AZFunctionImplementation *impl, void *inst, unsigned int n_args,
+	AZStoreElement args[], AZValue data[],
+	const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
+{
+	if (impl->invoke) {
+		return impl->invoke(impl, inst, n_args, args, data, ret_impl, ret_val, ret_size, ctx);
+	}
+	const AZImplementation *arg_impls[255];
+	const AZValue *arg_vals[255];
+	AZValue64 ret_64;
+	const AZFunctionSignature *sig = az_function_get_signature(impl, inst);
+	for (unsigned int i = 0; i < sig->n_params - 1; i++) {
+		arg_impls[i] = args[i].impl;
+		arg_vals[i] = az_value_store_value_at(args, i, data);
+	}
+	unsigned int result = impl->invoke_vals (impl, inst, arg_impls, arg_vals, ret_impl, &ret_64, ctx);
+	if (result) {
+		az_value_transfer_autobox(*ret_impl, ret_val, &ret_64.value, ret_size);
+	}
+	return result;
+}
+
 unsigned int
 az_function_invoke_vals (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
 {
