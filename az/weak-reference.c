@@ -21,8 +21,11 @@ AZObjectEventVector weak_reference_event_vec = {
 void
 az_weak_reference_set (AZWeakReference *ref, AZActiveObject *object)
 {
-	if (ref->ptr) az_weak_reference_clear (ref);
+	az_weak_reference_clear (ref);
 	if (object) {
+		/* The caller must hold a strong reference to the new object: it
+		 * cannot die between the pointer store and the listener
+		 * registration (which would leave a dangling weak pointer) */
 		ref->ptr = object;
 		az_active_object_add_listener (object, &weak_reference_event_vec, sizeof (AZObjectEventVector), ref);
 	}
@@ -31,10 +34,16 @@ az_weak_reference_set (AZWeakReference *ref, AZActiveObject *object)
 void
 az_weak_reference_clear (AZWeakReference *ref)
 {
-	if (ref->ptr) {
-		az_active_object_remove_listener_by_data (ref->ptr, ref);
-		ref->ptr = NULL;
+	/* The listener can only be removed while the object is alive, so
+	 * promote first: remove_listener_by_data on a dying/freed object would
+	 * touch its (possibly freed) callback block. If promotion fails the
+	 * object is dead and its dispose has already fired our listener. */
+	AZActiveObject *object = az_weak_reference_acquire (ref);
+	if (object) {
+		az_active_object_remove_listener_by_data (object, ref);
+		az_object_unref ((AZObject *) object);
 	}
+	ref->ptr = NULL;
 }
 
 AZActiveObject *

@@ -293,11 +293,27 @@ weak pointer unlocked, so the pointer *word* itself raced with
 atomic word protects the pointer).
 *Exit: 30/30 suites green in the normal build; 30/30 green under
 `-fsanitize=thread` (build-tsan); ST variant compiles.*
+Follow-up fix (same day): **the weak accessors were also racy.**
+`az_weak_reference_clear` checked `ref->ptr` and then called
+`az_active_object_remove_listener_by_data` — if the object died in between,
+the remove touched the (possibly freed) callback block (UAF / heap
+corruption; the dispose emission iterates and frees the callbacks array).
+Fixed by promoting through `az_weak_reference_acquire` before touching the
+object: promotion failure means the object is dead and its dispose has
+already fired our listener, so there is nothing to remove.
+`az_weak_reference_set` now just calls the fixed clear; the contract that
+the caller holds a strong reference to the *new* object is documented
+(it cannot die between the pointer store and the listener registration).
+Deterministic test added (clear racing mid-dispose).
+
 Known remaining pre-existing issue (out of scope): `AZWeakObjectList`'s
 dispose handler mutates the entries array (`remove_object_internal`,
 memmove/free) without list-level synchronization — concurrent
 `get_element` is only protected for the object memory, not the array
 mutation. Needs a per-list lock design if the list is ever used cross-thread.
+The active-object *listener list* itself (callbacks array add/remove/emit)
+likewise has no internal synchronization for concurrent mutation of a live
+object's listeners — same per-object lock design question.
 
 ## 10. Risks and open questions
 

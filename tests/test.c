@@ -573,6 +573,28 @@ test_refcount_mt()
         TEST_ASSERT (weak.ptr == NULL);
     }
 
+    /* Clear racing with object death: clear promotes (fails on DEAD), so it
+     * never touches the dying object's callback block */
+    {
+        rt_gate_reset (&rt_gate);
+        rt_gate.dispose_freeze = 1;
+        AZActiveObject *obj = (AZActiveObject *) az_object_new (type);
+        /* Freeze listener registered BEFORE the weak reference's own listener,
+         * so the weak pointer is still set when the clear happens mid-dispose */
+        az_active_object_add_listener (obj, &rt_event_vec, sizeof (AZObjectEventVector), &rt_gate);
+        AZWeakReference weak = { NULL };
+        az_weak_reference_set (&weak, obj);
+        thrd_t t;
+        TEST_ASSERT (thrd_create (&t, rt_unref_thread, obj) == thrd_success);
+        rt_gate_wait_entered (&rt_gate);
+        /* The object is DEAD, frozen mid-dispose; clear must not touch it */
+        az_weak_reference_clear (&weak);
+        TEST_ASSERT (weak.ptr == NULL);
+        rt_gate_release (&rt_gate);
+        TEST_ASSERT (thrd_join (t, NULL) == thrd_success);
+        TEST_ASSERT_EQUAL_UINT (1, rt_gate.dispose_calls);
+    }
+
     /* drop-claim revival: a cache claiming ownership keeps the object alive */
     {
         rt_gate_reset (&rt_gate);

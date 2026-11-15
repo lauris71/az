@@ -36,6 +36,15 @@ struct _AZWeakReference {
 #endif
 };
 
+/**
+ * @brief Set the weak reference to an object
+ *
+ * The caller must hold a strong reference to the object for the duration of
+ * the call (so it cannot die between the pointer store and the listener
+ * registration). Only az_weak_reference_acquire is safe against concurrent
+ * object death; set/clear on the SAME weak reference from multiple threads
+ * require external synchronization.
+ */
 void az_weak_reference_set (AZWeakReference *ref, AZActiveObject *object);
 void az_weak_reference_clear (AZWeakReference *ref);
 /**
