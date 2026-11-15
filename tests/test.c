@@ -25,6 +25,7 @@
 #include <az/classes/active-object.h>
 #include <az/classes/object-list.h>
 #include <az/classes/weak-object-list.h>
+#include <az/weak-reference.h>
 #include <az/collections/array-list.h>
 #include <az/collections/array.h>
 #include <az/classes/array-object.h>
@@ -507,6 +508,25 @@ test_object_list()
         TEST_ASSERT_EQUAL_UINT (0, list->size);
         az_weak_object_list_delete (list);
         az_object_unref ((AZObject *) o1);
+    }
+    /* Weak reference acquire (promotion) */
+    {
+        AZWeakReference weak = { NULL };
+        AZActiveObject *o = (AZActiveObject *) az_object_new (ao_type);
+        az_weak_reference_set (&weak, o);
+        TEST_ASSERT (weak.ptr == o);
+        /* The weak reference does not hold a strong reference */
+        TEST_ASSERT_EQUAL_UINT (1, o->object.reference.refcount);
+        /* Acquire promotes to a strong reference */
+        AZActiveObject *a = az_weak_reference_acquire (&weak);
+        TEST_ASSERT (a == o);
+        TEST_ASSERT_EQUAL_UINT (2, o->object.reference.refcount);
+        az_object_unref ((AZObject *) a);
+        TEST_ASSERT_EQUAL_UINT (1, o->object.reference.refcount);
+        /* After shutdown the weak reference is cleared and acquire fails */
+        az_object_shutdown ((AZObject *) o);
+        TEST_ASSERT (weak.ptr == NULL);
+        TEST_ASSERT (az_weak_reference_acquire (&weak) == NULL);
     }
 }
 

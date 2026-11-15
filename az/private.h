@@ -55,11 +55,23 @@ typedef struct _AZReference AZReference;
 typedef struct _AZReferenceClass AZReferenceClass;
 
 /*
- * Drops the last reference to an instance, giving AZReferenceClass::drop a chance
- * to claim ownership first. Only called from az_reference_unref (reference.c);
- * not part of the public API.
+ * Lifecycle R/W lock (reference.c, docs/mt-reference-locking.md §6)
+ *
+ * Mutual exclusion between weak->strong promotion windows (read side) and the
+ * object memory release (write side). Internal to the reference machinery;
+ * the read side is used by weak-reference promotion.
  */
-void az_reference_drop (AZReferenceClass *klass, AZReference *ref);
+#ifdef AZ_MT_REFERENCES
+void az_lc_read_lock (void);
+void az_lc_read_unlock (void);
+void az_lc_write_lock (void);
+void az_lc_write_unlock (void);
+#else
+#define az_lc_read_lock()
+#define az_lc_read_unlock()
+#define az_lc_write_lock()
+#define az_lc_write_unlock()
+#endif
 
 /**
  * @brief Publish a fully constructed class

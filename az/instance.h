@@ -90,6 +90,21 @@ void *az_instance_new (unsigned int type);
 void *az_instance_new_sized (unsigned int type, unsigned int size);
 void *az_instance_new_array (unsigned int type, unsigned int nelements);
 void az_instance_delete (unsigned int type, void *inst);
+/**
+ * @brief Release the instance memory without finalizing it
+ *
+ * The free half of az_instance_delete (which is az_instance_finalize +
+ * az_instance_free). Used by the reference destruction tail, which finalizes
+ * unlocked but releases memory under the lifecycle write lock.
+ */
+void az_instance_free (unsigned int type, void *inst);
+/**
+ * @brief Class-based variant of az_instance_free
+ *
+ * Avoids the registry lookup when the class is already known (e.g. the
+ * reference destruction tail, which calls this under the lifecycle write lock).
+ */
+void az_instance_free_with_class (AZClass *klass, void *inst);
 void az_instance_delete_array (unsigned int type, void *elements, unsigned int nelements);
 /**
  * @brief Check if an instance is of a given type

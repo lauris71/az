@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include <az/extend.h>
+#include <az/private.h>
 
 #include "weak-object-list.h"
 
@@ -116,8 +117,24 @@ weak_object_list_get_element (const AZListImplementation *list_impl, void *list_
 	const AZImplementation *impl;
 	AZWeakObjectList *objl = (AZWeakObjectList *) list_inst;
 	arikkei_return_val_if_fail (idx < objl->size, 0);
+#ifdef AZ_MT_REFERENCES
+	/* Weak->strong promotion: the element may be dying on another thread, so a
+	 * plain ref is not enough (docs/mt-reference-locking.md §7) */
+	AZActiveObject *obj;
+	az_lc_read_lock ();
+	obj = objl->objects[idx];
+	if (obj && !az_reference_try_ref (&obj->object.reference)) obj = NULL;
+	az_lc_read_unlock ();
+	if (obj) {
+		impl = (const AZImplementation *) obj->object.klass;
+		val->reference = (AZReference *) obj;
+		return impl;
+	}
+	return NULL;
+#else
 	az_value_set_object (&impl, val, (AZObject *) objl->objects[idx]);
 	return impl;
+#endif
 }
 
 static unsigned int

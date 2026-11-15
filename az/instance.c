@@ -214,12 +214,28 @@ az_instance_delete (unsigned int type, void *instance)
 #endif
 	AZClass *klass = az_type_get_class (type);
 	az_instance_finalize (&klass->impl, instance);
+	az_instance_free_with_class (klass, instance);
+}
+
+void
+az_instance_free_with_class (AZClass *klass, void *instance)
+{
 	const AZInstanceAllocator *allocator = (klass->allocator_idx) ? az_allocators[klass->allocator_idx] : NULL;
 	if (allocator && allocator->free) {
 		allocator->free (klass, instance);
 	} else {
 		free (instance);
 	}
+}
+
+void
+az_instance_free (unsigned int type, void *instance)
+{
+#ifdef AZ_SAFETY_CHECKS
+	arikkei_return_if_fail(az_type_is_valid(type));
+	arikkei_return_if_fail(!AZ_TYPE_IS_INTERFACE(type));
+#endif
+	az_instance_free_with_class (az_type_get_class (type), instance);
 }
 
 void
