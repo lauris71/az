@@ -17,7 +17,7 @@
 #include "unity/unity.h"
 
 /*
- * az_function_call_native (ARM64)
+ * az_function_call_native_vals (ARM64)
  */
 
 static int32_t native_add_i32 (int32_t a, int32_t b)
@@ -117,7 +117,7 @@ static unsigned int
 call_native (void (*func) (void), unsigned int ret_type, unsigned int n_args, const unsigned int *arg_types, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation **arg_impls, const AZValue **arg_vals)
 {
     const AZFunctionSignature *sig = az_function_signature_new(ret_type, n_args, arg_types);
-    return az_function_call_native (func, sig, ret_impl, ret_val, arg_impls, arg_vals);
+    return az_function_call_native_vals (func, sig, ret_impl, ret_val, arg_impls, arg_vals);
 }
 
 void

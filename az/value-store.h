@@ -22,6 +22,8 @@ typedef struct _AZStoreElement AZStoreElement;
 extern "C" {
 #endif
 
+#define AZ_IMPL_VAL_GT8(i) (AZ_IMPL_IS_VALUE(i) && ((AZClass *) (i))->instance_size > 8)
+
 /**
  * @brief A compact storage element for containers.
  * 
@@ -91,9 +93,10 @@ const AZImplementation *az_value_store_instance_at_autobox(AZStoreElement elemen
 static inline AZValue *
 az_value_store_value_at(const AZStoreElement elements[], unsigned int idx, AZValue *data)
 {
+    if (!elements[idx].impl) return NULL;
     AZClass *klass = AZ_CLASS_FROM_IMPL(elements[idx].impl);
-    if (AZ_CLASS_IS_BLOCK(klass) || (klass->instance_size <= 8)) return (AZValue *) &elements[idx].val;
-    return data + elements[idx].val_idx;
+    if (AZ_IMPL_VAL_GT8(elements[idx].impl)) return data + elements[idx].val_idx;
+    return (AZValue *) &elements[idx].val;
 }
 
 /**
@@ -113,7 +116,7 @@ az_value_store_clear_at(AZStoreElement elements[], unsigned int idx)
     if (!elements[idx].impl) return 0;
     AZClass *klass = AZ_CLASS_FROM_IMPL(elements[idx].impl);
     if (AZ_IMPL_IS_REFERENCE(elements[idx].impl)) {
-        az_reference_unref((AZReferenceClass *) elements[idx].impl, elements[idx].reference);
+        if (elements[idx].reference) az_reference_unref((AZReferenceClass *) elements[idx].impl, elements[idx].reference);
         elements[idx].impl = NULL;
         return 0;
     }
@@ -159,7 +162,7 @@ static inline unsigned int
 az_value_store_replace(AZStoreElement elements[], unsigned int idx, AZValue *data, unsigned int data_pos, const AZImplementation *impl, void *inst)
 {
     if (elements[idx].impl && AZ_IMPL_IS_REFERENCE(elements[idx].impl)) {
-        az_reference_unref((AZReferenceClass *) elements[idx].impl, elements[idx].reference);
+        if (elements[idx].reference) az_reference_unref((AZReferenceClass *) elements[idx].impl, elements[idx].reference);
     }
     return az_value_store_set(elements, idx, data, data_pos, impl, inst);
 }

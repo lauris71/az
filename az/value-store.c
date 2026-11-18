@@ -43,7 +43,7 @@ az_value_store_set(AZStoreElement elements[], unsigned int idx, AZValue *data, u
         if (AZ_CLASS_IS_BLOCK(klass)) {
             elements[idx].block = inst;
             if (AZ_CLASS_IS_REFERENCE(klass)) {
-                az_reference_ref((AZReference *) inst);
+                if (inst) az_reference_ref((AZReference *) inst);
             }
         } else if (klass->instance_size <= 8) {
             memcpy(elements[idx].val, inst, klass->instance_size);

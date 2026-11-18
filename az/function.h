@@ -52,7 +52,7 @@ struct _AZFunctionImplementation {
 	 * @param ctx The context
 	 * @return Exception code or AZ_OK
 	 */
-	unsigned int (*invoke) (const AZFunctionImplementation *impl, void *inst, unsigned int n_args,
+	int (*invoke) (const AZFunctionImplementation *impl, void *inst, unsigned int n_args,
 		AZStoreElement args[], AZValue data[],
 		const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx);
 	/**
@@ -91,6 +91,9 @@ unsigned int az_function_signature_is_callable_as(const AZFunctionSignature *sig
  */
 unsigned int az_function_invoke_vals (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
 unsigned int az_function_convert_args_in_place (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], AZValue *arg_vals[]);
+
+/* Returns error/exception code */
+int az_function_invoke (const AZFunctionImplementation *impl, void *inst, unsigned int n_args, AZStoreElement args[], AZValue data[], const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx);
 
 /*
  * Native <-> az function calling rules (determined by signature)
@@ -144,7 +147,9 @@ unsigned int az_function_invoke_vals_by_value_signature_va (const AZImplementati
  * @param arg_vals argument values
  * @return 1 on success, 0 on error
  */
-unsigned int az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation *arg_impls[], const AZValue *arg_vals[]);
+unsigned int az_function_call_native_vals (void (*func) (void), const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation *arg_impls[], const AZValue *arg_vals[]);
+/* Returns error/exception code */
+int az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, unsigned int n_args, AZStoreElement args[], AZValue data[], const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx);
 
 #ifdef __cplusplus
 };

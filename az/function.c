@@ -13,6 +13,7 @@
 
 #include <arikkei/arikkei-strlib.h>
 #include <az/base.h>
+#include <az/context.h>
 #include <az/convert.h>
 #include <az/instance.h>
 #include <az/object.h>
@@ -91,7 +92,8 @@ az_function_signature_is_callable_as(const AZFunctionSignature *sig, unsigned in
 	return max_conversion;
 }
 
-unsigned int az_function_invoke (const AZFunctionImplementation *impl, void *inst, unsigned int n_args,
+int
+az_function_invoke (const AZFunctionImplementation *impl, void *inst, unsigned int n_args,
 	AZStoreElement args[], AZValue data[],
 	const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
 {
@@ -110,7 +112,9 @@ unsigned int az_function_invoke (const AZFunctionImplementation *impl, void *ins
 	if (result) {
 		az_value_transfer_autobox(*ret_impl, ret_val, &ret_64.value, ret_size);
 	}
-	return result;
+	if (result) return AZ_OK;
+	if (ctx && ctx->exc.type) return ctx->exc.type;
+	return AZ_EXCEPTION_SYSTEM;
 }
 
 unsigned int
@@ -138,11 +142,10 @@ az_function_invoke_vals (const AZFunctionImplementation *impl, void *inst, const
 				}
 			}
 		}
-		impl->invoke(impl, inst, sig->n_params - 1, elements, (AZValue *) NULL, ret_impl, &ret_val->value, 64, ctx);
+		return impl->invoke(impl, inst, sig->n_params - 1, elements, (AZValue *) NULL, ret_impl, &ret_val->value, 64, ctx) == AZ_OK;
 	} else {
 		return impl->invoke_vals (impl, inst, arg_impls, arg_vals, ret_impl, ret_val, ctx);
 	}
-	return 0;
 }
 
 unsigned int
@@ -169,7 +172,7 @@ az_function_convert_args_in_place (const AZFunctionImplementation *impl, void *i
 #endif
 
 static void
-function_build_arguments_vals (const AZFunctionSignature *sig, va_list ap, const AZImplementation *arg_impls[], AZValue arg_vals[], const AZValue *arg_ptrs[])
+function_build_arguments_vals (const AZFunctionSignature *sig, va_list ap, const AZImplementation *arg_impls[], AZValue64 arg_vals[])
 {
 	unsigned int i;
 	for (i = 0; i < sig->n_params - 1; i++) {
@@ -179,7 +182,7 @@ function_build_arguments_vals (const AZFunctionSignature *sig, va_list ap, const
 			/* Objects - [pointer] */
 			AZObject *obj = (AZObject *) va_arg(ap, AZObject *);
 			arg_impls[i] = (obj) ? (AZImplementation *) obj->klass : &klass->impl;
-			arg_vals[i].block = obj;
+			arg_vals[i].value.block = obj;
 		} else if (AZ_TYPE_IS_FINAL(arg_type)) {
 			/* Final type, no implementation */
 			arg_impls[i] = &klass->impl;
@@ -193,36 +196,55 @@ function_build_arguments_vals (const AZFunctionSignature *sig, va_list ap, const
 					case AZ_TYPE_UINT16:
 					case AZ_TYPE_INT32:
 					case AZ_TYPE_UINT32:
-						arg_vals[i].int32_v = va_arg(ap, int32_t);
+						arg_vals[i].value.int32_v = va_arg(ap, int32_t);
 						break;
 					case AZ_TYPE_INT64:
 					case AZ_TYPE_UINT64:
-						arg_vals[i].int64_v = va_arg(ap, int64_t);
+						arg_vals[i].value.int64_v = va_arg(ap, int64_t);
 						break;
 					case AZ_TYPE_FLOAT:
 					case AZ_TYPE_DOUBLE:
-						arg_vals[i].double_v = va_arg(ap, double);
+						arg_vals[i].value.double_v = va_arg(ap, double);
 						break;
 					case AZ_TYPE_COMPLEX_FLOAT:
-						arg_vals[i].cfloat_v = va_arg(ap, AZComplexFloat);
+						arg_vals[i].value.cfloat_v = va_arg(ap, AZComplexFloat);
 						break;
 					case AZ_TYPE_COMPLEX_DOUBLE:
-						arg_vals[i].cdouble_v = va_arg(ap, AZComplexDouble);
+						arg_vals[i].value.cdouble_v = va_arg(ap, AZComplexDouble);
 						break;
 					case AZ_TYPE_POINTER:
-						arg_vals[i].pointer_v = (void *) va_arg(ap, void *);
+						arg_vals[i].value.pointer_v = (void *) va_arg(ap, void *);
 						break;
 				}
 			} else {
 				/* Final types - [pointer] */
-				arg_vals[i].block = (void *) va_arg(ap, void *);
+				void *arg_val = (void *) va_arg(ap, void *);
+				if (AZ_TYPE_IS_BLOCK(arg_type)) {
+					arg_vals[i].value.block = arg_val;
+				} else {
+					AZClass *arg_class = AZ_CLASS_FROM_IMPL(arg_impls[i]);
+					if (arg_class->instance_size <= 64) {
+						memcpy(&arg_vals[i].value, arg_val, arg_class->instance_size);
+					} else {
+						az_value_copy_autobox(&arg_class->impl, &arg_vals[i].value, arg_val, 64);
+					}
+				}
 			}
 		} else {
-			/* Non-final types - [impl, pointer] */
+			/* Non-final types - [impl, value|pointer] */
 			arg_impls[i] = (const AZImplementation *) va_arg(ap, AZImplementation *);
-			arg_vals[i].pointer_v = (void *) va_arg(ap, void *);
+			void *arg_val = (void *) va_arg(ap, void *);
+			if (AZ_TYPE_IS_BLOCK(arg_type)) {
+				arg_vals[i].value.block = arg_val;
+			} else {
+				AZClass *arg_class = AZ_CLASS_FROM_IMPL(arg_impls[i]);
+				if (arg_class->instance_size <= 64) {
+					memcpy(&arg_vals[i].value, arg_val, arg_class->instance_size);
+				} else {
+					az_value_copy_autobox(&arg_class->impl, &arg_vals[i].value, arg_val, 64);
+				}
+			}
 		}
-		arg_ptrs[i] = &arg_vals[i];
 	}
 }
 
@@ -230,17 +252,20 @@ unsigned int
 az_function_invoke_vals_va (const AZFunctionImplementation *impl, void *inst, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
 {
 	const AZImplementation *arg_impls[64];
-	const AZValue *arg_ptrs[64];
 
 	const AZFunctionSignature *sig = az_function_get_signature(impl, inst);
 	arikkei_return_val_if_fail (sig->n_params < 64, 0);
 
-	AZValue arg_vals[64];
+	AZValue64 arg_vals[64];
 	va_list ap;
 	va_start(ap, ret_val);
-	function_build_arguments_vals (sig, ap, arg_impls, arg_vals, arg_ptrs);
+	function_build_arguments_vals (sig, ap, arg_impls, arg_vals);
 	va_end(ap);
 
+	const AZValue *arg_ptrs[64];
+	for (unsigned int i = 0; i < sig->n_params - 1; i++) {
+		arg_ptrs[i] = &arg_vals[i].value;
+	}
 	return az_function_invoke_vals (impl, inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
 }
 
@@ -248,16 +273,19 @@ unsigned int
 az_function_invoke_vals_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
 {
 	const AZImplementation *arg_impls[64];
-	const AZValue *arg_ptrs[64];
 
 	arikkei_return_val_if_fail (sig->n_params < 64, 0);
 
-	AZValue arg_vals[64];
+	AZValue64 arg_vals[64];
 	va_list ap;
 	va_start(ap, ret_val);
-	function_build_arguments_vals (sig, ap, arg_impls, arg_vals, arg_ptrs);
+	function_build_arguments_vals (sig, ap, arg_impls, arg_vals);
 	va_end(ap);
 
+	const AZValue *arg_ptrs[64];
+	for (unsigned int i = 0; i < sig->n_params - 1; i++) {
+		arg_ptrs[i] = &arg_vals[i].value;
+	}
 	return az_function_invoke_vals (impl, inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
 }
 
@@ -267,18 +295,21 @@ az_function_invoke_vals_by_value_signature_va (const AZImplementation *impl, con
 	AZFunctionImplementation *f_impl;
 	AZFunctionInstance *f_inst;
 	const AZImplementation *arg_impls[64];
-	const AZValue *arg_ptrs[64];
 	arikkei_return_val_if_fail (impl != NULL, 0);
 	arikkei_return_val_if_fail (sig->n_params < 64, 0);
 	f_impl = (AZFunctionImplementation *) az_instance_get_interface (impl, az_value_get_inst(impl, val), AZ_TYPE_FUNCTION, (void **) &f_inst);
 	arikkei_return_val_if_fail (f_impl != NULL, 0);
 
-	AZValue arg_vals[64];
+	AZValue64 arg_vals[64];
 	va_list ap;
 	va_start(ap, ret_val);
-	function_build_arguments_vals (sig, ap, arg_impls, arg_vals, arg_ptrs);
+	function_build_arguments_vals (sig, ap, arg_impls, arg_vals);
 	va_end(ap);
 
+	const AZValue *arg_ptrs[64];
+	for (unsigned int i = 0; i < sig->n_params - 1; i++) {
+		arg_ptrs[i] = &arg_vals[i].value;
+	}
 	return az_function_invoke_vals (f_impl, f_inst, arg_impls, arg_ptrs, ret_impl, ret_val, ctx);
 }
 
@@ -421,7 +452,7 @@ native_frame_push_stack (AZNativeCallFrame *frame, unsigned int *stack_bytes, co
 }
 
 unsigned int
-az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation *arg_impls[], const AZValue *arg_vals[])
+az_function_call_native_vals (void (*func) (void), const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation *arg_impls[], const AZValue *arg_vals[])
 {
 	AZNativeCallFrame frame;
 	AZNativeCallResult result;
@@ -453,77 +484,79 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 	for (i = 0; i < sig->n_params - 1; i++) {
 		unsigned int type = AZ_SIGNATURE_ARG_TYPE(sig, i);
 		AZClass *klass = AZ_CLASS_FROM_TYPE (type);
+		const AZImplementation *impl = arg_impls[i];
+		const AZValue *val = arg_vals[i];
 		if (AZ_TYPE_IS_OBJECT (type)) {
 			/* Objects - [pointer] */
-			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) arg_vals[i]->block)) return 0;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) val->block)) return 0;
 		} else if (AZ_TYPE_IS_PRIMITIVE (type)) {
 			/* Primitive types - [value] */
 			switch (type) {
 			case AZ_TYPE_BOOLEAN:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, arg_vals[i]->boolean_v)) return 0;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->boolean_v)) return 0;
 				break;
 			case AZ_TYPE_INT8:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) arg_vals[i]->int8_v)) return 0;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int8_v)) return 0;
 				break;
 			case AZ_TYPE_UINT8:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, arg_vals[i]->uint8_v)) return 0;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint8_v)) return 0;
 				break;
 			case AZ_TYPE_INT16:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) arg_vals[i]->int16_v)) return 0;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int16_v)) return 0;
 				break;
 			case AZ_TYPE_UINT16:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, arg_vals[i]->uint16_v)) return 0;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint16_v)) return 0;
 				break;
 			case AZ_TYPE_INT32:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) arg_vals[i]->int32_v)) return 0;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) val->int32_v)) return 0;
 				break;
 			case AZ_TYPE_UINT32:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, arg_vals[i]->uint32_v)) return 0;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint32_v)) return 0;
 				break;
 			case AZ_TYPE_INT64:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) arg_vals[i]->int64_v)) return 0;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) val->int64_v)) return 0;
 				break;
 			case AZ_TYPE_UINT64:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, arg_vals[i]->uint64_v)) return 0;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint64_v)) return 0;
 				break;
 			case AZ_TYPE_FLOAT:
-				if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, arg_vals[i]->float_v)) return 0;
+				if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->float_v)) return 0;
 				break;
 			case AZ_TYPE_DOUBLE:
-				if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, arg_vals[i]->double_v)) return 0;
+				if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->double_v)) return 0;
 				break;
 			case AZ_TYPE_COMPLEX_FLOAT:
 				/* HFA of 2 floats - either both members in registers or everything on the stack */
 				if (n_fpr + 2 <= 8) {
-					if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, arg_vals[i]->cfloat_v.c[0])) return 0;
-					if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, arg_vals[i]->cfloat_v.c[1])) return 0;
+					if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->cfloat_v.c[0])) return 0;
+					if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->cfloat_v.c[1])) return 0;
 				} else {
-					if (!native_frame_push_stack (&frame, &stack_bytes, &arg_vals[i]->cfloat_v, 8)) return 0;
+					if (!native_frame_push_stack (&frame, &stack_bytes, &val->cfloat_v, 8)) return 0;
 				}
 				break;
 			case AZ_TYPE_COMPLEX_DOUBLE:
 				/* HFA of 2 doubles - either both members in registers or everything on the stack */
 				if (n_fpr + 2 <= 8) {
-					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, arg_vals[i]->cdouble_v.c[0])) return 0;
-					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, arg_vals[i]->cdouble_v.c[1])) return 0;
+					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->cdouble_v.c[0])) return 0;
+					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->cdouble_v.c[1])) return 0;
 				} else {
-					if (!native_frame_push_stack (&frame, &stack_bytes, &arg_vals[i]->cdouble_v, 16)) return 0;
+					if (!native_frame_push_stack (&frame, &stack_bytes, &val->cdouble_v, 16)) return 0;
 				}
 				break;
 			case AZ_TYPE_POINTER:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) arg_vals[i]->pointer_v)) return 0;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) val->pointer_v)) return 0;
 				break;
 			}
 		} else if (AZ_TYPE_IS_FINAL (type)) {
 			/* Final types - [pointer] */
-			uint64_t p = (AZ_TYPE_IS_BLOCK (type)) ? (uint64_t) (uintptr_t) arg_vals[i]->block : (uint64_t) (uintptr_t) arg_vals[i];
+			uint64_t p = (AZ_TYPE_IS_BLOCK (type)) ? (uint64_t) (uintptr_t) val->block : (uint64_t) (uintptr_t) val;
 			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, p)) return 0;
 		} else {
 			/* Non-final types - [impl, pointer] */
-			const AZImplementation *impl = arg_impls[i];
+			/* fixme: null -> typed null - this should be handled by the caller */
 			if (!impl) impl = &klass->impl;
 			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) impl)) return 0;
-			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) az_value_get_inst (impl, arg_vals[i]))) return 0;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) az_value_get_inst (impl, val))) return 0;
 		}
 	}
 
@@ -603,6 +636,196 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 		if (ret_impl) *ret_impl = (const AZImplementation *) (uintptr_t) result.gpr;
 	}
 	return 1;
+}
+
+int
+az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, unsigned int n_args, AZStoreElement args[], AZValue data[], const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
+{
+	AZNativeCallFrame frame;
+	AZNativeCallResult result;
+	AZValue64 tmp_ret;
+	unsigned int n_gpr = 0, n_fpr = 0, stack_bytes = 0;
+	unsigned int i, rtype;
+	AZClass *rklass;
+
+	arikkei_return_val_if_fail (func != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail (sig != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail (sig->n_params < 64, AZ_EXCEPTION_OUT_OF_BOUNDS);
+	/* fixme: Remove this if varargs will be implemented */
+	arikkei_return_val_if_fail (n_args == sig->n_params - 1, AZ_EXCEPTION_SIGNATURE_MISMATCH);
+
+	/* Hidden return storage argument */
+	unsigned int ret_type = AZ_SIGNATURE_RET_TYPE(sig);
+	if (ret_type && !AZ_TYPE_IS_OBJECT (ret_type) && !AZ_TYPE_IS_PRIMITIVE (ret_type)) {
+		if (!AZ_TYPE_IS_FINAL (ret_type) || !AZ_TYPE_IS_BLOCK (ret_type)) {
+			/* Final values and all non-final types: the first argument is a pointer to the return storage */
+			void *storage = (void *) &tmp_ret;
+			if (!AZ_TYPE_IS_BLOCK (ret_type)) {
+				arikkei_return_val_if_fail (AZ_CLASS_FROM_TYPE (ret_type)->instance_size <= AZ_FUNCTION_MAX_RETURN_VALUE_SIZE, 0);
+			}
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) storage)) return AZ_EXCEPTION_SYSTEM;
+		}
+	}
+
+	/* Arguments */
+	for (i = 0; i < sig->n_params - 1; i++) {
+		unsigned int type = AZ_SIGNATURE_ARG_TYPE(sig, i);
+		AZClass *klass = AZ_CLASS_FROM_TYPE (type);
+		const AZImplementation *impl = args[i].impl;
+		const AZValue *val = az_value_store_value_at(args, i, data);
+		if (AZ_TYPE_IS_OBJECT (type)) {
+			/* Objects - [pointer] */
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) val->block)) return AZ_EXCEPTION_SYSTEM;
+		} else if (AZ_TYPE_IS_PRIMITIVE (type)) {
+			/* Primitive types - [value] */
+			switch (type) {
+			case AZ_TYPE_BOOLEAN:
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->boolean_v)) return AZ_EXCEPTION_SYSTEM;
+				break;
+			case AZ_TYPE_INT8:
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int8_v)) return AZ_EXCEPTION_SYSTEM;
+				break;
+			case AZ_TYPE_UINT8:
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint8_v)) return AZ_EXCEPTION_SYSTEM;
+				break;
+			case AZ_TYPE_INT16:
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int16_v)) return AZ_EXCEPTION_SYSTEM;
+				break;
+			case AZ_TYPE_UINT16:
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint16_v)) return AZ_EXCEPTION_SYSTEM;
+				break;
+			case AZ_TYPE_INT32:
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) val->int32_v)) return AZ_EXCEPTION_SYSTEM;
+				break;
+			case AZ_TYPE_UINT32:
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint32_v)) return AZ_EXCEPTION_SYSTEM;
+				break;
+			case AZ_TYPE_INT64:
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) val->int64_v)) return AZ_EXCEPTION_SYSTEM;
+				break;
+			case AZ_TYPE_UINT64:
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint64_v)) return AZ_EXCEPTION_SYSTEM;
+				break;
+			case AZ_TYPE_FLOAT:
+				if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->float_v)) return AZ_EXCEPTION_SYSTEM;
+				break;
+			case AZ_TYPE_DOUBLE:
+				if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->double_v)) return AZ_EXCEPTION_SYSTEM;
+				break;
+			case AZ_TYPE_COMPLEX_FLOAT:
+				/* HFA of 2 floats - either both members in registers or everything on the stack */
+				if (n_fpr + 2 <= 8) {
+					if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->cfloat_v.c[0])) return AZ_EXCEPTION_SYSTEM;
+					if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->cfloat_v.c[1])) return AZ_EXCEPTION_SYSTEM;
+				} else {
+					if (!native_frame_push_stack (&frame, &stack_bytes, &val->cfloat_v, 8)) return AZ_EXCEPTION_SYSTEM;
+				}
+				break;
+			case AZ_TYPE_COMPLEX_DOUBLE:
+				/* HFA of 2 doubles - either both members in registers or everything on the stack */
+				if (n_fpr + 2 <= 8) {
+					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->cdouble_v.c[0])) return AZ_EXCEPTION_SYSTEM;
+					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->cdouble_v.c[1])) return AZ_EXCEPTION_SYSTEM;
+				} else {
+					if (!native_frame_push_stack (&frame, &stack_bytes, &val->cdouble_v, 16)) return AZ_EXCEPTION_SYSTEM;
+				}
+				break;
+			case AZ_TYPE_POINTER:
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) val->pointer_v)) return AZ_EXCEPTION_SYSTEM;
+				break;
+			}
+		} else if (AZ_TYPE_IS_FINAL (type)) {
+			/* Final types - [pointer] */
+			uint64_t p = (AZ_TYPE_IS_BLOCK (type)) ? (uint64_t) (uintptr_t) val->block : (uint64_t) (uintptr_t) val;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, p)) return AZ_EXCEPTION_SYSTEM;
+		} else {
+			/* Non-final types - [impl, pointer] */
+			/* fixme: null -> typed null - this should be handled by the caller */
+			if (!impl) impl = &klass->impl;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) impl)) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) az_value_get_inst (impl, val))) return AZ_EXCEPTION_SYSTEM;
+		}
+	}
+
+	az_native_call_frame_arm64 (func, &frame, stack_bytes, &result);
+
+	if (!ret_type) {
+		if (ret_impl) *ret_impl = NULL;
+		return 1;
+	}
+	rtype = ret_type;
+	rklass = AZ_CLASS_FROM_TYPE (rtype);
+	if (AZ_TYPE_IS_OBJECT (rtype)) {
+		/* Objects - returned by pointer */
+		AZObject *obj = (AZObject *) (uintptr_t) result.gpr;
+		tmp_ret.value.block = obj;
+		if (ret_impl) *ret_impl = (obj) ? (const AZImplementation *) obj->klass : &rklass->impl;
+	} else if (AZ_TYPE_IS_PRIMITIVE (rtype)) {
+		/* Primitives - returned by value */
+		if (ret_impl) *ret_impl = &rklass->impl;
+		switch (rtype) {
+		case AZ_TYPE_BOOLEAN:
+			tmp_ret.value.boolean_v = (uint32_t) result.gpr;
+			break;
+		case AZ_TYPE_INT8:
+			tmp_ret.value.int8_v = (int8_t) result.gpr;
+			break;
+		case AZ_TYPE_UINT8:
+			tmp_ret.value.uint8_v = (uint8_t) result.gpr;
+			break;
+		case AZ_TYPE_INT16:
+			tmp_ret.value.int16_v = (int16_t) result.gpr;
+			break;
+		case AZ_TYPE_UINT16:
+			tmp_ret.value.uint16_v = (uint16_t) result.gpr;
+			break;
+		case AZ_TYPE_INT32:
+			tmp_ret.value.int32_v = (int32_t) result.gpr;
+			break;
+		case AZ_TYPE_UINT32:
+			tmp_ret.value.uint32_v = (uint32_t) result.gpr;
+			break;
+		case AZ_TYPE_INT64:
+			tmp_ret.value.int64_v = (int64_t) result.gpr;
+			break;
+		case AZ_TYPE_UINT64:
+			tmp_ret.value.uint64_v = result.gpr;
+			break;
+		case AZ_TYPE_FLOAT: {
+			uint32_t u = (uint32_t) result.fprs[0];
+			memcpy (&tmp_ret.value.float_v, &u, 4);
+			break;
+		}
+		case AZ_TYPE_DOUBLE:
+			memcpy (&tmp_ret.value.double_v, &result.fprs[0], 8);
+			break;
+		case AZ_TYPE_COMPLEX_FLOAT: {
+			uint32_t r = (uint32_t) result.fprs[0];
+			uint32_t j = (uint32_t) result.fprs[1];
+			memcpy (&tmp_ret.value.cfloat_v.c[0], &r, 4);
+			memcpy (&tmp_ret.value.cfloat_v.c[1], &j, 4);
+			break;
+		}
+		case AZ_TYPE_COMPLEX_DOUBLE:
+			memcpy (&tmp_ret.value.cdouble_v.c[0], &result.fprs[0], 8);
+			memcpy (&tmp_ret.value.cdouble_v.c[1], &result.fprs[1], 8);
+			break;
+		case AZ_TYPE_POINTER:
+			tmp_ret.value.pointer_v = (void *) (uintptr_t) result.gpr;
+			break;
+		}
+	} else if (AZ_TYPE_IS_FINAL (rtype)) {
+		/* Final blocks - returned by pointer, final values were written to the hidden storage */
+		if (ret_impl) *ret_impl = &rklass->impl;
+		if (AZ_TYPE_IS_BLOCK (rtype)) tmp_ret.value.block = (void *) (uintptr_t) result.gpr;
+	} else {
+		/* Non-final types - implementation returned, value was written to the hidden storage */
+		if (ret_impl) *ret_impl = (const AZImplementation *) (uintptr_t) result.gpr;
+	}
+	if (ret_val) {
+		az_value_transfer_autobox(*ret_impl, ret_val, &tmp_ret.value, ret_size);
+	}
+	return AZ_OK;
 }
 
 #elif defined(ARCH_X86_64) && defined(__GNUC__) && !defined(_WIN32) && !defined(__CYGWIN__)
@@ -762,7 +985,7 @@ native_frame_push_stack (AZNativeCallFrame *frame, unsigned int *stack_bytes, co
 }
 
 unsigned int
-az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation *arg_impls[], const AZValue *arg_vals[])
+az_function_call_native_vals (void (*func) (void), const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation *arg_impls[], const AZValue *arg_vals[])
 {
 	AZNativeCallFrame frame;
 	AZNativeCallResult result;
@@ -1028,7 +1251,7 @@ native_frame_push_fpr64 (AZNativeCallFrame *frame, unsigned int *n_slots, unsign
 }
 
 unsigned int
-az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation *arg_impls[], const AZValue *arg_vals[])
+az_function_call_native_vals (void (*func) (void), const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation *arg_impls[], const AZValue *arg_vals[])
 {
 	AZNativeCallFrame frame;
 	AZNativeCallResult result;
@@ -1213,9 +1436,9 @@ az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, co
 #else
 
 unsigned int
-az_function_call_native (void (*func) (void), const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation *arg_impls[], const AZValue *arg_vals[])
+az_function_call_native_vals (void (*func) (void), const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation *arg_impls[], const AZValue *arg_vals[])
 {
-	fprintf (stderr, "az_function_call_native is not implemented for this architecture\n");
+	fprintf (stderr, "az_function_call_native_vals is not implemented for this architecture\n");
 	return 0;
 }
 

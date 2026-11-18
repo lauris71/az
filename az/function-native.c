@@ -15,7 +15,8 @@ static void function_native_class_init (AZFunctionNativeClass *klass);
 
 /* AZFunction implementation */
 const AZFunctionSignature *fnat_signature (const AZFunctionImplementation *impl, void *inst);
-static unsigned int function_native_invoke (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
+static int function_native_invoke (const AZFunctionImplementation *impl, void *inst, unsigned int n_args, AZStoreElement args[], AZValue data[],
+		const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx);
 
 static unsigned int function_native_type = 0;
 
@@ -41,7 +42,7 @@ function_native_class_init (AZFunctionNativeClass *klass)
 {
 	az_class_declare_interface (&klass->klass, 0, AZ_TYPE_FUNCTION, ARIKKEI_OFFSET (AZFunctionNativeClass, function_impl), 0);
 	klass->function_impl.signature = fnat_signature;
-	klass->function_impl.invoke_vals = function_native_invoke;
+	klass->function_impl.invoke = function_native_invoke;
 }
 
 const AZFunctionSignature *
@@ -51,11 +52,12 @@ fnat_signature (const AZFunctionImplementation *impl, void *inst)
 	return fnat->signature;
 }
 
-static unsigned int
-function_native_invoke (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
+static int
+function_native_invoke (const AZFunctionImplementation *impl, void *inst, unsigned int n_args, AZStoreElement args[], AZValue data[],
+		const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
 {
 	AZFunctionNative *fnat = (AZFunctionNative *) inst;
-	return az_function_call_native (fnat->func, fnat->signature, ret_impl, ret_val, arg_impls, arg_vals);
+	return az_function_invoke_native(fnat->func, fnat->signature, n_args, args, data, ret_impl, ret_val, ret_size, ctx);
 }
 
 void
