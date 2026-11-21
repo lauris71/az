@@ -11,6 +11,7 @@
 
 #include <az/class.h>
 #include <az/field.h>
+#include <az/value-store.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -182,23 +183,30 @@ void az_class_define_property_function_val (AZClass *klass, unsigned int idx, co
 void az_class_define_property_function_packed (AZClass *klass, unsigned int idx, const unsigned char *key,
 	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset, const AZFunctionSignature *sig);
 
-void az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
-	unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *));
+	/**
+	 * @brief Define a method (i.e. class-storage function property with this as the first argument)
+	 * 
+	 * @param klass the method's class
+	 * @param idx the property index in class
+	 * @param key the method's name
+	 * @param ret_type the return type
+	 * @param n_args the number of method arguments (excluding this)
+	 * @param arg_types the list of argument types
+	 * @param invoke A pointer to the function
+	 */
+void az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
+	int (*invoke) (unsigned int, AZStoreElement *, AZValue *, const AZImplementation **, AZValue *, unsigned int, AZContext *));
 void az_class_define_method_va (AZClass *klass, unsigned int idx, const unsigned char* key,
-	unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *),
-	unsigned int ret_type, unsigned int n_args, ...);
+	int (*invoke) (unsigned int, AZStoreElement *, AZValue *, const AZImplementation **, AZValue *, unsigned int, AZContext *), unsigned int ret_type, unsigned int n_args, ...);
 void az_class_define_method_native_va (AZClass *klass, unsigned int idx, const unsigned char* key,
-	void (*invoke_vals) (void),
+	void (*invoke) (void),
 	unsigned int ret_type, unsigned int n_args, ...);
-void az_class_define_static_method (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
-	unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *));
+
 void az_class_define_static_method_native (AZClass *klass, unsigned int idx, const unsigned char *key,
 	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
 	void (*invoke_vals) (void));
 void az_class_define_static_method_va (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *),
+	int (*invoke) (unsigned int, AZStoreElement *, AZValue *, const AZImplementation **, AZValue *, unsigned int, AZContext *),
 	unsigned int ret_type, unsigned int n_args, ...);
 void az_class_define_static_method_native_va (AZClass *klass, unsigned int idx, const unsigned char *key,
 	void (*invoke_vals) (void),

@@ -85,7 +85,7 @@ az_value_store_instance_at(AZStoreElement elements[], unsigned int idx, AZValue 
     } else if (klass->instance_size <= 8) {
         return &elements[idx].val;
     }
-    return (data + elements[idx].val_idx);
+    return data + elements[idx].val_idx;
 }
 
 const AZImplementation *az_value_store_instance_at_autobox(AZStoreElement elements[], unsigned int idx, AZValue *data, void **inst);
@@ -97,6 +97,21 @@ az_value_store_value_at(const AZStoreElement elements[], unsigned int idx, AZVal
     AZClass *klass = AZ_CLASS_FROM_IMPL(elements[idx].impl);
     if (AZ_IMPL_VAL_GT8(elements[idx].impl)) return data + elements[idx].val_idx;
     return (AZValue *) &elements[idx].val;
+}
+
+static inline unsigned int
+az_value_store_clear_element(AZStoreElement *el)
+{
+    if (!el->impl) return 0;
+    AZClass *klass = AZ_CLASS_FROM_IMPL(el->impl);
+    if (AZ_IMPL_IS_REFERENCE(el->impl)) {
+        if (el->reference) az_reference_unref((AZReferenceClass *) el->impl, el->reference);
+        el->impl = NULL;
+        return 0;
+    }
+    el->impl = NULL;
+    if (AZ_CLASS_IS_BLOCK(klass) || (klass->instance_size <= 8)) return 0;
+    return ((klass->instance_size + 15) / 16);
 }
 
 /**

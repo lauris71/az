@@ -24,7 +24,8 @@ extern "C" {
 
 struct _AZFunctionValue {
 	const AZFunctionSignature *signature;
-	unsigned int (*invoke_vals) (const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
+	/* Returns exception code or OK */
+	int (*invoke) (unsigned int n_args, AZStoreElement args[], AZValue data[], const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx);
 };
 
 struct _AZFunctionValueClass {
@@ -35,7 +36,8 @@ struct _AZFunctionValueClass {
 unsigned int az_function_value_get_type (void);
 
 void az_function_value_setup (AZFunctionValue *fval, const AZFunctionSignature *sig,
-	unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *));
+	int (*invoke) (unsigned int n_args, AZStoreElement args[], AZValue data[],
+		const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx));
 
 #ifdef __cplusplus
 };

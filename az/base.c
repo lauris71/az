@@ -14,6 +14,7 @@
 #include <az/value.h>
 #include <az/field.h>
 #include <az/extend.h>
+#include <az/context.h>
 
 #include <az/collections/list.h>
 
@@ -80,7 +81,7 @@ enum {
 };
 
 static unsigned int
-impl_to_string (const AZImplementation* impl, void *inst, unsigned char *buf, unsigned int len)
+impl_to_string (const AZImplementation* impl, void *inst, uint8_t *buf, unsigned int len)
 {
 	AZImplementation *inst_impl = (AZImplementation *) inst;
 	AZClass *inst_class = AZ_CLASS_FROM_IMPL(inst_impl);
@@ -88,20 +89,20 @@ impl_to_string (const AZImplementation* impl, void *inst, unsigned char *buf, un
 	/* Nothing is written when destination is NULL */
 	if (!buf) len = 0;
 	pos = arikkei_memcpy_str (buf, len, inst_class->name);
-	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) " implementation");
+	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const uint8_t *) " implementation");
 	if (buf && (pos < len)) buf[pos] = 0;
 	return pos;
 }
 
 static unsigned int
-class_to_string (const AZImplementation* impl, void *inst, unsigned char *buf, unsigned int len)
+class_to_string (const AZImplementation* impl, void *inst, uint8_t *buf, unsigned int len)
 {
 	AZClass *inst_class = (AZClass *) inst;
 	unsigned int pos;
 	/* Nothing is written when destination is NULL */
 	if (!buf) len = 0;
 	pos = arikkei_memcpy_str (buf, len, inst_class->name);
-	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) " class");
+	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const uint8_t *) " class");
 	if (buf && (pos < len)) buf[pos] = 0;
 	return pos;
 }
@@ -161,39 +162,43 @@ az_init_base_classes (void)
 	az_class_new_with_value(&AZClassKlass);
 }
 
-static unsigned int
-impl_call_setStaticProperty (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
+static int
+impl_call_setStaticProperty (unsigned int n_args, AZStoreElement *elems, AZValue *vals, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
 {
-	int prop_idx;
-	AZImplementation *impl = (AZImplementation *) arg_vals[0]->block;
-	AZString *key = arg_vals[1]->string;
+	AZImplementation *impl = (AZImplementation *) elems[0].block;
+	arikkei_return_val_if_fail(impl != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	AZString *key = elems[1].string;
+	arikkei_return_val_if_fail(key != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
 	const AZClass *def_class;
 	const AZImplementation *sub_impl;
 	void *sub_inst;
-	prop_idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &def_class, &sub_impl, &sub_inst);
-	arikkei_return_val_if_fail (prop_idx >= 0, 0);
+	int prop_idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &def_class, &sub_impl, &sub_inst);
+	arikkei_return_val_if_fail (prop_idx >= 0, AZ_EXCEPTION_INVALID_VALUE);
 	AZField *prop = &def_class->props_self[prop_idx];
-	arikkei_return_val_if_fail (AZ_FIELD_SPEC(prop) == AZ_FIELD_CLASS, 0);
-	arikkei_return_val_if_fail (!AZ_FIELD_IS_FINAL(prop), 0);
-	arikkei_return_val_if_fail (AZ_FIELD_WRITE(prop) != AZ_FIELD_WRITE_NONE, 0);
-	return !az_instance_set_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, arg_impls[2], az_value_get_inst(arg_impls[2], arg_vals[2]));
+	arikkei_return_val_if_fail (AZ_FIELD_SPEC(prop) == AZ_FIELD_CLASS, AZ_EXCEPTION_INVALID_VALUE);
+	arikkei_return_val_if_fail (!AZ_FIELD_IS_FINAL(prop), AZ_EXCEPTION_INVALID_VALUE);
+	arikkei_return_val_if_fail (AZ_FIELD_WRITE(prop) != AZ_FIELD_WRITE_NONE, AZ_EXCEPTION_INVALID_VALUE);
+	const AZImplementation *val_impl = elems[2].impl;
+	void *val_inst = az_value_store_instance_at(elems, 2, vals);
+	return az_instance_set_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, val_impl, val_inst);
 }
 
-static unsigned int
-impl_call_getstaticProperty (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
+static int
+impl_call_getstaticProperty (unsigned int n_args, AZStoreElement *elems, AZValue *vals, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
 {
-	int prop_idx;
-	AZImplementation *impl = (AZImplementation *) arg_vals[0]->block;
-	AZString *key = arg_vals[1]->string;
+	AZImplementation *impl = (AZImplementation *) elems[0].block;
+	arikkei_return_val_if_fail(impl != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	AZString *key = elems[1].string;
+	arikkei_return_val_if_fail(key != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
 	const AZClass *def_class;
 	const AZImplementation *sub_impl;
 	void *sub_inst;
-	prop_idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &def_class, &sub_impl, &sub_inst);
-	arikkei_return_val_if_fail (prop_idx >= 0, 0);
+	int prop_idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &def_class, &sub_impl, &sub_inst);
+	arikkei_return_val_if_fail (prop_idx >= 0, AZ_EXCEPTION_INVALID_VALUE);
 	AZField *prop = &def_class->props_self[prop_idx];
-	arikkei_return_val_if_fail (AZ_FIELD_SPEC(prop) == AZ_FIELD_CLASS, 0);
-	arikkei_return_val_if_fail (AZ_FIELD_READ(prop) != AZ_FIELD_READ_NONE, 0);
-	return !az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, ret_impl, &ret_val->value, 64);
+	arikkei_return_val_if_fail (AZ_FIELD_SPEC(prop) == AZ_FIELD_CLASS, AZ_EXCEPTION_INVALID_VALUE);
+	arikkei_return_val_if_fail (AZ_FIELD_READ(prop) != AZ_FIELD_READ_NONE, AZ_EXCEPTION_INVALID_VALUE);
+	return az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, ret_impl, ret_val, ret_size);
 }
 
 AZListImplementation prop_list_impl;
@@ -241,8 +246,8 @@ az_construct_base_classes (void)
 	prop_list_impl.collection_impl.contains = prop_list_contains;
 	prop_list_impl.get_element = prop_list_get_element;
 	/* Implementation */
-	az_class_define_method_va (&AZImplKlass, IMPL_FUNC_SETSTATICPROPERTY, (const unsigned char *) "setStaticProperty", impl_call_setStaticProperty, AZ_TYPE_NONE, 2, AZ_TYPE_STRING, AZ_TYPE_ANY);
-	az_class_define_method_va (&AZImplKlass, IMPL_FUNC_GETSTATICPROPERTY, (const unsigned char *) "getStaticProperty", impl_call_getstaticProperty, AZ_TYPE_ANY, 1, AZ_TYPE_STRING);
+	az_class_define_method_va (&AZImplKlass, IMPL_FUNC_SETSTATICPROPERTY, (const uint8_t *) "setStaticProperty", impl_call_setStaticProperty, AZ_TYPE_NONE, 2, AZ_TYPE_STRING, AZ_TYPE_ANY);
+	az_class_define_method_va (&AZImplKlass, IMPL_FUNC_GETSTATICPROPERTY, (const uint8_t *) "getStaticProperty", impl_call_getstaticProperty, AZ_TYPE_ANY, 1, AZ_TYPE_STRING);
 	/* Class */
 	az_class_define_property (&AZClassKlass, CLASS_PROP_PARENT, (const uint8_t *) "parent", AZ_TYPE_CLASS, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZClass, parent), NULL, NULL);
 	az_class_define_property (&AZClassKlass, CLASS_PROP_PROPERTIES, (const uint8_t *) "properties", AZ_TYPE_LIST, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_METHOD, 0, 0, NULL, NULL);

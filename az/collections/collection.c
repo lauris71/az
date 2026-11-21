@@ -11,15 +11,13 @@
 #include <az/boxed-interface.h>
 #include <az/private.h>
 #include <az/extend.h>
+#include <az/context.h>
 
 #include "collection.h"
 
 /* AZInterface implementation */
 static void collection_class_init (AZCollectionClass* klass);
 static unsigned int collection_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
-
-static unsigned int collection_call_contains (const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
-static unsigned int collection_call_get_iterator (const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
 
 enum {
 	FUNC_CONTAINS,
@@ -50,6 +48,36 @@ az_collection_get_type (void)
 	return t;
 }
 
+static int
+collection_call_contains (unsigned int n_args, AZStoreElement *elems, AZValue *vals, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
+{
+	const AZImplementation *impl = elems[0].impl;
+	void *inst = az_value_store_instance_at(elems, 0, vals);
+	if (impl == &AZBoxedInterfaceKlass.klass.impl) {
+		AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
+		impl = boxed->impl;
+		inst = boxed->inst;
+	}
+	unsigned int contains = az_collection_contains ((AZCollectionImplementation *) impl, (AZCollection *) inst, elems[1].impl, az_value_store_instance_at(elems, 1, vals));
+	*ret_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BOOLEAN);
+	ret_val->boolean_v = contains;
+	return AZ_OK;
+}
+
+static int
+collection_call_get_iterator (unsigned int n_args, AZStoreElement *elems, AZValue *vals, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
+{
+	const AZImplementation *impl = elems[0].impl;
+	void *inst = az_value_store_instance_at(elems, 0, vals);
+	if (impl == &AZBoxedInterfaceKlass.klass.impl) {
+		AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
+		impl = boxed->impl;
+		inst = boxed->inst;
+	}
+	*ret_impl = az_collection_get_iterator((AZCollectionImplementation *) impl, (AZCollection *) inst, ret_val);
+	return 1;
+}
+
 static void
 collection_class_init (AZCollectionClass *klass)
 {
@@ -69,39 +97,3 @@ collection_get_property (const AZImplementation *impl, void *inst, unsigned int 
 	}
 	return 0;
 }
-
-static unsigned int
-collection_call_contains (const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
-{
-	/* fixme: Automatic deboxing at function call? */
-	const AZCollectionImplementation *impl;
-	void *inst;
-	if (AZ_IMPL_TYPE(arg_impls[0]) == AZ_TYPE_BOXED_INTERFACE) {
-		impl = (const AZCollectionImplementation *) ((AZBoxedInterface *) arg_vals[0]->reference)->impl;
-		inst = ((AZBoxedInterface *) arg_vals[0]->reference)->inst;
-	} else {
-		impl = (const AZCollectionImplementation *) arg_impls[0];
-		inst = az_value_get_inst(arg_impls[0], arg_vals[0]);
-	}
-	unsigned int contains = az_collection_contains (impl, inst, arg_impls[1], az_value_get_inst(arg_impls[1], arg_vals[1]));
-	*ret_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BOOLEAN);
-	ret_val->value.boolean_v = contains;
-	return 1;
-}
-
-static unsigned int
-collection_call_get_iterator (const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
-{
-	const AZCollectionImplementation *impl;
-	void *inst;
-	if (AZ_IMPL_TYPE(arg_impls[0]) == AZ_TYPE_BOXED_INTERFACE) {
-		impl = (const AZCollectionImplementation *) ((AZBoxedInterface *) arg_vals[0]->reference)->impl;
-		inst = ((AZBoxedInterface *) arg_vals[0]->reference)->inst;
-	} else {
-		impl = (const AZCollectionImplementation *) arg_impls[0];
-		inst = az_value_get_inst(arg_impls[0], arg_vals[0]);
-	}
-	*ret_impl = az_collection_get_iterator(impl, inst, &ret_val->value);
-	return 1;
-}
-

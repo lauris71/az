@@ -25,9 +25,6 @@ static unsigned int weak_object_list_contains (const AZCollectionImplementation 
 /* AZList implementation */
 static const AZImplementation *weak_object_list_get_element (const AZListImplementation *list_impl, void *list_inst, unsigned int idx, AZValue *val, unsigned int size);
 
-/* Method implementations */
-static unsigned int weak_object_list_call_Append (const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
-
 enum {
 	/* Functions */
 	FUNC_APPEND,
@@ -62,7 +59,7 @@ weak_object_list_class_init (AZWeakObjectListClass *klass)
 {
 	/* Interfaces */
 	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_LIST, ARIKKEI_OFFSET(AZWeakObjectListClass, list_implementation), 0);
-	az_class_define_method_va ((AZClass *) klass, FUNC_APPEND, (const unsigned char *) "append", weak_object_list_call_Append, AZ_TYPE_NONE, 1, AZ_TYPE_ACTIVE_OBJECT );
+	az_class_define_method_native_va ((AZClass *) klass, FUNC_APPEND, (const unsigned char *) "append", (void (*) ()) az_weak_object_list_append_object, AZ_TYPE_NONE, 1, AZ_TYPE_ACTIVE_OBJECT );
 	az_class_define_property ((AZClass *) klass, PROP_LENGTH, (const unsigned char *) "length", AZ_TYPE_UINT32, 1, AZ_FIELD_INSTANCE, AZ_FIELD_READ_VALUE, 0, ARIKKEI_OFFSET (AZWeakObjectList,size), NULL, NULL);
 	/* Array implementation */
 	klass->list_implementation.collection_impl.get_element_type = weak_object_list_get_element_type;
@@ -135,15 +132,6 @@ weak_object_list_get_element (const AZListImplementation *list_impl, void *list_
 	az_value_set_object (&impl, val, (AZObject *) objl->objects[idx]);
 	return impl;
 #endif
-}
-
-static unsigned int
-weak_object_list_call_Append (const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
-{
-	AZWeakObjectList *objl = (AZWeakObjectList *) arg_vals[0];
-	AZActiveObject *obj = (AZActiveObject *) arg_vals[1]->reference;
-	az_weak_object_list_append_object (objl, obj);
-	return 1;
 }
 
 void

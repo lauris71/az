@@ -105,7 +105,7 @@ static void native_make_fval (void *ret)
 {
     AZFunctionValue *fv = (AZFunctionValue *) ret;
     fv->signature = (AZFunctionSignature *) (uintptr_t) 0xdeadbeef;
-    fv->invoke_vals = NULL;
+    fv->invoke = NULL;
 }
 
 static uint64_t native_fval_sig (const AZFunctionValue *fv)
@@ -323,7 +323,7 @@ test_call_native()
         TEST_ASSERT (call_native ((void (*) (void)) native_make_fval, fv_type, 0, NULL, &ret_impl, &ret_val, NULL, NULL));
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (fv_type));
         TEST_ASSERT (((AZFunctionValue *) &ret_val.value)->signature == (AZFunctionSignature *) (uintptr_t) 0xdeadbeef);
-        TEST_ASSERT (((AZFunctionValue *) &ret_val.value)->invoke_vals == NULL);
+        TEST_ASSERT (((AZFunctionValue *) &ret_val.value)->invoke == NULL);
     }
     /* uint64 (FunctionValue) - final value argument, passed by pointer */
     {
@@ -334,7 +334,7 @@ test_call_native()
         const AZValue *vals[1] = {&a};
         AZFunctionValue *fv = (AZFunctionValue *) &a;
         fv->signature = (const AZFunctionSignature *) (uintptr_t) 0xdeadbeef;
-        fv->invoke_vals = NULL;
+        fv->invoke = NULL;
         memset (&ret_val, 0, sizeof (AZValue64));
         TEST_ASSERT (call_native ((void (*) (void)) native_fval_sig, AZ_TYPE_UINT64, 1, types, &ret_impl, &ret_val, impls, vals));
         TEST_ASSERT_EQUAL_UINT64 (0xdeadbeef, ret_val.value.uint64_v);

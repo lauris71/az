@@ -17,10 +17,6 @@
 
 #include <az/io/output-stream.h>
 
-static unsigned int ostream_call_write(const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
-static unsigned int ostream_call_print(const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
-static unsigned int ostream_call_println(const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
-
 enum {
 	FUNC_WRITE,
 	FUNC_PRINT,
@@ -44,59 +40,44 @@ AZ_CLASS_ALIGN AZInterfaceClass AZOutputStreamKlass = {
 	.implementation_init = NULL
 };
 
+static int64_t
+ostream_write(const AZOutputStreamImplementation *os_impl, AZOutputStream *os_inst, const AZImplementation *data_impl, void *data_inst)
+{
+	if ((void *) os_impl == &AZBoxedInterfaceKlass.klass.impl) {
+		az_boxed_interface_unbox((const AZImplementation **) &os_impl, (void **) &os_inst);
+	}
+	int64_t ret = az_output_stream_write_inst(os_impl, os_inst, data_impl, data_inst);
+	return ret;
+}
+
+static int64_t
+ostream_print(const AZOutputStreamImplementation *os_impl, AZOutputStream *os_inst, const AZImplementation *data_impl, void *data_inst)
+{
+	if ((void *) os_impl == &AZBoxedInterfaceKlass.klass.impl) {
+		az_boxed_interface_unbox((const AZImplementation **) &os_impl, (void **) &os_inst);
+	}
+	int64_t ret = az_output_stream_print_inst(os_impl, os_inst, data_impl, data_inst);
+	return ret;
+}
+
+static int64_t
+ostream_println(const AZOutputStreamImplementation *os_impl, AZOutputStream *os_inst, const AZImplementation *data_impl, void *data_inst)
+{
+	if ((void *) os_impl == &AZBoxedInterfaceKlass.klass.impl) {
+		az_boxed_interface_unbox((const AZImplementation **) &os_impl, (void **) &os_inst);
+	}
+	int64_t ret = az_output_stream_print_inst(os_impl, os_inst, data_impl, data_inst);
+	ret += az_output_stream_write (os_impl, os_inst, "\n", 1);
+	return ret;
+}
+
 void
 az_init_output_stream_class()
 {
     az_class_new_with_value(&AZOutputStreamKlass.klass);
-	az_class_define_method_va((AZClass *) &AZOutputStreamKlass, FUNC_WRITE, (const uint8_t *) "write", ostream_call_write, AZ_TYPE_INT64, 1, AZ_TYPE_ANY);
-	az_class_define_method_va((AZClass *) &AZOutputStreamKlass, FUNC_PRINT, (const uint8_t *) "print", ostream_call_print, AZ_TYPE_INT64, 1, AZ_TYPE_ANY);
-	az_class_define_method_va((AZClass *) &AZOutputStreamKlass, FUNC_PRINTLN, (const uint8_t *) "printLn", ostream_call_println, AZ_TYPE_INT64, 1, AZ_TYPE_ANY);
-}
-
-static unsigned int
-ostream_call_write(const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
-{
-	if (!arg_impls[1]) return 0;
-	void *data_inst;
-	const AZImplementation *data_impl = az_value_get_inst_autobox (arg_impls[1], arg_vals[1], &data_inst);
-	*ret_impl = &AZInt64Klass.impl;
-	ret_val->value.int64_v = az_output_stream_write_inst ((const AZOutputStreamImplementation *) arg_impls[0], (AZOutputStream *) arg_vals[0]->block, data_impl, data_inst);
-	return 1;
-}
-
-static unsigned int
-ostream_call_print(const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
-{
-	if (!arg_impls[1]) return 0;
-	const AZOutputStreamImplementation *os_impl = (const AZOutputStreamImplementation *) arg_impls[0];
-	AZOutputStream *os_inst = (AZOutputStream *) arg_vals[0]->block;
-	if (&os_impl->impl == &AZBoxedInterfaceKlass.klass.impl) {
-		az_boxed_interface_unbox((const AZImplementation **) &os_impl, (void **) &os_inst);
-	}
-	void *data_inst;
-	const AZImplementation *data_impl = az_value_get_inst_autobox (arg_impls[1], arg_vals[1], &data_inst);
-	*ret_impl = &AZInt64Klass.impl;
-	AZClass *klass = AZ_CLASS_FROM_IMPL((AZImplementation *) os_impl);
-	ret_val->value.int64_v = az_output_stream_print_inst (os_impl, os_inst, data_impl, data_inst);
-	return 1;
-}
-
-static unsigned int
-ostream_call_println(const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
-{
-	if (!arg_impls[1]) return 0;
-	const AZOutputStreamImplementation *os_impl = (const AZOutputStreamImplementation *) arg_impls[0];
-	AZOutputStream *os_inst = (AZOutputStream *) arg_vals[0]->block;
-	if (&os_impl->impl == &AZBoxedInterfaceKlass.klass.impl) {
-		az_boxed_interface_unbox((const AZImplementation **) &os_impl, (void **) &os_inst);
-	}
-	void *data_inst;
-	const AZImplementation *data_impl = az_value_get_inst_autobox (arg_impls[1], arg_vals[1], &data_inst);
-	*ret_impl = &AZInt64Klass.impl;
-	AZClass *klass = AZ_CLASS_FROM_IMPL((AZImplementation *) os_impl);
-	ret_val->value.int64_v = az_output_stream_print_inst (os_impl, os_inst, data_impl, data_inst);
-	ret_val->value.int64_v += az_output_stream_write (os_impl, os_inst, "\n", 1);
-	return 1;
+	az_class_define_method_native_va((AZClass *) &AZOutputStreamKlass, FUNC_WRITE, (const uint8_t *) "write", (void (*) ()) ostream_write, AZ_TYPE_INT64, 1, AZ_TYPE_ANY);
+	az_class_define_method_native_va((AZClass *) &AZOutputStreamKlass, FUNC_PRINT, (const uint8_t *) "print", (void (*) ()) ostream_print, AZ_TYPE_INT64, 1, AZ_TYPE_ANY);
+	az_class_define_method_native_va((AZClass *) &AZOutputStreamKlass, FUNC_PRINTLN, (const uint8_t *) "printLn", (void (*) ()) ostream_println, AZ_TYPE_INT64, 1, AZ_TYPE_ANY);
 }
 
 int64_t

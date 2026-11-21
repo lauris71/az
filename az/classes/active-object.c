@@ -16,6 +16,7 @@
 #include <az/packed-value.h>
 #include <az/string.h>
 #include <az/extend.h>
+#include <az/context.h>
 
 #include <az/classes/active-object.h>
 
@@ -36,10 +37,6 @@ static uint64_t aobj_attrd_get_size(const AZCollectionImplementation *coll_impl,
 const AZImplementation *aobj_attrd_lookup (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, const AZString *key, AZValue *val, int size, unsigned int *flags);
 
 unsigned int aobj_attrd_set (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
-
-/* Method implementations */
-static unsigned int active_object_call_setAttribute (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
-static unsigned int active_object_call_getAttribute (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
 
 /* Properties */
 
@@ -66,6 +63,32 @@ az_active_object_get_type (void)
 	return t;
 }
 
+static int
+active_object_call_setAttribute (unsigned int n_args, AZStoreElement *elems, AZValue *vals, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
+{
+	AZActiveObject *aobj = (AZActiveObject *) elems[0].block;
+	arikkei_return_val_if_fail(aobj != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	AZString *key = (AZString *) elems[1].block;
+	arikkei_return_val_if_fail(key != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	az_active_object_set_attribute (aobj, key, elems[2].impl, az_value_store_value_at(elems, 2, vals));
+	return AZ_OK;
+}
+
+static int
+active_object_call_getAttribute (unsigned int n_args, AZStoreElement *elems, AZValue *vals, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
+{
+	AZActiveObject *aobj = (AZActiveObject *) elems[0].block;
+	arikkei_return_val_if_fail(aobj != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	AZString *key = (AZString *) elems[1].block;
+	arikkei_return_val_if_fail(key != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	AZValue64 val64;
+	if (!az_active_object_get_attribute (aobj, key, ret_impl, &val64)) {
+		return AZ_EXCEPTION_INVALID_VALUE;
+	}
+	*ret_impl = az_value_transfer_autobox(*ret_impl, ret_val, &val64.value, ret_size);
+	return AZ_OK;
+}
+
 static void
 az_active_object_class_init (AZActiveObjectClass *klass)
 {
@@ -82,24 +105,6 @@ az_active_object_class_init (AZActiveObjectClass *klass)
 	klass->aa_impl.lookup = aobj_attrd_lookup;
 	klass->aa_impl.map_impl.collection_impl.get_size = aobj_attrd_get_size;
 	klass->aa_impl.set = aobj_attrd_set;
-}
-
-static unsigned int
-active_object_call_setAttribute (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
-{
-	if (!arg_impls[1]) return 0;
-	az_active_object_set_attribute ((AZActiveObject *) arg_vals[0]->reference, arg_vals[1]->string, arg_impls[2], arg_vals[2]);
-	return 1;
-}
-
-static unsigned int
-active_object_call_getAttribute (const AZImplementation **arg_impls, const AZValue **arg_vals, const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
-{
-	if (!arg_impls[1]) return 0;
-	if (!az_active_object_get_attribute ((AZActiveObject *) arg_vals[0]->reference, arg_vals[1]->string, ret_impl, ret_val)) {
-		*ret_impl = NULL;
-	}
-	return 1;
 }
 
 static void

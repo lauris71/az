@@ -11,11 +11,29 @@
 #include <az/function-value.h>
 #include <az/extend.h>
 
-static void function_value_class_init (AZFunctionValueClass *klass);
+const AZFunctionSignature *
+fval_signature (const AZFunctionImplementation *impl, void *inst)
+{
+	AZFunctionValue *fval = (AZFunctionValue *) inst;
+	return fval->signature;
+}
 
-/* AZFunction implementation */
-const AZFunctionSignature *fval_signature (const AZFunctionImplementation *impl, void *inst);
-static unsigned int function_value_invoke (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
+static int
+function_value_invoke (const AZFunctionImplementation *impl, void *inst, unsigned int n_args, AZStoreElement args[], AZValue data[],
+		const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
+{
+	AZFunctionValue *fval = (AZFunctionValue *) inst;
+	unsigned int result = fval->invoke(n_args, args, data, ret_impl, ret_val, ret_size, ctx);
+	return result;
+}
+
+static void
+function_value_class_init (AZFunctionValueClass *klass)
+{
+	az_class_declare_interface (&klass->klass, 0, AZ_TYPE_FUNCTION, offsetof(AZFunctionValueClass, function_impl), 0);
+	klass->function_impl.signature = fval_signature;
+	klass->function_impl.invoke = function_value_invoke;
+}
 
 static unsigned int function_value_type = 0;
 
@@ -36,33 +54,12 @@ az_function_value_get_type (void)
 	return t;
 }
 
-static void
-function_value_class_init (AZFunctionValueClass *klass)
-{
-	az_class_declare_interface (&klass->klass, 0, AZ_TYPE_FUNCTION, ARIKKEI_OFFSET (AZFunctionValueClass, function_impl), 0);
-	klass->function_impl.signature = fval_signature;
-	klass->function_impl.invoke_vals = function_value_invoke;
-}
-
-const AZFunctionSignature *
-fval_signature (const AZFunctionImplementation *impl, void *inst)
-{
-	AZFunctionValue *fval = (AZFunctionValue *) inst;
-	return fval->signature;
-}
-
-static unsigned int
-function_value_invoke (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx)
-{
-	AZFunctionValue *fval = (AZFunctionValue *) inst;
-	unsigned int result = fval->invoke_vals (arg_impls, arg_vals, ret_impl, ret_val, ctx);
-	return result;
-}
-
 void
 az_function_value_setup (AZFunctionValue *fval, const AZFunctionSignature *sig,
-unsigned int (*invoke_vals) (const AZImplementation **, const AZValue **, const AZImplementation **, AZValue64 *, AZContext *))
+	int (*invoke) (unsigned int n_args, AZStoreElement args[], AZValue data[],
+	const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx))
 {
 	fval->signature = sig;
-	fval->invoke_vals = invoke_vals;
+	fval->invoke = invoke;
 }
+
