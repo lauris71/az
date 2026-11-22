@@ -484,6 +484,22 @@ AZConversionResult az_value_convert_in_place_autobox (const AZImplementation **i
 unsigned int az_value_to_string_autobox (const AZImplementation *impl, const AZValue *val, unsigned char *d, unsigned int dlen);
 uint8_t *az_value_to_string_autobox_new (const AZImplementation *impl, const AZValue *val);
 
+/**
+ * @brief Invoke function interface stored in value
+ * 
+ * It resolves interface first, then invokes the function.
+ * 
+ * @param impl The value implementation
+ * @param val The value
+ * @param sig The function signature
+ * @param ctx The execution context
+ * @param ret_impl Pointer to the return implementation (NULL to ignore return)
+ * @param ret_val Pointer to the return value buffer (NULL to ignore return)
+ * @param ... 
+ * @return unsigned int 
+ */
+unsigned int az_value_invoke_by_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
+
 #ifdef __cplusplus
 };
 #endif

@@ -117,7 +117,13 @@ static unsigned int
 call_native (void (*func) (void), unsigned int ret_type, unsigned int n_args, const unsigned int *arg_types, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation **arg_impls, const AZValue **arg_vals)
 {
     const AZFunctionSignature *sig = az_function_signature_new(ret_type, n_args, arg_types);
-    return az_function_call_native_vals (func, sig, ret_impl, ret_val, arg_impls, arg_vals);
+    AZStoreElement elems[32];
+    AZValue vals[32];
+    unsigned int val_idx = 0;
+    for (unsigned int i = 0; i < n_args; i++) {
+        val_idx += az_value_store_set (elems, i, vals, val_idx, arg_impls[i], az_value_get_inst(arg_impls[i], arg_vals[i]));
+    }
+    return az_function_invoke_native(func, sig, n_args, elems, vals, ret_impl, &ret_val->value, 64, NULL) == AZ_OK;
 }
 
 void
@@ -347,17 +353,19 @@ test_call_native()
         AZFunctionNative fnat;
         const AZImplementation *f_impl;
         void *f_inst;
-        const AZImplementation *impls[2] = {AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32), AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32)};
-        AZValue a, b;
-        const AZValue *vals[2] = {&a, &b};
         az_function_native_setup (&fnat, sig, (void (*) (void)) native_add_i32);
-        a.int32_v = 17;
-        b.int32_v = 25;
+        int32_t a = 17;
+        int32_t b = 25;
         ret_impl = NULL;
         memset (&ret_val, 0, sizeof (AZValue64));
         f_impl = az_instance_get_interface_from_type (fn_type, &fnat, AZ_TYPE_FUNCTION, &f_inst);
         TEST_ASSERT (f_impl != NULL);
-        TEST_ASSERT (az_function_invoke_vals ((const AZFunctionImplementation *) f_impl, f_inst, impls, vals, &ret_impl, &ret_val, NULL));
+        AZStoreElement args[2];
+        AZValue data[2];
+        unsigned int data_pos = 0;
+        data_pos += az_value_store_set(args, 0, data, data_pos, AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32), &a);
+        data_pos += az_value_store_set(args, 1, data, data_pos, AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32), &b);
+        TEST_ASSERT (az_function_invoke((const AZFunctionImplementation *) f_impl, f_inst, 2, args, data, &ret_impl, &ret_val.value, 64, NULL) == AZ_OK);
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32));
         TEST_ASSERT_EQUAL_INT32 (42, ret_val.value.int32_v);
         az_function_signature_delete (sig);

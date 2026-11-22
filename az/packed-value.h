@@ -280,6 +280,19 @@ az_packed_value_set_from_type_value (AZPackedValue *dst, unsigned int type, cons
 #define az_packed_value_set_from_impl_value az_packed_value_set_from_val
 #define az_packed_value_set_from_impl_instance az_packed_value_set
 
+/**
+ * @brief Invoke function stored in packed value
+ * 
+ * @param pval The packed value
+ * @param sig The caller signature (how varargs will be interpreted)
+ * @param ctx The excution context
+ * @param ret_impl A pointer to the implementation of the returned value
+ * @param ret_val A pointer to the returned value
+ * @param ... 
+ * @return AZ_OK or error/exception code
+ */
+int az_packed_value_invoke_by_signature_va (const AZPackedValue *pval, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
+
 #ifdef __cplusplus
 };
 #endif

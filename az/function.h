@@ -55,11 +55,6 @@ struct _AZFunctionImplementation {
 	int (*invoke) (const AZFunctionImplementation *impl, void *inst, unsigned int n_args,
 		AZStoreElement args[], AZValue data[],
 		const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx);
-	/**
-	 * @brief Invoke function
-	 * 
-	 */
-	unsigned int (*invoke_vals) (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
 };
 
 const AZFunctionSignature *az_function_get_signature (const AZFunctionImplementation *impl, void *inst);
@@ -85,12 +80,6 @@ unsigned int az_function_signature_is_assignable_to(const AZFunctionSignature *s
  * @return The required conversion type
  */
 unsigned int az_function_signature_is_callable_as(const AZFunctionSignature *sig, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[]);
-
-/** @ingroup function
- *  First value is this (if applicable)
- */
-unsigned int az_function_invoke_vals (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], const AZValue *arg_vals[], const AZImplementation **ret_impl, AZValue64 *ret_val, AZContext *ctx);
-unsigned int az_function_convert_args_in_place (const AZFunctionImplementation *impl, void *inst, const AZImplementation *arg_impls[], AZValue *arg_vals[]);
 
 /* Returns error/exception code */
 int az_function_invoke (const AZFunctionImplementation *impl, void *inst, unsigned int n_args, AZStoreElement args[], AZValue data[], const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx);
@@ -119,15 +108,14 @@ int az_function_invoke (const AZFunctionImplementation *impl, void *inst, unsign
  * 
  * @param impl The function implementation
  * @param inst The instance data
+ * @param sig The function signature
  * @param ctx The context
- * @param ret_impl The return implementation pointer
+ * @param ret_impl The return implementation pointer (NULL to ignore return)
  * @param ret_val The return value buffer
  * @param ... Variadic arguments for the function
  * @return unsigned int 
  */
-unsigned int az_function_invoke_vals_va (const AZFunctionImplementation *impl, void *inst, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
-unsigned int az_function_invoke_vals_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
-unsigned int az_function_invoke_vals_by_value_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
+unsigned int az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
 
 /** @ingroup function
  * @brief Call a native C function with az arguments
@@ -141,14 +129,15 @@ unsigned int az_function_invoke_vals_by_value_signature_va (const AZImplementati
  *
  * @param func the native function pointer
  * @param sig the function signature
+ * @param n_args the number of arguments
+ * @param args the argument store elements
+ * @param data the argument values
  * @param ret_impl the returned implementation (may be NULL)
  * @param ret_val the returned value (may be NULL if the return value is not needed)
- * @param arg_impls argument implementations
- * @param arg_vals argument values
- * @return 1 on success, 0 on error
+ * @param ret_size the size of the return value buffer
+ * @param ctx the context
+ * @return AZ_OK or error/exception code
  */
-unsigned int az_function_call_native_vals (void (*func) (void), const AZFunctionSignature *sig, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation *arg_impls[], const AZValue *arg_vals[]);
-/* Returns error/exception code */
 int az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, unsigned int n_args, AZStoreElement args[], AZValue data[], const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx);
 
 #ifdef __cplusplus
