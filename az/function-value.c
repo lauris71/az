@@ -7,6 +7,7 @@
 */
 
 #include <stdlib.h>
+#include <stddef.h>
 
 #include <az/function-value.h>
 #include <az/extend.h>
