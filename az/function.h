@@ -124,8 +124,8 @@ unsigned int az_function_invoke_by_signature_va (const AZFunctionImplementation 
  * the native function. The native function has to be non-variadic.
  *
  * Currently implemented for ARM64 (AAPCS64), x86-64 System V (AMD64) and
- * x86-64 Windows (Microsoft x64 calling convention), returns 0 on other
- * architectures.
+ * x86-64 Windows (Microsoft x64 calling convention), returns
+ * AZ_NOT_IMPLEMENTED on other architectures.
  *
  * @param func the native function pointer
  * @param sig the function signature

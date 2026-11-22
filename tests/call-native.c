@@ -17,7 +17,7 @@
 #include "unity/unity.h"
 
 /*
- * az_function_call_native_vals (ARM64)
+ * az_function_invoke_native
  */
 
 static int32_t native_add_i32 (int32_t a, int32_t b)
