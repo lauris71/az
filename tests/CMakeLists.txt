@@ -6,6 +6,7 @@ add_executable(az_test
     hash-map.c
     hash-set.c
     call-native.c
+    signature.c
     array-list.c
     io.c
     interface.c
@@ -29,6 +30,7 @@ add_test(NAME boxed-value COMMAND az_test boxed-value)
 add_test(NAME array-list COMMAND az_test array-list)
 add_test(NAME array COMMAND az_test array)
 add_test(NAME call-native COMMAND az_test call-native)
+add_test(NAME signature COMMAND az_test signature)
 add_test(NAME object-list COMMAND az_test object-list)
 add_test(NAME hash-map COMMAND az_test hash-map)
 add_test(NAME hash-set COMMAND az_test hash-set)

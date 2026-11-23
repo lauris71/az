@@ -57,8 +57,16 @@ az_function_get_signature (const AZFunctionImplementation *impl, void *inst)
 unsigned int
 az_function_signature_is_assignable_to (const AZFunctionSignature *sig, const AZFunctionSignature *other, unsigned int test_ret_val)
 {
-	// fixme: Varargs and pure
-	if (sig->n_params != other->n_params) return 0;
+	unsigned int sig_fixed = AZ_SIGNATURE_N_FIXED_ARGS(sig);
+	unsigned int other_fixed = AZ_SIGNATURE_N_FIXED_ARGS(other);
+	/* The implementation has to be at least as pure as the slot requires */
+	if (AZ_SIGNATURE_IS_PURE(other) && !AZ_SIGNATURE_IS_PURE(sig)) return 0;
+	/* A fixed implementation cannot serve the variable argument counts of a varargs slot */
+	if (AZ_SIGNATURE_IS_VA_ARGS(other) && !AZ_SIGNATURE_IS_VA_ARGS(sig)) return 0;
+	/* The slot may pass fewer arguments than the implementation always needs */
+	if (sig_fixed > other_fixed) return 0;
+	/* A fixed implementation can only serve calls with exactly its argument count */
+	if (!AZ_SIGNATURE_IS_VA_ARGS(sig) && (sig_fixed != other_fixed)) return 0;
 	if (test_ret_val) {
 		if (AZ_SIGNATURE_RET_TYPE(sig)) {
 			/* Signature with return value is assignable to void or superclass slot */
@@ -68,8 +76,18 @@ az_function_signature_is_assignable_to (const AZFunctionSignature *sig, const AZ
 			if (AZ_SIGNATURE_RET_TYPE(other)) return 0;
 		}
 	}
-	for (unsigned int i = 0; i < sig->n_params - 1; i++) {
+	/* Fixed prefix arguments are contravariant */
+	for (unsigned int i = 0; i < sig_fixed; i++) {
 		if (!az_type_is_a(AZ_SIGNATURE_ARG_TYPE(other, i), AZ_SIGNATURE_ARG_TYPE(sig, i))) return 0;
+	}
+	if (AZ_SIGNATURE_IS_VA_ARGS(sig)) {
+		unsigned int tail = AZ_SIGNATURE_VA_ARG_TYPE(sig);
+		/* Extra fixed arguments of the slot are absorbed by the varargs tail */
+		for (unsigned int i = sig_fixed; i < other_fixed; i++) {
+			if (!az_type_is_a(AZ_SIGNATURE_ARG_TYPE(other, i), tail)) return 0;
+		}
+		/* Varargs tail arguments of the slot are absorbed by the varargs tail */
+		if (AZ_SIGNATURE_IS_VA_ARGS(other) && !az_type_is_a(AZ_SIGNATURE_VA_ARG_TYPE(other), tail)) return 0;
 	}
 	return 1;
 }
@@ -77,8 +95,13 @@ az_function_signature_is_assignable_to (const AZFunctionSignature *sig, const AZ
 unsigned int
 az_function_signature_is_callable_as(const AZFunctionSignature *sig, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
 {
-	// fixme: Varargs and pure
-	if (sig->n_params != (n_args + 1)) return AZ_CANNOT_CONVERT;
+	unsigned int sig_fixed = AZ_SIGNATURE_N_FIXED_ARGS(sig);
+	if (AZ_SIGNATURE_IS_VA_ARGS(sig)) {
+		/* The varargs tail accepts 0 or more arguments */
+		if (n_args < sig_fixed) return AZ_CANNOT_CONVERT;
+	} else {
+		if (n_args != sig_fixed) return AZ_CANNOT_CONVERT;
+	}
 	unsigned int max_conversion = AZ_CONVERT_SAME;
 	if (ret_type) {
 		if (!AZ_SIGNATURE_RET_TYPE(sig)) return AZ_CANNOT_CONVERT;
@@ -87,7 +110,9 @@ az_function_signature_is_callable_as(const AZFunctionSignature *sig, unsigned in
 		if (conversion > max_conversion) max_conversion = conversion;
 	}
 	for (unsigned int i = 0; i < n_args; i++) {
-		unsigned int conversion = az_type_get_conversion_to(arg_types[i], AZ_SIGNATURE_ARG_TYPE(sig, i));
+		/* All varargs tail arguments have the tail type */
+		unsigned int arg_type = (i < sig_fixed) ? AZ_SIGNATURE_ARG_TYPE(sig, i) : AZ_SIGNATURE_VA_ARG_TYPE(sig);
+		unsigned int conversion = az_type_get_conversion_to(arg_types[i], arg_type);
 		if (conversion == AZ_CANNOT_CONVERT) return AZ_CANNOT_CONVERT;
 		if (conversion > max_conversion) max_conversion = conversion;
 	}

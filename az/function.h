@@ -62,16 +62,24 @@ const AZFunctionSignature *az_function_get_signature (const AZFunctionImplementa
 /**
  * @brief Check whether function with given signature is assignable to another
  * 
- * Requires strict compatibility for both arguments and return value - only subclasses accepted, no implicit conversions
+ * Requires strict compatibility for both arguments and return value - only subclasses accepted, no implicit conversions.
+ * The implementation has to be at least as pure as the slot - a pure function is assignable to a non-pure slot,
+ * but not the other way around.
+ * A varargs implementation is assignable to a non-varargs slot if its fixed arguments match the leading slot
+ * arguments and the remaining slot arguments match the varargs tail type. A fixed implementation is never
+ * assignable to a varargs slot (the slot allows argument counts the implementation cannot serve).
  * 
- * @param sig The function signature
- * @param other The other function signature
+ * @param sig The function signature (implementation)
+ * @param other The other function signature (slot)
  * @param test_ret_val Whether to test return value also
  * @return 1 if assignable, 0 otherwise
  */
 unsigned int az_function_signature_is_assignable_to(const AZFunctionSignature *sig, const AZFunctionSignature *other, unsigned int test_ret_val);
 /**
  * @brief Check whether a function with the given signature is callable with the given return type and argument types
+ * 
+ * For a varargs signature the last parameter is the type of the tail arguments
+ * (0 or more allowed), so any argument count >= the fixed count is accepted.
  * 
  * @param sig The function signature
  * @param ret_type The return type (NONE to ignore return value)

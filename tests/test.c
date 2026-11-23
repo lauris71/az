@@ -55,6 +55,7 @@ void test_array_list();
 void test_hash_map(void);
 void test_hash_set(void);
 void test_call_native();
+void test_signature();
 void test_io(void);
 void test_interface();
 
@@ -87,6 +88,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_array);
         } else if (!strcmp(argv[i], "call-native")) {
             RUN_TEST(test_call_native);
+        } else if (!strcmp(argv[i], "signature")) {
+            RUN_TEST(test_signature);
         } else if (!strcmp(argv[i], "object-list")) {
             RUN_TEST(test_object_list);
         } else if (!strcmp(argv[i], "masked-field")) {

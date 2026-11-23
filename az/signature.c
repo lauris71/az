@@ -81,7 +81,7 @@ function_signature_to_string(const AZImplementation *impl, void *inst, uint8_t *
 	unsigned int len = 0, l = 0;
 	len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) "(");
 	l = (len <= d_len) ? len : d_len;
-	for (unsigned int i = 0; i < sig->n_params - 1; i++) {
+	for (unsigned int i = 0; i < AZ_SIGNATURE_N_FIXED_ARGS(sig); i++) {
 		if (i > 0) {
 			len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) ", ");
 			l = (len <= d_len) ? len : d_len;
@@ -93,6 +93,17 @@ function_signature_to_string(const AZImplementation *impl, void *inst, uint8_t *
 		} else {
 			len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) "void");
 		}
+		l = (len <= d_len) ? len : d_len;
+	}
+	if (AZ_SIGNATURE_IS_VA_ARGS(sig)) {
+		if (AZ_SIGNATURE_N_FIXED_ARGS(sig)) {
+			len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) ", ");
+			l = (len <= d_len) ? len : d_len;
+		}
+		len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) "...");
+		l = (len <= d_len) ? len : d_len;
+		AZClass *klass = AZ_CLASS_FROM_TYPE(AZ_SIGNATURE_VA_ARG_TYPE(sig));
+		len += arikkei_strncpy(d + l, d_len - l, klass->name);
 		l = (len <= d_len) ? len : d_len;
 	}
 	len += arikkei_strncpy(d + l, d_len - l, (const uint8_t *) ") => ");
@@ -167,6 +178,8 @@ const AZFunctionSignature *
 az_function_signature_new(unsigned int flags, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
 {
 	arikkei_return_val_if_fail(n_args <= 255, NULL);
+	/* The varargs tail type is the last declared argument */
+	arikkei_return_val_if_fail(!(flags & AZ_SIGNATURE_FLAG_VA_ARGS) || (n_args >= 1), NULL);
 	uint32_t buf[260] = {0};
     AZFunctionSignature *sig = (AZFunctionSignature *) buf;
 	sig->head_type = AZ_TYPE_FUNCTION;
@@ -181,6 +194,8 @@ const AZFunctionSignature *
 az_function_signature_new_va(unsigned int flags, unsigned int ret_type, unsigned int n_args, ...)
 {
 	arikkei_return_val_if_fail(n_args <= 255, NULL);
+	/* The varargs tail type is the last declared argument */
+	arikkei_return_val_if_fail(!(flags & AZ_SIGNATURE_FLAG_VA_ARGS) || (n_args >= 1), NULL);
 	uint32_t buf[260] = {0};
 	AZFunctionSignature *sig = (AZFunctionSignature *) buf;
 	sig->head_type = AZ_TYPE_FUNCTION;
@@ -201,6 +216,8 @@ const AZFunctionSignature *
 az_function_signature_new_with_this(unsigned int flags, unsigned int this_type, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
 {
 	arikkei_return_val_if_fail(n_args < 255, NULL);
+	/* The varargs tail type is the last declared argument */
+	arikkei_return_val_if_fail(!(flags & AZ_SIGNATURE_FLAG_VA_ARGS) || (n_args >= 1), NULL);
 	uint32_t buf[260] = {0};
     AZFunctionSignature *sig = (AZFunctionSignature *) buf;
 	unsigned int n_total = (this_type) ? n_args + 1 : n_args;

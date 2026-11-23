@@ -38,6 +38,12 @@ enum AZSignatureFlags {
 #define AZ_SIGNATURE_ARG_TYPES(sig) (&(sig)->params[1])
 #define AZ_SIGNATURE_ARG_TYPE(sig,i) ((sig)->params[i + 1])
 #define AZ_SIGNATURE_RET_TYPE(sig) ((sig)->params[0])
+#define AZ_SIGNATURE_IS_PURE(sig) (((sig)->sig_flags & AZ_SIGNATURE_FLAG_PURE) != 0)
+#define AZ_SIGNATURE_IS_VA_ARGS(sig) (((sig)->sig_flags & AZ_SIGNATURE_FLAG_VA_ARGS) != 0)
+/* Number of fixed arguments (excludes the varargs tail type) */
+#define AZ_SIGNATURE_N_FIXED_ARGS(sig) (AZ_SIGNATURE_N_ARGS(sig) - (AZ_SIGNATURE_IS_VA_ARGS(sig) ? 1u : 0u))
+/* Type of the varargs tail (VA_ARGS signatures only) */
+#define AZ_SIGNATURE_VA_ARG_TYPE(sig) ((sig)->params[(sig)->n_params - 1])
 
 struct _AZSignature {
 	uint32_t sig_type;
