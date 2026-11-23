@@ -166,9 +166,9 @@ static int
 impl_call_setStaticProperty (unsigned int n_args, AZStoreElement *elems, AZValue *vals, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
 {
 	AZImplementation *impl = (AZImplementation *) elems[0].block;
-	arikkei_return_val_if_fail(impl != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail(impl != NULL, AZ_NULL_VALUE);
 	AZString *key = elems[1].string;
-	arikkei_return_val_if_fail(key != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail(key != NULL, AZ_NULL_VALUE);
 	const AZClass *def_class;
 	const AZImplementation *sub_impl;
 	void *sub_inst;
@@ -187,9 +187,9 @@ static int
 impl_call_getstaticProperty (unsigned int n_args, AZStoreElement *elems, AZValue *vals, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
 {
 	AZImplementation *impl = (AZImplementation *) elems[0].block;
-	arikkei_return_val_if_fail(impl != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail(impl != NULL, AZ_NULL_VALUE);
 	AZString *key = elems[1].string;
-	arikkei_return_val_if_fail(key != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail(key != NULL, AZ_NULL_VALUE);
 	const AZClass *def_class;
 	const AZImplementation *sub_impl;
 	void *sub_inst;

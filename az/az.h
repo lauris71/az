@@ -80,6 +80,11 @@ enum AZErrorCode {
 	 */
 	AZ_VALUE_IS_FINAL = -11,
 	/**
+	 * @brief A caller signature does not match the function
+	 * 
+	 */
+	AZ_SIGNATURE_MISMATCH = -12,
+	/**
 	 * @brief Internal inconsistency of az data
 	 * 
 	 */

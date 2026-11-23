@@ -67,9 +67,9 @@ static int
 active_object_call_setAttribute (unsigned int n_args, AZStoreElement *elems, AZValue *vals, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
 {
 	AZActiveObject *aobj = (AZActiveObject *) elems[0].block;
-	arikkei_return_val_if_fail(aobj != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail(aobj != NULL, AZ_NULL_VALUE);
 	AZString *key = (AZString *) elems[1].block;
-	arikkei_return_val_if_fail(key != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail(key != NULL, AZ_NULL_VALUE);
 	az_active_object_set_attribute (aobj, key, elems[2].impl, az_value_store_value_at(elems, 2, vals));
 	return AZ_OK;
 }
@@ -78,9 +78,9 @@ static int
 active_object_call_getAttribute (unsigned int n_args, AZStoreElement *elems, AZValue *vals, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
 {
 	AZActiveObject *aobj = (AZActiveObject *) elems[0].block;
-	arikkei_return_val_if_fail(aobj != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail(aobj != NULL, AZ_NULL_VALUE);
 	AZString *key = (AZString *) elems[1].block;
-	arikkei_return_val_if_fail(key != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail(key != NULL, AZ_NULL_VALUE);
 	AZValue64 val64;
 	if (!az_active_object_get_attribute (aobj, key, ret_impl, &val64)) {
 		return AZ_EXCEPTION_INVALID_VALUE;

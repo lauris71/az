@@ -434,8 +434,8 @@ az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, u
 	unsigned int i, rtype;
 	AZClass *rklass;
 
-	arikkei_return_val_if_fail (func != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
-	arikkei_return_val_if_fail (sig != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail (func != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (sig != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (sig->n_params < 64, AZ_EXCEPTION_OUT_OF_BOUNDS);
 	/* fixme: Remove this if varargs will be implemented */
 	arikkei_return_val_if_fail (n_args == sig->n_params - 1, AZ_EXCEPTION_SIGNATURE_MISMATCH);
@@ -449,7 +449,7 @@ az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, u
 			if (!AZ_TYPE_IS_BLOCK (ret_type)) {
 				arikkei_return_val_if_fail (AZ_CLASS_FROM_TYPE (ret_type)->instance_size <= AZ_FUNCTION_MAX_RETURN_VALUE_SIZE, AZ_EXCEPTION_OUT_OF_BOUNDS);
 			}
-			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) storage)) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) storage)) return AZ_INTERNAL_INCONSISTENCY;
 		}
 	}
 
@@ -461,75 +461,75 @@ az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, u
 		const AZValue *val = az_value_store_value_at(args, i, data);
 		if (AZ_TYPE_IS_OBJECT (type)) {
 			/* Objects - [pointer] */
-			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) val->block)) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) val->block)) return AZ_INTERNAL_INCONSISTENCY;
 		} else if (AZ_TYPE_IS_PRIMITIVE (type)) {
 			/* Primitive types - [value] */
 			switch (type) {
 			case AZ_TYPE_BOOLEAN:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->boolean_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->boolean_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_INT8:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int8_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int8_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_UINT8:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint8_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint8_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_INT16:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int16_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int16_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_UINT16:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint16_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint16_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_INT32:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) val->int32_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) val->int32_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_UINT32:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint32_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint32_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_INT64:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) val->int64_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) val->int64_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_UINT64:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint64_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint64_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_FLOAT:
-				if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->float_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->float_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_DOUBLE:
-				if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->double_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->double_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_COMPLEX_FLOAT:
 				/* HFA of 2 floats - either both members in registers or everything on the stack */
 				if (n_fpr + 2 <= 8) {
-					if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->cfloat_v.c[0])) return AZ_EXCEPTION_SYSTEM;
-					if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->cfloat_v.c[1])) return AZ_EXCEPTION_SYSTEM;
+					if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->cfloat_v.c[0])) return AZ_INTERNAL_INCONSISTENCY;
+					if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->cfloat_v.c[1])) return AZ_INTERNAL_INCONSISTENCY;
 				} else {
-					if (!native_frame_push_stack (&frame, &stack_bytes, &val->cfloat_v, 8)) return AZ_EXCEPTION_SYSTEM;
+					if (!native_frame_push_stack (&frame, &stack_bytes, &val->cfloat_v, 8)) return AZ_INTERNAL_INCONSISTENCY;
 				}
 				break;
 			case AZ_TYPE_COMPLEX_DOUBLE:
 				/* HFA of 2 doubles - either both members in registers or everything on the stack */
 				if (n_fpr + 2 <= 8) {
-					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->cdouble_v.c[0])) return AZ_EXCEPTION_SYSTEM;
-					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->cdouble_v.c[1])) return AZ_EXCEPTION_SYSTEM;
+					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->cdouble_v.c[0])) return AZ_INTERNAL_INCONSISTENCY;
+					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->cdouble_v.c[1])) return AZ_INTERNAL_INCONSISTENCY;
 				} else {
-					if (!native_frame_push_stack (&frame, &stack_bytes, &val->cdouble_v, 16)) return AZ_EXCEPTION_SYSTEM;
+					if (!native_frame_push_stack (&frame, &stack_bytes, &val->cdouble_v, 16)) return AZ_INTERNAL_INCONSISTENCY;
 				}
 				break;
 			case AZ_TYPE_POINTER:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) val->pointer_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) val->pointer_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			}
 		} else if (AZ_TYPE_IS_FINAL (type)) {
 			/* Final types - [pointer] */
 			uint64_t p = (AZ_TYPE_IS_BLOCK (type)) ? (uint64_t) (uintptr_t) val->block : (uint64_t) (uintptr_t) val;
-			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, p)) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, p)) return AZ_INTERNAL_INCONSISTENCY;
 		} else {
 			/* Non-final types - [impl, pointer] */
 			/* fixme: null -> typed null - this should be handled by the caller */
 			if (!impl) impl = &klass->impl;
-			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) impl)) return AZ_EXCEPTION_SYSTEM;
-			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) az_value_get_inst (impl, val))) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) impl)) return AZ_INTERNAL_INCONSISTENCY;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) az_value_get_inst (impl, val))) return AZ_INTERNAL_INCONSISTENCY;
 		}
 	}
 
@@ -788,8 +788,8 @@ az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, u
 	unsigned int i, rtype;
 	AZClass *rklass;
 
-	arikkei_return_val_if_fail (func != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
-	arikkei_return_val_if_fail (sig != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail (func != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (sig != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (sig->n_params < 64, AZ_EXCEPTION_OUT_OF_BOUNDS);
 	/* fixme: Remove this if varargs will be implemented */
 	arikkei_return_val_if_fail (n_args == sig->n_params - 1, AZ_EXCEPTION_SIGNATURE_MISMATCH);
@@ -803,7 +803,7 @@ az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, u
 			if (!AZ_TYPE_IS_BLOCK (ret_type)) {
 				arikkei_return_val_if_fail (AZ_CLASS_FROM_TYPE (ret_type)->instance_size <= AZ_FUNCTION_MAX_RETURN_VALUE_SIZE, AZ_EXCEPTION_OUT_OF_BOUNDS);
 			}
-			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) storage)) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) storage)) return AZ_INTERNAL_INCONSISTENCY;
 		}
 	}
 
@@ -815,74 +815,74 @@ az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, u
 		const AZValue *val = az_value_store_value_at(args, i, data);
 		if (AZ_TYPE_IS_OBJECT (type)) {
 			/* Objects - [pointer] */
-			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) val->block)) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) val->block)) return AZ_INTERNAL_INCONSISTENCY;
 		} else if (AZ_TYPE_IS_PRIMITIVE (type)) {
 			/* Primitive types - [value] */
 			switch (type) {
 			case AZ_TYPE_BOOLEAN:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->boolean_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->boolean_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_INT8:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int8_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int8_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_UINT8:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint8_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint8_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_INT16:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int16_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int16_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_UINT16:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint16_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint16_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_INT32:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) val->int32_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uint32_t) val->int32_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_UINT32:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint32_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, val->uint32_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_INT64:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) val->int64_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) val->int64_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_UINT64:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) val->uint64_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) val->uint64_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_FLOAT:
-				if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->float_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_fpr32 (&frame, &n_fpr, &stack_bytes, val->float_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_DOUBLE:
-				if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->double_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->double_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_COMPLEX_FLOAT:
 				/* Two-float aggregate - both members in a single SSE register or on the stack */
 				if (n_fpr < 8) {
 					memcpy (&frame.fprs[n_fpr++], &val->cfloat_v, 8);
 				} else {
-					if (!native_frame_push_stack (&frame, &stack_bytes, &val->cfloat_v, 8)) return AZ_EXCEPTION_SYSTEM;
+					if (!native_frame_push_stack (&frame, &stack_bytes, &val->cfloat_v, 8)) return AZ_INTERNAL_INCONSISTENCY;
 				}
 				break;
 			case AZ_TYPE_COMPLEX_DOUBLE:
 				/* Two-double aggregate - members in two consecutive SSE registers or everything on the stack */
 				if (n_fpr + 2 <= 8) {
-					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->cdouble_v.c[0])) return AZ_EXCEPTION_SYSTEM;
-					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->cdouble_v.c[1])) return AZ_EXCEPTION_SYSTEM;
+					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->cdouble_v.c[0])) return AZ_INTERNAL_INCONSISTENCY;
+					if (!native_frame_push_fpr64 (&frame, &n_fpr, &stack_bytes, val->cdouble_v.c[1])) return AZ_INTERNAL_INCONSISTENCY;
 				} else {
-					if (!native_frame_push_stack (&frame, &stack_bytes, &val->cdouble_v, 16)) return AZ_EXCEPTION_SYSTEM;
+					if (!native_frame_push_stack (&frame, &stack_bytes, &val->cdouble_v, 16)) return AZ_INTERNAL_INCONSISTENCY;
 				}
 				break;
 			case AZ_TYPE_POINTER:
-				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) val->pointer_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) val->pointer_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			}
 		} else if (AZ_TYPE_IS_FINAL (type)) {
 			/* Final types - [pointer] */
 			uint64_t p = (AZ_TYPE_IS_BLOCK (type)) ? (uint64_t) (uintptr_t) val->block : (uint64_t) (uintptr_t) val;
-			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, p)) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, p)) return AZ_INTERNAL_INCONSISTENCY;
 		} else {
 			/* Non-final types - [impl, pointer] */
 			/* fixme: null -> typed null - this should be handled by the caller */
 			if (!impl) impl = &klass->impl;
-			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) impl)) return AZ_EXCEPTION_SYSTEM;
-			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) az_value_get_inst (impl, val))) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) impl)) return AZ_INTERNAL_INCONSISTENCY;
+			if (!native_frame_push_gpr (&frame, &n_gpr, &stack_bytes, (uint64_t) (uintptr_t) az_value_get_inst (impl, val))) return AZ_INTERNAL_INCONSISTENCY;
 		}
 	}
 
@@ -1067,8 +1067,8 @@ az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, u
 	unsigned int i, rtype;
 	AZClass *rklass;
 
-	arikkei_return_val_if_fail (func != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
-	arikkei_return_val_if_fail (sig != NULL, AZ_EXCEPTION_NULL_DEREFERENCE);
+	arikkei_return_val_if_fail (func != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (sig != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (sig->n_params < 64, AZ_EXCEPTION_OUT_OF_BOUNDS);
 	/* fixme: Remove this if varargs will be implemented */
 	arikkei_return_val_if_fail (n_args == sig->n_params - 1, AZ_EXCEPTION_SIGNATURE_MISMATCH);
@@ -1078,7 +1078,7 @@ az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, u
 	if (ret_type) {
 		if (ret_type == AZ_TYPE_COMPLEX_DOUBLE) {
 			/* 16-byte aggregate - returned through a hidden storage pointer by the ABI */
-			if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) &tmp_ret)) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) &tmp_ret)) return AZ_INTERNAL_INCONSISTENCY;
 		} else if (!AZ_TYPE_IS_OBJECT (ret_type) && !AZ_TYPE_IS_PRIMITIVE (ret_type)) {
 			if (!AZ_TYPE_IS_FINAL (ret_type) || !AZ_TYPE_IS_BLOCK (ret_type)) {
 				/* Final values and all non-final types: the first argument is a pointer to the return storage */
@@ -1086,7 +1086,7 @@ az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, u
 				if (!AZ_TYPE_IS_BLOCK (ret_type)) {
 					arikkei_return_val_if_fail (AZ_CLASS_FROM_TYPE (ret_type)->instance_size <= AZ_FUNCTION_MAX_RETURN_VALUE_SIZE, AZ_EXCEPTION_OUT_OF_BOUNDS);
 				}
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) storage)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) storage)) return AZ_INTERNAL_INCONSISTENCY;
 			}
 		}
 	}
@@ -1099,68 +1099,68 @@ az_function_invoke_native(void (*func) (void), const AZFunctionSignature *sig, u
 		const AZValue *val = az_value_store_value_at(args, i, data);
 		if (AZ_TYPE_IS_OBJECT (type)) {
 			/* Objects - [pointer] */
-			if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) val->block)) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) val->block)) return AZ_INTERNAL_INCONSISTENCY;
 		} else if (AZ_TYPE_IS_PRIMITIVE (type)) {
 			/* Primitive types - [value] */
 			switch (type) {
 			case AZ_TYPE_BOOLEAN:
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, val->boolean_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, val->boolean_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_INT8:
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int8_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int8_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_UINT8:
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, val->uint8_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, val->uint8_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_INT16:
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int16_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uint32_t) (int32_t) val->int16_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_UINT16:
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, val->uint16_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, val->uint16_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_INT32:
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uint32_t) val->int32_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uint32_t) val->int32_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_UINT32:
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, val->uint32_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, val->uint32_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_INT64:
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) val->int64_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) val->int64_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_UINT64:
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, val->uint64_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, val->uint64_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_FLOAT:
-				if (!native_frame_push_fpr32 (&frame, &n_slots, &stack_bytes, val->float_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_fpr32 (&frame, &n_slots, &stack_bytes, val->float_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_DOUBLE:
-				if (!native_frame_push_fpr64 (&frame, &n_slots, &stack_bytes, val->double_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_fpr64 (&frame, &n_slots, &stack_bytes, val->double_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_COMPLEX_FLOAT: {
 				/* 8-byte aggregate - passed by value as if it was an integer */
 				uint64_t u;
 				memcpy (&u, &val->cfloat_v, 8);
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, u)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, u)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			}
 			case AZ_TYPE_COMPLEX_DOUBLE:
 				/* 16-byte aggregate - passed by pointer */
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) &val->cdouble_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) &val->cdouble_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			case AZ_TYPE_POINTER:
-				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) val->pointer_v)) return AZ_EXCEPTION_SYSTEM;
+				if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) val->pointer_v)) return AZ_INTERNAL_INCONSISTENCY;
 				break;
 			}
 		} else if (AZ_TYPE_IS_FINAL (type)) {
 			/* Final types - [pointer] */
 			uint64_t p = (AZ_TYPE_IS_BLOCK (type)) ? (uint64_t) (uintptr_t) val->block : (uint64_t) (uintptr_t) val;
-			if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, p)) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, p)) return AZ_INTERNAL_INCONSISTENCY;
 		} else {
 			/* Non-final types - [impl, pointer] */
 			/* fixme: null -> typed null - this should be handled by the caller */
 			if (!impl) impl = &klass->impl;
-			if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) impl)) return AZ_EXCEPTION_SYSTEM;
-			if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) az_value_get_inst (impl, val))) return AZ_EXCEPTION_SYSTEM;
+			if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) impl)) return AZ_INTERNAL_INCONSISTENCY;
+			if (!native_frame_push_gpr (&frame, &n_slots, &stack_bytes, (uint64_t) (uintptr_t) az_value_get_inst (impl, val))) return AZ_INTERNAL_INCONSISTENCY;
 		}
 	}
 
