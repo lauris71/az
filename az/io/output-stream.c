@@ -14,6 +14,7 @@
 #include <az/instance.h>
 #include <az/extend.h>
 #include <az/boxed-interface.h>
+#include <az/function.h>
 
 #include <az/io/output-stream.h>
 
@@ -51,7 +52,7 @@ ostream_write(const AZOutputStreamImplementation *os_impl, AZOutputStream *os_in
 }
 
 static int64_t
-ostream_print(const AZOutputStreamImplementation *os_impl, AZOutputStream *os_inst, const AZImplementation *data_impl, void *data_inst)
+ostream_print_native(const AZOutputStreamImplementation *os_impl, AZOutputStream *os_inst, const AZImplementation *data_impl, void *data_inst)
 {
 	if ((void *) os_impl == &AZBoxedInterfaceKlass.klass.impl) {
 		az_boxed_interface_unbox((const AZImplementation **) &os_impl, (void **) &os_inst);
@@ -60,15 +61,51 @@ ostream_print(const AZOutputStreamImplementation *os_impl, AZOutputStream *os_in
 	return ret;
 }
 
-static int64_t
-ostream_println(const AZOutputStreamImplementation *os_impl, AZOutputStream *os_inst, const AZImplementation *data_impl, void *data_inst)
+static int
+ostream_print(unsigned int n_args, AZStoreElement *args, AZValue *vals, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
 {
+	if (n_args < 1) return AZ_SIGNATURE_MISMATCH;
+	AZOutputStreamImplementation *os_impl = (AZOutputStreamImplementation *) args[0].impl;
+	AZOutputStream *os_inst = (AZOutputStream *) az_value_store_instance_at(args, 0, vals);
 	if ((void *) os_impl == &AZBoxedInterfaceKlass.klass.impl) {
 		az_boxed_interface_unbox((const AZImplementation **) &os_impl, (void **) &os_inst);
 	}
-	int64_t ret = az_output_stream_print_inst(os_impl, os_inst, data_impl, data_inst);
-	ret += az_output_stream_write (os_impl, os_inst, "\n", 1);
-	return ret;
+	int64_t total = 0;
+	for (unsigned int i = 1; i < n_args; i++) {
+		int64_t ret = az_output_stream_print_inst(os_impl, os_inst, args[i].impl, az_value_store_instance_at(args, i, vals));
+		if (ret < 0) return ret;
+		total += ret;
+	}
+	if (ret_impl) {
+		*ret_impl = &AZInt64Klass.impl;
+		ret_val->int64_v = total;
+	}
+	return AZ_OK;
+}
+
+static int
+ostream_println(unsigned int n_args, AZStoreElement *args, AZValue *vals, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, AZContext *ctx)
+{
+	if (n_args < 1) return AZ_SIGNATURE_MISMATCH;
+	AZOutputStreamImplementation *os_impl = (AZOutputStreamImplementation *) args[0].impl;
+	AZOutputStream *os_inst = (AZOutputStream *) az_value_store_instance_at(args, 0, vals);
+	if ((void *) os_impl == &AZBoxedInterfaceKlass.klass.impl) {
+		az_boxed_interface_unbox((const AZImplementation **) &os_impl, (void **) &os_inst);
+	}
+	int64_t total = 0;
+	for (unsigned int i = 1; i < n_args; i++) {
+		int64_t ret = az_output_stream_print_inst(os_impl, os_inst, args[i].impl, az_value_store_instance_at(args, i, vals));
+		if (ret < 0) return ret;
+		total += ret;
+	}
+	int64_t ret = az_output_stream_write (os_impl, os_inst, "\n", 1);
+	if (ret < 0) return ret;
+	total += ret;
+	if (ret_impl) {
+		*ret_impl = &AZInt64Klass.impl;
+		ret_val->int64_v = total;
+	}
+	return AZ_OK;
 }
 
 void
@@ -76,8 +113,10 @@ az_init_output_stream_class()
 {
     az_class_new_with_value(&AZOutputStreamKlass.klass);
 	az_class_define_method_native_va((AZClass *) &AZOutputStreamKlass, FUNC_WRITE, (const uint8_t *) "write", (void (*) ()) ostream_write, AZ_TYPE_INT64, 1, AZ_TYPE_ANY);
-	az_class_define_method_native_va((AZClass *) &AZOutputStreamKlass, FUNC_PRINT, (const uint8_t *) "print", (void (*) ()) ostream_print, AZ_TYPE_INT64, 1, AZ_TYPE_ANY);
-	az_class_define_method_native_va((AZClass *) &AZOutputStreamKlass, FUNC_PRINTLN, (const uint8_t *) "printLn", (void (*) ()) ostream_println, AZ_TYPE_INT64, 1, AZ_TYPE_ANY);
+	az_class_define_method((AZClass *) &AZOutputStreamKlass, FUNC_PRINT, (const uint8_t *) "print",
+		az_function_signature_new_va(AZ_SIGNATURE_FLAG_VA_ARGS, AZ_TYPE_INT64, 2, AZ_TYPE_OUTPUT_STREAM, AZ_TYPE_ANY), ostream_print);
+	az_class_define_method((AZClass *) &AZOutputStreamKlass, FUNC_PRINTLN, (const uint8_t *) "printLn",
+		az_function_signature_new_va(AZ_SIGNATURE_FLAG_VA_ARGS, AZ_TYPE_INT64, 2, AZ_TYPE_OUTPUT_STREAM, AZ_TYPE_ANY), ostream_println);
 }
 
 int64_t

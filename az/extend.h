@@ -189,12 +189,10 @@ void az_class_define_property_function_packed (AZClass *klass, unsigned int idx,
 	 * @param klass the method's class
 	 * @param idx the property index in class
 	 * @param key the method's name
-	 * @param ret_type the return type
-	 * @param n_args the number of method arguments (excluding this)
-	 * @param arg_types the list of argument types
+	 * @param sig the method's signature
 	 * @param invoke A pointer to the function
 	 */
-void az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
+void az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *key, const AZFunctionSignature *sig,
 	int (*invoke) (unsigned int, AZStoreElement *, AZValue *, const AZImplementation **, AZValue *, unsigned int, AZContext *));
 void az_class_define_method_va (AZClass *klass, unsigned int idx, const unsigned char* key,
 	int (*invoke) (unsigned int, AZStoreElement *, AZValue *, const AZImplementation **, AZValue *, unsigned int, AZContext *), unsigned int ret_type, unsigned int n_args, ...);

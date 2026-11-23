@@ -379,28 +379,16 @@ az_class_define_property_function_packed (AZClass *klass, unsigned int idx, cons
 }
 
 void
-az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
+az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *key, const AZFunctionSignature *sig,
 	int (*invoke) (unsigned int, AZStoreElement *, AZValue *, const AZImplementation **, AZValue *, unsigned int, AZContext *))
 {
 	AZFunctionValue fval;
-	const AZFunctionSignature *sig = az_function_signature_new_with_this(0, AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
 	az_function_value_setup (&fval, sig, invoke);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_VALUE), &fval);
 }
 
-void
-az_class_define_static_method (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
-	int (*invoke) (unsigned int, AZStoreElement *, AZValue *, const AZImplementation **, AZValue *, unsigned int, AZContext *))
-{
-	AZFunctionValue fval;
-	const AZFunctionSignature *sig = az_function_signature_new(0, ret_type, n_args, arg_types);
-	az_function_value_setup (&fval, sig, invoke);
-	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
-		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_VALUE), &fval);
-}
-
-void az_class_define_method_native_vals (AZClass *klass, unsigned int idx, const unsigned char *key,
+void az_class_define_method_native (AZClass *klass, unsigned int idx, const unsigned char *key,
 	unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[],
 	void (*invoke_vals) (void))
 {
@@ -422,7 +410,8 @@ void az_class_define_method_va (AZClass *klass, unsigned int idx, const unsigned
 		arg_types[i] = va_arg(ap, unsigned int);
 	}
 	va_end(ap);
-	az_class_define_method(klass, idx, key, ret_type, n_args, arg_types, invoke);
+	const AZFunctionSignature *sig = az_function_signature_new_with_this(0, AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
+	az_class_define_method(klass, idx, key, sig, invoke);
 }
 
 void az_class_define_method_native_va (AZClass *klass, unsigned int idx, const unsigned char *key,
@@ -438,7 +427,7 @@ void az_class_define_method_native_va (AZClass *klass, unsigned int idx, const u
 		arg_types[i] = va_arg (ap, unsigned int);
 	}
 	va_end (ap);
-	az_class_define_method_native_vals(klass, idx, key, ret_type, n_args, arg_types, invoke);
+	az_class_define_method_native(klass, idx, key, ret_type, n_args, arg_types, invoke);
 }
 
 void az_class_define_static_method_native(AZClass *klass, unsigned int idx, const unsigned char *key,
@@ -466,7 +455,8 @@ az_class_define_static_method_va (AZClass *klass, unsigned int idx, const unsign
 		arg_types[i] = va_arg (ap, unsigned int);
 	}
 	va_end (ap);
-	az_class_define_static_method (klass, idx, key, ret_type, n_args, arg_types, invoke);
+	const AZFunctionSignature *sig = az_function_signature_new(0, ret_type, n_args, arg_types);
+	az_class_define_method (klass, idx, key, sig, invoke);
 }
 
 void az_class_define_static_method_native_va (AZClass *klass, unsigned int idx, const unsigned char *key,
