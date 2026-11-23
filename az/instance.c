@@ -176,6 +176,9 @@ az_instance_new_sized (unsigned int type, unsigned int size)
 		inst = malloc (size);
 	}
 	if (!inst) return NULL;
+	/* We have to initialize the full size, not just the class size */
+	uint32_t flags = klass->impl.flags;
+	if (flags & AZ_FLAG_ZERO_MEMORY) memset (inst, 0, size);
 	az_instance_init (&klass->impl, inst);
 	return inst;
 }

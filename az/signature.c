@@ -6,8 +6,8 @@
 * Copyright (C) Lauris Kaplinski 2016-2026
 */
 
-#include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdarg.h>
 
 #include <arikkei/arikkei-strlib.h>
