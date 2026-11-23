@@ -383,7 +383,7 @@ az_class_define_method (AZClass *klass, unsigned int idx, const unsigned char *k
 	int (*invoke) (unsigned int, AZStoreElement *, AZValue *, const AZImplementation **, AZValue *, unsigned int, AZContext *))
 {
 	AZFunctionValue fval;
-	const AZFunctionSignature *sig = az_function_signature_new_with_this(AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
+	const AZFunctionSignature *sig = az_function_signature_new_with_this(0, AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
 	az_function_value_setup (&fval, sig, invoke);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_VALUE), &fval);
@@ -394,7 +394,7 @@ az_class_define_static_method (AZClass *klass, unsigned int idx, const unsigned 
 	int (*invoke) (unsigned int, AZStoreElement *, AZValue *, const AZImplementation **, AZValue *, unsigned int, AZContext *))
 {
 	AZFunctionValue fval;
-	const AZFunctionSignature *sig = az_function_signature_new(ret_type, n_args, arg_types);
+	const AZFunctionSignature *sig = az_function_signature_new(0, ret_type, n_args, arg_types);
 	az_function_value_setup (&fval, sig, invoke);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_VALUE), &fval);
@@ -405,7 +405,7 @@ void az_class_define_method_native_vals (AZClass *klass, unsigned int idx, const
 	void (*invoke_vals) (void))
 {
 	AZFunctionNative fval;
-	const AZFunctionSignature *sig = az_function_signature_new_with_this(AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
+	const AZFunctionSignature *sig = az_function_signature_new_with_this(0, AZ_CLASS_TYPE(klass), ret_type, n_args, arg_types);
 	az_function_native_setup (&fval, sig, invoke_vals);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_NATIVE), &fval);
@@ -446,7 +446,7 @@ void az_class_define_static_method_native(AZClass *klass, unsigned int idx, cons
 	void (*invoke_vals) (void))
 {
 	AZFunctionNative fval;
-	const AZFunctionSignature *sig = az_function_signature_new(ret_type, n_args, arg_types);
+	const AZFunctionSignature *sig = az_function_signature_new(0, ret_type, n_args, arg_types);
 	az_function_native_setup (&fval, sig, invoke_vals);
 	az_class_define_property_function_val (klass, idx, key, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_STORED_STATIC, AZ_FIELD_WRITE_NONE, sig,
 		(AZImplementation *) az_type_get_class(AZ_TYPE_FUNCTION_NATIVE), &fval);

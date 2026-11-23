@@ -16,6 +16,8 @@
 extern "C" {
 #endif
 
+ARIKKEI_THREAD_LOCAL AZContext *az_context = NULL;
+
 void
 az_exception_set(AZException *exc, unsigned int type, uint64_t category, const uint8_t *msg)
 {

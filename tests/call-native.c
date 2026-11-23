@@ -116,7 +116,7 @@ static uint64_t native_fval_sig (const AZFunctionValue *fv)
 static unsigned int
 call_native (void (*func) (void), unsigned int ret_type, unsigned int n_args, const unsigned int *arg_types, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation **arg_impls, const AZValue **arg_vals)
 {
-    const AZFunctionSignature *sig = az_function_signature_new(ret_type, n_args, arg_types);
+    const AZFunctionSignature *sig = az_function_signature_new(0, ret_type, n_args, arg_types);
     AZStoreElement elems[32];
     AZValue vals[32];
     unsigned int val_idx = 0;
@@ -349,7 +349,7 @@ test_call_native()
     {
         unsigned int fn_type = az_function_native_get_type();
         unsigned int arg_types[2] = {AZ_TYPE_INT32, AZ_TYPE_INT32};
-        const AZFunctionSignature *sig = az_function_signature_new(AZ_TYPE_INT32, 2, arg_types);
+        const AZFunctionSignature *sig = az_function_signature_new(0, AZ_TYPE_INT32, 2, arg_types);
         AZFunctionNative fnat;
         const AZImplementation *f_impl;
         void *f_inst;

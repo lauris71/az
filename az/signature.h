@@ -49,9 +49,9 @@ struct _AZSignature {
 	uint32_t params[];
 };
 
-const AZFunctionSignature* az_function_signature_new(unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[]);
-const AZFunctionSignature *az_function_signature_new_va(unsigned int ret_type, unsigned int n_args, ...);
-const AZFunctionSignature* az_function_signature_new_with_this(unsigned int this_type, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[]);
+const AZFunctionSignature* az_function_signature_new(unsigned int flags, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[]);
+const AZFunctionSignature *az_function_signature_new_va(unsigned int flags, unsigned int ret_type, unsigned int n_args, ...);
+const AZFunctionSignature* az_function_signature_new_with_this(unsigned int flags, unsigned int this_type, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[]);
 
 #define az_function_signature_delete(sig)
 

@@ -164,26 +164,28 @@ signature_new_from_template(const AZFunctionSignature *sig)
 }
 
 const AZFunctionSignature *
-az_function_signature_new(unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
+az_function_signature_new(unsigned int flags, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
 {
 	arikkei_return_val_if_fail(n_args <= 255, NULL);
 	uint32_t buf[260] = {0};
     AZFunctionSignature *sig = (AZFunctionSignature *) buf;
 	sig->head_type = AZ_TYPE_FUNCTION;
 	sig->n_params = n_args + 1;
+	sig->sig_flags = flags;
 	sig->params[0] = ret_type;
 	memcpy (AZ_SIGNATURE_ARG_TYPES(sig), arg_types, n_args * sizeof (uint32_t));
     return signature_new_from_template(sig);
 }
 
 const AZFunctionSignature *
-az_function_signature_new_va (unsigned int ret_type, unsigned int n_args, ...)
+az_function_signature_new_va(unsigned int flags, unsigned int ret_type, unsigned int n_args, ...)
 {
 	arikkei_return_val_if_fail(n_args <= 255, NULL);
 	uint32_t buf[260] = {0};
 	AZFunctionSignature *sig = (AZFunctionSignature *) buf;
 	sig->head_type = AZ_TYPE_FUNCTION;
 	sig->n_params = n_args + 1;
+	sig->sig_flags = flags;
 	sig->params[0] = ret_type;
 	uint32_t *dst_args = AZ_SIGNATURE_ARG_TYPES(sig);
 	va_list ap;
@@ -196,7 +198,7 @@ az_function_signature_new_va (unsigned int ret_type, unsigned int n_args, ...)
 }
 
 const AZFunctionSignature *
-az_function_signature_new_with_this(unsigned int this_type, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
+az_function_signature_new_with_this(unsigned int flags, unsigned int this_type, unsigned int ret_type, unsigned int n_args, const unsigned int arg_types[])
 {
 	arikkei_return_val_if_fail(n_args < 255, NULL);
 	uint32_t buf[260] = {0};
@@ -205,6 +207,7 @@ az_function_signature_new_with_this(unsigned int this_type, unsigned int ret_typ
 	unsigned int i;
 	sig->head_type = AZ_TYPE_FUNCTION;
 	sig->n_params = 1;
+	sig->sig_flags = flags;
 	sig->params[0] = ret_type;
 	if (this_type) sig->params[sig->n_params++] = this_type;
 	for (i = 0; i < n_args; i++) sig->params[sig->n_params++] = arg_types[i];

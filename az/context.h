@@ -8,8 +8,18 @@
 */
 
 #include <stdint.h>
+#include <arikkei/arikkei-utils.h>
 
 #include <az/az.h>
+
+/**
+ * @brief The global exception context
+ * 
+ * While the most of az uses error-codes, the global context is needed to pass boundaries
+ * between different subsystems (native/az, azo/az).
+ * The context is NULL initially and should be ignored if not set.
+ */
+extern ARIKKEI_THREAD_LOCAL AZContext *az_context;
 
 /**
  * @brief The subsystem level that emitted the exception
