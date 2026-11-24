@@ -22,14 +22,14 @@
 #include <az/private.h>
 #include <az/serialization.h>
 
-static unsigned int
-serialize_boxed_interface (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx) {
+static int64_t
+serialize_boxed_interface (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen) {
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
-	return az_instance_serialize(boxed->impl, boxed->inst, d, dlen, ctx);
+	return az_instance_serialize(boxed->impl, boxed->inst, d, dlen);
 }
 
-static unsigned int
-boxed_interface_to_string (const AZImplementation *impl, void *inst, unsigned char *buf, unsigned int len)
+static int64_t
+boxed_interface_to_string (const AZImplementation *impl, void *inst, uint8_t *buf, uint64_t len)
 {
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
 	AZClass *klass = AZ_CLASS_FROM_IMPL(boxed->val_impl);
@@ -37,9 +37,9 @@ boxed_interface_to_string (const AZImplementation *impl, void *inst, unsigned ch
 	unsigned int pos;
 	/* Nothing is written when destination is NULL */
 	if (!buf) len = 0;
-	pos = arikkei_memcpy_str (buf, len, (const unsigned char *) "Boxed ");
+	pos = arikkei_memcpy_str (buf, len, (const uint8_t *) "Boxed ");
 	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, iface_class->name);
-	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) " in ");
+	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const uint8_t *) " in ");
 	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, klass->name);
 	if (buf && (pos < len)) buf[pos] = 0;
 	return pos;

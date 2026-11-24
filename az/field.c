@@ -18,7 +18,7 @@
 #include <az/private.h>
 #include <az/extend.h>
 
-void az_field_setup_value (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
+void az_field_setup_value (AZField *prop, const uint8_t *key, unsigned int type, unsigned int is_final,
 	unsigned int spec, unsigned int read, unsigned int write, unsigned int offset)
 {
 #ifdef AZ_SAFETY_CHECKS
@@ -43,7 +43,7 @@ void az_field_setup_value (AZField *prop, const unsigned char *key, unsigned int
 	prop->bits = 0;
 }
 
-void az_field_setup_stored (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
+void az_field_setup_stored (AZField *prop, const uint8_t *key, unsigned int type, unsigned int is_final,
 	unsigned int spec, unsigned int read, unsigned int write, const AZImplementation *impl, void *inst)
 {
 #ifdef AZ_SAFETY_CHECKS
@@ -67,7 +67,7 @@ void az_field_setup_stored (AZField *prop, const unsigned char *key, unsigned in
 	}
 }
 
-void az_field_setup_method (AZField *prop, const unsigned char *key, unsigned int type, unsigned int is_final,
+void az_field_setup_method (AZField *prop, const uint8_t *key, unsigned int type, unsigned int is_final,
 	unsigned int spec, unsigned int read, unsigned int write)
 {
 #ifdef AZ_SAFETY_CHECKS
@@ -86,7 +86,7 @@ void az_field_setup_method (AZField *prop, const unsigned char *key, unsigned in
 	prop->flags |= ((write & AZ_FIELD_MASK_WRITE) << AZ_FIELD_SHIFT_WRITE);
 }
 
-void az_field_setup_function (AZField *field, const unsigned char *key, unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, const AZFunctionSignature *sig,
+void az_field_setup_function (AZField *field, const uint8_t *key, unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, const AZFunctionSignature *sig,
 	const AZImplementation *impl, void *inst)
 {
 	if ((read == AZ_FIELD_READ_VALUE) || (read == AZ_FIELD_READ_PACKED)) {
@@ -101,7 +101,7 @@ void az_field_setup_function (AZField *field, const unsigned char *key, unsigned
 	field->signature = sig;
 }
 
-void az_field_setup_function_packed (AZField *field, const unsigned char *key, unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write,
+void az_field_setup_function_packed (AZField *field, const uint8_t *key, unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write,
 	const AZFunctionSignature *sig, unsigned int offset)
 {
 	if ((read == AZ_FIELD_READ_VALUE) || (read == AZ_FIELD_READ_PACKED)) {
@@ -127,17 +127,17 @@ enum {
 	FIELD_NUM_PROPS
 };
 
-static unsigned int
-field_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int d_len)
+static int64_t
+field_to_string (const AZImplementation* impl, void *inst, uint8_t *d, uint64_t d_len)
 {
 	AZField *field = (AZField *) inst;
 	if (!d) d_len = 0;
-	unsigned int pos = arikkei_strncpy (d, d_len, (const unsigned char *) "AZField [");
+	int64_t pos = arikkei_strncpy (d, d_len, (const uint8_t *) "AZField [");
 	pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, field->key->str);
-	pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) ": ");
+	pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const uint8_t *) ": ");
 	AZClass* klass = AZ_CLASS_FROM_TYPE(field->type);
 	pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, klass->name);
-	pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) "]");
+	pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const uint8_t *) "]");
 	return pos;
 }
 

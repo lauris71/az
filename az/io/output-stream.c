@@ -124,11 +124,11 @@ az_output_stream_write_inst(const AZOutputStreamImplementation *impl, AZOutputSt
 {
     if (!data_impl || !data_inst) return 0;
 	uint8_t d[1024];
-	unsigned int dlen = az_instance_serialize (data_impl, data_inst, d, sizeof(d), NULL);
+	unsigned int dlen = az_instance_serialize (data_impl, data_inst, d, sizeof(d));
 	if (dlen > sizeof(d)) {
 		unsigned char *buf = (unsigned char *) malloc(dlen);
 		if (!buf) return -1;
-		dlen = az_instance_serialize (data_impl, data_inst, buf, dlen, NULL);
+		dlen = az_instance_serialize (data_impl, data_inst, buf, dlen);
 		int64_t ret = az_output_stream_write(impl, inst, buf, dlen);
 		free(buf);
 		return ret;

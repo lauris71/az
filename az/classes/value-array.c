@@ -23,7 +23,7 @@ static void value_array_init (AZValueArrayClass *klass, AZValueArray *varray);
 static void value_array_finalize (AZValueArrayClass *klass, AZValueArray *varray);
 static unsigned int value_array_ensure_room16 (AZValueArray *varray, unsigned int idx, unsigned int req16);
 
-static unsigned int varray_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
+static int64_t varray_to_string (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen);
 /* AZCollection implementation */
 static unsigned int value_array_get_element_type (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
 static uint64_t value_array_get_size (const AZCollectionImplementation *collection_impl, AZCollection *collection_inst);
@@ -40,7 +40,7 @@ az_value_array_get_type (void)
 	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!type) {
-		az_register_type (&type, (const unsigned char *) "AZValueArray", AZ_TYPE_REFERENCE, sizeof (AZValueArrayClass), sizeof (AZValueArray), AZ_FLAG_FINAL,
+		az_register_type (&type, (const uint8_t *) "AZValueArray", AZ_TYPE_REFERENCE, sizeof (AZValueArrayClass), sizeof (AZValueArray), AZ_FLAG_FINAL,
 			1, 0,
 			(void (*) (AZClass *)) value_array_class_init,
 			(void (*) (const AZImplementation *, void *)) value_array_init,
@@ -106,8 +106,8 @@ value_array_finalize (AZValueArrayClass *klass, AZValueArray *varray)
 	if (varray->data) arikkei_aligned_free(varray->data);
 }
 
-static unsigned int
-varray_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen)
+static int64_t
+varray_to_string (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen)
 {
 	AZValueArray *varray = (AZValueArray *) inst;
 	unsigned int pos = 0;

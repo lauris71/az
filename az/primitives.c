@@ -29,70 +29,70 @@
 
 /* 1 Any */
 
-unsigned int
-az_any_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int d_len)
+int64_t
+az_any_to_string (const AZImplementation* impl, void *inst, uint8_t *d, uint64_t d_len)
 {
 	/* Nothing is written when destination is NULL */
 	if (!d) d_len = 0;
 	if (AZ_IMPL_TYPE(impl) == AZ_TYPE_ANY) {
 		/* Pure Any */
-		unsigned int pos = arikkei_strncpy (d, d_len, (const unsigned char *) "Any");
+		int64_t pos = arikkei_strncpy (d, d_len, (const uint8_t *) "Any");
 		if (d && (pos < d_len)) d[pos] = 0;
 		return pos;
 	} else {
 		/* Subclass that does not implement to_string */
 		char c[32];
-		unsigned int pos;
+		int64_t pos;
 		AZClass* klass = AZ_CLASS_FROM_IMPL(impl);
-		pos = arikkei_strncpy (d, d_len, (const unsigned char *) "Instance of ");
+		pos = arikkei_strncpy (d, d_len, (const uint8_t *) "Instance of ");
 		pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, klass->name);
-		pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) " (");
+		pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const uint8_t *) " (");
 		snprintf (c, 32, "%p", inst);
-		pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) c);
-		pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const unsigned char *) ")");
+		pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const uint8_t *) c);
+		pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, (const uint8_t *) ")");
 		return pos;
 	}
 }
 
-unsigned int
-az_null_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int d_len)
+int64_t
+az_null_to_string (const AZImplementation* impl, void *inst, uint8_t *d, uint64_t d_len)
 {
 	/* Nothing is written when destination is NULL */
 	if (!d) d_len = 0;
 	if (!impl) {
 		if (inst) {
-			return arikkei_strncpy (d, d_len, (const unsigned char *) "invalid instance");
+			return arikkei_strncpy (d, d_len, (const uint8_t *) "invalid instance");
 		}
-		return arikkei_strncpy (d, d_len, (const unsigned char *) "null");
+		return arikkei_strncpy (d, d_len, (const uint8_t *) "null");
 	}
 	unsigned int pos;
 	AZClass* klass = AZ_CLASS_FROM_IMPL(impl);
-	pos = arikkei_strncpy (d, d_len, (const unsigned char *) "null ");
+	pos = arikkei_strncpy (d, d_len, (const uint8_t *) "null ");
 	pos += arikkei_strncpy (d + pos, (d_len > pos) ? d_len - pos : 0, klass->name);
 	return pos;
 }
 
 /* 2 Boolean */
 
-static unsigned int
-serialize_boolean (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
+static int64_t
+serialize_boolean (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen)
 {
-	unsigned char v = (*((unsigned int *) inst) != 0);
+	uint8_t v = (*((unsigned int *) inst) != 0);
 	return az_serialize_int(d, dlen, &v, 1);
 }
 
-static unsigned int
-deserialize_boolean (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx)
+static int64_t
+deserialize_boolean (const AZImplementation *impl, AZValue *value, const uint8_t *s, uint64_t slen)
 {
 	if (!slen) return 0;
     value->uint32_v = *s;
 	return 1;
 }
 
-static unsigned int
-boolean_to_string (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen)
+static int64_t
+boolean_to_string (const AZImplementation* impl, void *instance, uint8_t *d, uint64_t dlen)
 {
-	const unsigned char *s = (*((unsigned int *) instance)) ? (const unsigned char *) "true" : (const unsigned char *) "false";
+	const uint8_t *s = (*((unsigned int *) instance)) ? (const uint8_t *) "true" : (const uint8_t *) "false";
 	unsigned int slen = arikkei_memcpy_str (d, dlen, s);
 	if (d && (slen < dlen)) d[slen] = 0;
 	return slen;
@@ -100,24 +100,24 @@ boolean_to_string (const AZImplementation* impl, void *instance, unsigned char *
 
 /* 3 Int8 */
 
-static unsigned int
-serialize_int (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
+static int64_t
+serialize_int (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen)
 {
 	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 	return az_serialize_int(d, dlen, inst, klass->instance_size);
 }
 
-static unsigned int
-deserialize_int (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx)
+static int64_t
+deserialize_int (const AZImplementation *impl, AZValue *value, const uint8_t *s, uint64_t slen)
 {
 	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
 	return az_deserialize_int(value, klass->instance_size, s, slen);
 }
 
 static unsigned int
-copy_int_to_buffer (unsigned char *d, unsigned int dlen, unsigned long long value, unsigned int sign)
+copy_int_to_buffer (uint8_t *d, unsigned int dlen, unsigned long long value, unsigned int sign)
 {
-	unsigned char c[32];
+	uint8_t c[32];
 	unsigned int clen = 0, len = 0;
 	c[clen++] = '0' + value % 10;
 	value /= 10;
@@ -140,8 +140,8 @@ copy_int_to_buffer (unsigned char *d, unsigned int dlen, unsigned long long valu
 	return clen + sign;
 }
 
-static unsigned int
-int_to_string_any (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen)
+static int64_t
+int_to_string_any (const AZImplementation* impl, void *instance, uint8_t *d, uint64_t dlen)
 {
 	AZClass* klass = AZ_CLASS_FROM_IMPL(impl);
 	unsigned int size = klass->instance_size;
@@ -149,7 +149,7 @@ int_to_string_any (const AZImplementation* impl, void *instance, unsigned char *
 	unsigned long long value = 0;
 	unsigned int sign = 0;
 	if (size == 1) {
-		value = *((unsigned char *) instance);
+		value = *((uint8_t *) instance);
 	} else if (size == 2) {
 		value = *((unsigned short *) instance);
 	}
@@ -180,10 +180,10 @@ int_to_string_any (const AZImplementation* impl, void *instance, unsigned char *
 
 /* 11 Float */
 
-static unsigned int
-float_to_string (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen)
+static int64_t
+float_to_string (const AZImplementation* impl, void *instance, uint8_t *d, uint64_t dlen)
 {
-	unsigned char c[32];
+	uint8_t c[32];
 	unsigned int clen = arikkei_dtoa_exp(c, 32, *((float *) instance), 5, -5, 5);
 	if (d) {
 		memcpy (d, c, (clen <= dlen) ? clen : dlen);
@@ -194,10 +194,10 @@ float_to_string (const AZImplementation* impl, void *instance, unsigned char *d,
 
 /* 12 Double */
 
-static unsigned int
-double_to_string (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen)
+static int64_t
+double_to_string (const AZImplementation* impl, void *instance, uint8_t *d, uint64_t dlen)
 {
-	unsigned char c[32];
+	uint8_t c[32];
 	unsigned int clen = arikkei_dtoa_exp(c, 32, *((double *) instance), 8, -5, 5);
 	if (d) {
 		memcpy (d, c, (clen <= dlen) ? clen : dlen);
@@ -208,11 +208,11 @@ double_to_string (const AZImplementation* impl, void *instance, unsigned char *d
 
 /* 13 Complex float */
 
-static unsigned int
-complex_float_to_string (const AZImplementation* impl, void *inst, unsigned char *buf, unsigned int len)
+static int64_t
+complex_float_to_string (const AZImplementation* impl, void *inst, uint8_t *buf, uint64_t len)
 {
 	float *v = (float *) inst;
-	unsigned char c[64];
+	uint8_t c[64];
 	unsigned int clen = arikkei_dtoa_exp (c, 32, v[0], 5, -5, 5);
 	if (v[1] >= 0) c[clen++] = '+';
 	clen += arikkei_dtoa_exp (&c[clen], 32, v[1], 5, -5, 5);
@@ -224,8 +224,8 @@ complex_float_to_string (const AZImplementation* impl, void *inst, unsigned char
 	return clen;
 }
 
-static unsigned int
-serialize_complex_float (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
+static int64_t
+serialize_complex_float (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen)
 {
 	if (d && (dlen >= 8)) {
 		az_serialize_int (d, dlen, inst, 4);
@@ -234,8 +234,8 @@ serialize_complex_float (const AZImplementation *impl, void *inst, unsigned char
 	return 8;
 }
 
-static unsigned int
-deserialize_complex_float (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx)
+static int64_t
+deserialize_complex_float (const AZImplementation *impl, AZValue *value, const uint8_t *s, uint64_t slen)
 {
 	if (slen < 8) return 0;
 	az_deserialize_int (&value->cfloat_v.r, 4, s, slen);
@@ -245,11 +245,11 @@ deserialize_complex_float (const AZImplementation *impl, AZValue *value, const u
 
 /* 14 Complex double */
 
-static unsigned int
-complex_double_to_string (const AZImplementation* impl, void *inst, unsigned char *buf, unsigned int len)
+static int64_t
+complex_double_to_string (const AZImplementation* impl, void *inst, uint8_t *buf, uint64_t len)
 {
 	AZComplexDouble *v = (AZComplexDouble *) inst;
-	unsigned char c[64];
+	uint8_t c[64];
 	unsigned int clen = arikkei_dtoa_exp (c, 32, v->r, 8, -5, 5);
 	if (v->i >= 0) c[clen++] = '+';
 	clen += arikkei_dtoa_exp (&c[clen], 32, v->i, 8, -5, 5);
@@ -261,8 +261,8 @@ complex_double_to_string (const AZImplementation* impl, void *inst, unsigned cha
 	return clen;
 }
 
-static unsigned int
-serialize_complex_double (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
+static int64_t
+serialize_complex_double (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen)
 {
 	if (d && (dlen >= 16)) {
 		az_serialize_int (d, dlen, inst, 8);
@@ -271,8 +271,8 @@ serialize_complex_double (const AZImplementation *impl, void *inst, unsigned cha
 	return 16;
 }
 
-static unsigned int
-deserialize_complex_double (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx)
+static int64_t
+deserialize_complex_double (const AZImplementation *impl, AZValue *value, const uint8_t *s, uint64_t slen)
 {
 	if (slen < 16) return 0;
 	az_deserialize_int (&value->cdouble_v.r, 8, s, slen);
@@ -282,16 +282,16 @@ deserialize_complex_double (const AZImplementation *impl, AZValue *value, const 
 
 /* 15 Pointer */
 
-static unsigned int
-pointer_to_string (const AZImplementation* impl, void *instance, unsigned char *buf, unsigned int len)
+static int64_t
+pointer_to_string (const AZImplementation* impl, void *instance, uint8_t *buf, uint64_t len)
 {
-	unsigned int i;
 	const char *t;
 	char b[32];
 	if (instance) {
 		static const char *c = "0123456789abcdef";
 		unsigned long long v = (unsigned long long) instance;
 		unsigned int l = 2 * sizeof (void *);
+		unsigned int i;
 		for (i = 0; i < l; i++) {
 			b[l - 1 - i] = c[v & 0xf];
 			v = v >> 4;
@@ -302,7 +302,7 @@ pointer_to_string (const AZImplementation* impl, void *instance, unsigned char *
 		t = "null";
 	}
 	{
-		unsigned int slen = arikkei_memcpy_str (buf, len, (const unsigned char *) t);
+		unsigned int slen = arikkei_memcpy_str (buf, len, (const uint8_t *) t);
 		if (buf && (slen < len)) buf[slen] = 0;
 		return slen;
 	}
@@ -332,7 +332,7 @@ any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, AZ
 	}
 }
 
-static unsigned char zero_val[16] = { 0 };
+static uint8_t zero_val[16] = { 0 };
 
 AZ_CLASS_ALIGN AZClass AZAnyKlass = {
 	.impl = { .flags = AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_ANY },
@@ -551,8 +551,8 @@ az_construct_primitive_classes (void)
 	unsigned int i;
     /* Properties are set in post-init because property types have to be initialized first */
 	AZClass *any_class = AZ_CLASS_FROM_TYPE(AZ_TYPE_ANY);
-	az_class_define_property (any_class, ANY_PROP_TYPE, (const unsigned char *) "type", AZ_TYPE_UINT32, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
-	az_class_define_property (any_class, ANY_PROP_CLASS, (const unsigned char *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
+	az_class_define_property (any_class, ANY_PROP_TYPE, (const uint8_t *) "type", AZ_TYPE_UINT32, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
+	az_class_define_property (any_class, ANY_PROP_CLASS, (const uint8_t *) "class", AZ_TYPE_CLASS, 1, AZ_FIELD_IMPLEMENTATION, AZ_FIELD_READ_METHOD, AZ_FIELD_WRITE_NONE, 0, NULL, NULL);
 	az_class_define_property_value(any_class, ANY_PROP_ARITHMETIC, (const uint8_t *) "isArithmetic", AZ_TYPE_BOOLEAN, 1, AZ_FIELD_CLASS, AZ_FIELD_WRITE_NONE, ARIKKEI_OFFSET(AZClass, impl.flags));
 	any_class->props_self[ANY_PROP_ARITHMETIC].value_type_idx = AZ_TYPE_IDX_UINT32;
 	any_class->props_self[ANY_PROP_ARITHMETIC].shift = 8;
@@ -572,7 +572,7 @@ az_construct_primitive_classes (void)
 #define E AZ_CONVERT_EXPLICIT
 #define N AZ_CANNOT_CONVERT
 
-const unsigned char az_primitive_conversion_table[] = {
+const uint8_t az_primitive_conversion_table[] = {
 	/* From none */
 	N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N,
 	/* From any */

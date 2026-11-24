@@ -59,10 +59,9 @@ az_array_value_at (const AZArrayImplementation *array_impl, const AZArray *array
  * @param array An unitialized array instance
  * @param s The source buffer
  * @param slen The source buffer length
- * @param ctx The executuon context
  * @return The number of bytes consumed
  */
-unsigned int az_array_deserialize (const AZArrayImplementation *array_impl, AZArray *array, const unsigned char *s, unsigned int slen, AZContext *ctx);
+int64_t az_array_deserialize (const AZArrayImplementation *array_impl, AZArray *array, const uint8_t *s, uint64_t slen);
 
 #ifdef __cplusplus
 };

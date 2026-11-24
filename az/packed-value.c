@@ -21,14 +21,14 @@
 
 #include <az/packed-value.h>
 
-static unsigned int
-packed_value_to_string (const AZImplementation *impl, void *inst, unsigned char *buf, unsigned int len)
+static int64_t
+packed_value_to_string (const AZImplementation *impl, void *inst, uint8_t *buf, uint64_t len)
 {
 	AZPackedValue *pval = (AZPackedValue *) inst;
 	unsigned int pos;
 	/* Nothing is written when destination is NULL */
 	if (!buf) len = 0;
-	pos = arikkei_memcpy_str (buf, len, (const unsigned char *) "Packed ");
+	pos = arikkei_memcpy_str (buf, len, (const uint8_t *) "Packed ");
 	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0,AZ_CLASS_FROM_IMPL(pval->impl)->name);
 	if (buf && (pos < len)) buf[pos] = 0;
 	return pos;

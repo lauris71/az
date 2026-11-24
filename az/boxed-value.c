@@ -14,14 +14,14 @@
 #include <az/extend.h>
 #include <az/private.h>
 
-static unsigned int
-serialize_boxed_value (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx) {
+static int64_t
+serialize_boxed_value (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen) {
 	AZBoxedValue *boxed = (AZBoxedValue *) inst;
-	return az_instance_serialize(&boxed->klass->impl, &boxed->val, d, dlen, ctx);
+	return az_instance_serialize(&boxed->klass->impl, &boxed->val, d, dlen);
 }
 
-static unsigned int
-boxed_value_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen)
+static int64_t
+boxed_value_to_string (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen)
 {
 	AZBoxedValue *boxed = (AZBoxedValue *) inst;
 	return az_instance_to_string(&boxed->klass->impl, &boxed->val, d, dlen);

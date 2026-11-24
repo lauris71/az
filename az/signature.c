@@ -73,8 +73,8 @@ static ArikkeiDict sig_dict = {
     .entries = NULL
 };
 
-static unsigned int
-function_signature_to_string(const AZImplementation *impl, void *inst, uint8_t *d, unsigned int d_len)
+static int64_t
+function_signature_to_string(const AZImplementation *impl, void *inst, uint8_t *d, uint64_t d_len)
 {
 	AZFunctionSignature *sig = (AZFunctionSignature *) inst;
 	if (!d) d_len = 0;

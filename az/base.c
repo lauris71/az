@@ -80,8 +80,8 @@ enum {
     CLASS_NUM_PROPERTIES
 };
 
-static unsigned int
-impl_to_string (const AZImplementation* impl, void *inst, uint8_t *buf, unsigned int len)
+static int64_t
+impl_to_string (const AZImplementation* impl, void *inst, uint8_t *buf, uint64_t len)
 {
 	AZImplementation *inst_impl = (AZImplementation *) inst;
 	AZClass *inst_class = AZ_CLASS_FROM_IMPL(inst_impl);
@@ -94,8 +94,8 @@ impl_to_string (const AZImplementation* impl, void *inst, uint8_t *buf, unsigned
 	return pos;
 }
 
-static unsigned int
-class_to_string (const AZImplementation* impl, void *inst, uint8_t *buf, unsigned int len)
+static int64_t
+class_to_string (const AZImplementation* impl, void *inst, uint8_t *buf, uint64_t len)
 {
 	AZClass *inst_class = (AZClass *) inst;
 	unsigned int pos;

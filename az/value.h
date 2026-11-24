@@ -359,10 +359,9 @@ const AZImplementation *az_value_get_inst_autobox (const AZImplementation *impl,
  * @param val pointer to uninitialized target value
  * @param s source buffer
  * @param slen  source buffer length
- * @param ctx the execution context
  * @return the number of bytes consumed (0 on error)
  */
-unsigned int az_value_deserialize (const AZImplementation *impl, AZValue *val, const unsigned char *s, unsigned int slen, AZContext *ctx);
+int64_t az_value_deserialize (const AZImplementation *impl, AZValue *val, const uint8_t *s, uint64_t slen);
 
 /**
  * @brief compares two values for equality
@@ -481,7 +480,7 @@ AZConversionResult az_value_convert_in_place (const AZImplementation **impl, AZV
  */
 AZConversionResult az_value_convert_in_place_autobox (const AZImplementation **impl, AZValue *val, unsigned int size, unsigned int to_type, AZConversionType conversion_type);
 
-unsigned int az_value_to_string_autobox (const AZImplementation *impl, const AZValue *val, unsigned char *d, unsigned int dlen);
+unsigned int az_value_to_string_autobox (const AZImplementation *impl, const AZValue *val, uint8_t *d, unsigned int dlen);
 uint8_t *az_value_to_string_autobox_new (const AZImplementation *impl, const AZValue *val);
 
 /**

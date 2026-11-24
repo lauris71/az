@@ -50,7 +50,7 @@ typedef struct _AZStringLookup AZStringLookup;
 
 struct _AZStringLookup {
 	uint32_t len;
-	const unsigned char *str;
+	const uint8_t *str;
 };
 
 uint32_t
@@ -116,8 +116,8 @@ string_data_equal (const void *l, const void *r)
 	return !strncmp ((const char *) lhs->str, (const char *) rhs->str, lhs->len);
 }
 
-static unsigned int
-string_to_string (const AZImplementation *impl, void *instance, unsigned char *buf, unsigned int len)
+static int64_t
+string_to_string (const AZImplementation *impl, void *instance, uint8_t *buf, uint64_t len)
 {
 	if (instance) {
 		AZString *str = (AZString *) instance;
@@ -132,12 +132,12 @@ string_to_string (const AZImplementation *impl, void *instance, unsigned char *b
 	return 0;
 }
 
-static unsigned int
-serialize_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
+static int64_t
+serialize_string (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen)
 {
 	AZString *str = (AZString *) inst;
 	if (!str) {
-		static const unsigned char b[9] = { 0, 0, 0, 0, 0 };
+		static const uint8_t b[9] = { 0, 0, 0, 0, 0 };
 		return az_serialize_block (d, dlen, b, 5);
 	} else {
 		if ((5 + str->length) <= dlen) {
@@ -148,8 +148,8 @@ serialize_string (const AZImplementation *impl, void *inst, unsigned char *d, un
 	}
 }
 
-static unsigned int
-deserialize_string (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx)
+static int64_t
+deserialize_string (const AZImplementation *impl, AZValue *value, const uint8_t *s, uint64_t slen)
 {
 	AZString **str = &value->string;
 	unsigned int len;
@@ -242,21 +242,21 @@ az_init_string_class (void)
 }
 
 AZString *
-az_string_new (const unsigned char *str)
+az_string_new (const uint8_t *str)
 {
 	if (!str) return NULL;
 	return az_string_new_length (str, (unsigned int) strlen ((const char *) str));
 }
 
 AZString *
-az_string_new_length (const unsigned char *str, unsigned int length)
+az_string_new_length (const uint8_t *str, unsigned int length)
 {
 	/* Create outside the lock: instance init takes the registry lock, and the lock
 	 * ordering is registry -> dict (class constructors create strings, not vice versa) */
 	AZString *astr = (AZString *) az_instance_new_sized (AZ_TYPE_STRING, sizeof (AZString) + length);
 	astr->length = length;
-	memcpy ((unsigned char *) astr->str, str, length);
-	((unsigned char *) astr->str)[length] = 0;
+	memcpy ((uint8_t *) astr->str, str, length);
+	((uint8_t *) astr->str)[length] = 0;
 	AZStringLookup lookup = {length, str};
 	AZ_STRING_LOCK();
 	AZString **ptr = (AZString **) arikkei_dict_lookup_foreign(&AZStringKlass.chr2str, &lookup, string_data_hash(&lookup), string_data_equal);
@@ -274,14 +274,14 @@ az_string_new_length (const unsigned char *str, unsigned int length)
 }
 
 AZString *
-az_string_lookup (const unsigned char *chars)
+az_string_lookup (const uint8_t *chars)
 {
 	if (!chars) return NULL;
 	return az_string_lookup_length (chars, (unsigned int) strlen ((const char *) chars));
 }
 
 AZString *
-az_string_lookup_length (const unsigned char *chars, unsigned int length)
+az_string_lookup_length (const uint8_t *chars, unsigned int length)
 {
 	AZStringLookup lookup = {length, chars};
 	AZ_STRING_LOCK();
@@ -304,9 +304,9 @@ az_string_concat (AZString *lhs, AZString *rhs)
 	if (!rhs) return lhs;
 	built = (AZString *) az_instance_new_sized (AZ_TYPE_STRING, sizeof (AZString) + lhs->length + rhs->length);
 	built->length = lhs->length + rhs->length;
-	if (lhs->length) memcpy ((unsigned char *) built->str, lhs->str, lhs->length);
-	if (rhs->length) memcpy ((unsigned char *) built->str + lhs->length, rhs->str, rhs->length);
-	((unsigned char *) built->str)[lhs->length + rhs->length] = 0;
+	if (lhs->length) memcpy ((uint8_t *) built->str, lhs->str, lhs->length);
+	if (rhs->length) memcpy ((uint8_t *) built->str + lhs->length, rhs->str, rhs->length);
+	((uint8_t *) built->str)[lhs->length + rhs->length] = 0;
 	AZ_STRING_LOCK();
 	AZString **ptr = (AZString **) arikkei_dict_lookup(&AZStringKlass.chr2str, &built);
 	if (ptr) {
@@ -322,11 +322,11 @@ az_string_concat (AZString *lhs, AZString *rhs)
 	return built;
 }
 
-const unsigned char *
-az_string_deserialize_chars (const unsigned char *cdata, unsigned int csize, unsigned int *cpos)
+const uint8_t *
+az_string_deserialize_chars (const uint8_t *cdata, unsigned int csize, unsigned int *cpos)
 {
 	unsigned int slen;
-	const unsigned char *str;
+	const uint8_t *str;
 	if ((csize - *cpos) < 5) return NULL;
 	az_deserialize_int (&slen, 4, cdata + *cpos, csize - *cpos);
 	if ((csize - *cpos) < (5 + slen)) return NULL;

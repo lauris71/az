@@ -232,7 +232,6 @@ struct _AZClass {
 	* @param idx An index of the property as declared in query class
 	* @param prop_val The returned value
 	* @param val_size The size of the value container
-	* @param ctx The execution context
 	* @return The implementation of the property value (may be boxed)
 	*/
 	const AZImplementation *(*get_property) (const AZImplementation *impl, void *inst, unsigned int idx, AZValue *prop_val, unsigned int val_size);
@@ -244,7 +243,7 @@ struct _AZClass {
 	 * @param idx An index of the property as declared in query class
 	 * @param prop_impl An implementation of the property value
 	 * @param prop_inst A property value instance
-	 * @param ctx The execution context
+	 * @return AZ_OK or error code
 	 */
 	int (*set_property) (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation *prop_impl, void *prop_inst);
 
@@ -270,24 +269,24 @@ struct _AZClass {
 	/* Serialization is by instance */
 	/* Return number of bytes that should have been written (regardless of dlen) */
 	/* It is safe to set d to NULL */
-	/* Returns the number of bytes that would have been written if there was enough room in destination */
-	unsigned int (*serialize) (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx);
+	/* Returns the number of bytes that would have been written if there was enough room in destination, or error code*/
+	int64_t (*serialize) (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t d_len);
 	/* Deserialization is by value, i.e. new instances of reference types should be created */
-	/* Returns the number of bytes consumed (0 on error) */
-	unsigned int (*deserialize) (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
+	/* Returns the number of bytes consumed or error code */
+	int64_t (*deserialize) (const AZImplementation *impl, AZValue *value, const uint8_t *s, uint64_t s_len);
 
 	/**
 	 * @brief Convert instance to string
 	 * @param impl an implementation
 	 * @param instance an instance
 	 * @param d the destination buffer (may be NULL, nothing is written then)
-	 * @param dlen the destination buffer size
-	 * @return the required length of the string (excluding the terminating '\0', may be bigger than dlen)
+	 * @param d_len the destination buffer size
+	 * @return the required length of the string (excluding the terminating '\0', may be bigger than dlen) or error code
 	 *
 	 * Writes at most dlen bytes. If there is extra room (the required length is
 	 * smaller than dlen) the string is terminated with '\0'.
 	 */
-	unsigned int (*to_string) (const AZImplementation* impl, void *instance, unsigned char *d, unsigned int dlen);
+	int64_t (*to_string) (const AZImplementation* impl, void *instance, uint8_t *d, uint64_t d_len);
 
 	/**
 	 * @brief The name of this class for convenience (not used by the library)

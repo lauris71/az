@@ -127,7 +127,7 @@ unsigned int az_instance_is_a(const AZImplementation *impl, void *inst, unsigned
  */
 unsigned int az_instance_implements(const AZImplementation *impl, void *inst, unsigned int type);
 
-unsigned int az_instance_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx);
+int64_t az_instance_serialize (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen);
 /**
  * @brief writes a string representation of instance to the buffer
  * 
@@ -141,7 +141,7 @@ unsigned int az_instance_serialize (const AZImplementation *impl, void *inst, un
  * @param dlen destination buffer size
  * @return the required length of the string (excluding the terminating '\0', may be bigger than dlen)
  */
-unsigned int az_instance_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
+int64_t az_instance_to_string (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen);
 
 /**
  * @brief get a newly allocated string representation of instance
@@ -210,8 +210,8 @@ az_instance_get_interface_from_type (unsigned int type, void *inst, unsigned int
  * @param dst_size The available result size
  * @return AZ_OK or error code
  */
-int az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation **dst_impl, AZValue64 *dst_val, unsigned int dst_size);
-int az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size);
+int az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZImplementation **dst_impl, AZValue64 *dst_val, unsigned int dst_size);
+int az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size);
 /**
  * @brief Set property by key and instance
  * 
@@ -224,7 +224,7 @@ int az_instance_get_function_by_key (const AZImplementation *impl, void *inst, c
  * @param prop_inst The value instance
  * @return AZ_OK or error code
  */
-int az_instance_set_property_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation *prop_impl, void *prop_inst);
+int az_instance_set_property_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZImplementation *prop_impl, void *prop_inst);
 
 /**
  * @brief Get property value by defining class and property index

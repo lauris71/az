@@ -298,19 +298,19 @@ az_instance_implements(const AZImplementation *impl, void *inst, unsigned int ty
 	return az_type_implements(AZ_IMPL_TYPE(impl), type);
 }
 
-unsigned int
-az_instance_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
+int64_t
+az_instance_serialize (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen)
 {
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_val_if_fail (impl != NULL, 0);
 	arikkei_return_val_if_fail (inst != NULL, 0);
 #endif
 	AZClass *klass = AZ_CLASS_FROM_IMPL(impl);
-	return (klass->serialize) ? klass->serialize (impl, inst, d, dlen, ctx) : 0;
+	return (klass->serialize) ? klass->serialize (impl, inst, d, dlen) : 0;
 }
 
-unsigned int
-az_instance_to_string (const AZImplementation* impl, void *inst, unsigned char *d, unsigned int dlen)
+int64_t
+az_instance_to_string (const AZImplementation* impl, void *inst, uint8_t *d, uint64_t dlen)
 {
 	if (!impl || !inst) {
 		return az_null_to_string(impl, inst, d, dlen);
@@ -365,7 +365,7 @@ az_instance_get_interface (const AZImplementation *impl, void *inst, unsigned in
 }
 
 int
-az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation **dst_impl, AZValue64 *dst_val, unsigned int dst_size)
+az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZImplementation **dst_impl, AZValue64 *dst_val, unsigned int dst_size)
 {
 	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (key != NULL, AZ_NULL_VALUE);
@@ -380,7 +380,7 @@ az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const
 }
 
 int
-az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size)
+az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size)
 {
 	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (key != NULL, AZ_NULL_VALUE);
@@ -395,7 +395,7 @@ az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const
 }
 
 int
-az_instance_set_property_by_key (const AZImplementation *impl, void *inst, const unsigned char *key, const AZImplementation *prop_impl, void *prop_inst)
+az_instance_set_property_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZImplementation *prop_impl, void *prop_inst)
 {
 	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (key != NULL, AZ_NULL_VALUE);

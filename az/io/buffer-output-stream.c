@@ -18,7 +18,7 @@
 
 static void bostream_class_init (AZBufferOutputStreamClass *klass);
 static void bostream_finalize (AZBufferOutputStreamClass *klass, AZBufferOutputStream *bostream);
-static unsigned int bostream_to_string(const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
+static int64_t bostream_to_string(const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen);
 static int64_t bostream_write (const AZOutputStreamImplementation *impl, AZOutputStream *inst, const void *data, uint64_t size);
 static int64_t bostream_close (const AZOutputStreamImplementation *impl, AZOutputStream *inst);
 
@@ -32,7 +32,7 @@ az_buffer_output_stream_get_type (void)
 	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!bostream_type) {
-		az_register_type (&bostream_type, (const unsigned char *) "AZBufferOutputStream", AZ_TYPE_BLOCK,
+		az_register_type (&bostream_type, (const uint8_t *) "AZBufferOutputStream", AZ_TYPE_BLOCK,
 			sizeof (AZBufferOutputStreamClass), sizeof (AZBufferOutputStream), AZ_FLAG_FINAL | AZ_FLAG_ZERO_MEMORY, 1, 0,
 			(void (*) (AZClass *)) bostream_class_init,
 			(void (*) (const AZImplementation *, void *)) bostream_finalize,
@@ -60,8 +60,8 @@ bostream_finalize (AZBufferOutputStreamClass *klass, AZBufferOutputStream *bostr
 	if (bostream->buffer) free (bostream->buffer);
 }
 
-static unsigned int
-bostream_to_string(const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen)
+static int64_t
+bostream_to_string(const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen)
 {
 	AZBufferOutputStream *bostream = (AZBufferOutputStream *) inst;
 	if (dlen) {

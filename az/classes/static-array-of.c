@@ -26,7 +26,7 @@ az_abstract_static_array_of_get_type (void)
 	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!abstract_static_array_of_type) {
-		az_register_type (&abstract_static_array_of_type, (const unsigned char *) "AbstractStaticArrayOf", AZ_TYPE_STRUCT, sizeof (AZStaticArrayOfClass), sizeof (AZStaticArrayOf), AZ_FLAG_ABSTRACT,
+		az_register_type (&abstract_static_array_of_type, (const uint8_t *) "AbstractStaticArrayOf", AZ_TYPE_STRUCT, sizeof (AZStaticArrayOfClass), sizeof (AZStaticArrayOf), AZ_FLAG_ABSTRACT,
 			0, 0,
 			NULL, NULL, NULL);
 	}
@@ -37,9 +37,9 @@ az_abstract_static_array_of_get_type (void)
 
 static void static_array_of_class_init (AZStaticArrayOfClass *klass, AZClass *elem_class);
 static void static_array_of_instance_init (AZStaticArrayOfClass *klass, AZStaticArrayOf *sarr);
-static unsigned int array_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx);
-static unsigned int array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx);
-static unsigned int array_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen);
+static int64_t array_serialize (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen);
+static int64_t array_deserialize (const AZImplementation *impl, AZValue *value, const uint8_t *s, uint64_t slen);
+static int64_t array_to_string (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen);
 static unsigned int static_array_of_get_element_type (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 static uint64_t static_array_of_get_size (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst);
 static unsigned int static_array_of_contains (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, const AZImplementation *impl, const void *inst);
@@ -62,7 +62,7 @@ az_static_array_of_get_type (unsigned int element_type)
 	if (!subtypes[AZ_TYPE_INDEX(element_type)]) {
 		AZClass *elem_class = AZ_CLASS_FROM_TYPE(element_type);
 		unsigned int nlen = (unsigned int) strlen ((const char *) elem_class->name);
-		unsigned char *name = malloc (nlen + 16);
+		uint8_t *name = malloc (nlen + 16);
 		snprintf ((char *) name, nlen + 16, "StaticArrayOf%s", elem_class->name);
 		az_register_composite_type (&subtypes[AZ_TYPE_INDEX(element_type)], name, AZ_TYPE_ABSTRACT_STATIC_ARRAY_OF, sizeof (AZStaticArrayOfClass), sizeof (AZStaticArrayOf), AZ_FLAG_FINAL,
 			1, 0,
@@ -102,24 +102,24 @@ static_array_of_instance_init (AZStaticArrayOfClass *klass, AZStaticArrayOf *sar
 	sarr->array.size = 0;
 }
 
-static unsigned int
-array_serialize (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen, AZContext *ctx)
+static int64_t
+array_serialize (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen)
 {
 	AZStaticArrayOfClass *array_klass = (AZStaticArrayOfClass *) impl;
 	AZStaticArrayOf *array = (AZStaticArrayOf *) inst;
-	return az_instance_serialize((const AZImplementation *) &array_klass->array_impl, &array->array, d, dlen, ctx);
+	return az_instance_serialize((const AZImplementation *) &array_klass->array_impl, &array->array, d, dlen);
 }
 
-static unsigned int
-array_deserialize (const AZImplementation *impl, AZValue *value, const unsigned char *s, unsigned int slen, AZContext *ctx)
+static int64_t
+array_deserialize (const AZImplementation *impl, AZValue *value, const uint8_t *s, uint64_t slen)
 {
 	AZStaticArrayOfClass *array_klass = (AZStaticArrayOfClass *) impl;
 	AZStaticArrayOf *array = (AZStaticArrayOf *) value;
-	return az_array_deserialize(&array_klass->array_impl, &array->array, s, slen, ctx);
+	return az_array_deserialize(&array_klass->array_impl, &array->array, s, slen);
 }
 
-static unsigned int
-array_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int dlen)
+static int64_t
+array_to_string (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen)
 {
 	AZStaticArrayOfClass *array_klass = (AZStaticArrayOfClass *) impl;
 	AZStaticArrayOf *array = (AZStaticArrayOf *) inst;

@@ -49,7 +49,7 @@ extern AZClass AZClassKlass;
  * @param d_len the destination buffer length
  * @return the required length of the string (excluding the terminating '\0', may be bigger than d_len)
  */
-unsigned int az_any_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int d_len);
+int64_t az_any_to_string (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t d_len);
 /**
  * @brief Prints typed or untyped null
  * 
@@ -61,7 +61,7 @@ unsigned int az_any_to_string (const AZImplementation *impl, void *inst, unsigne
  * @param d_len the destination buffer length
  * @return the required length of the string (excluding the terminating '\0', may be bigger than d_len)
  */
-unsigned int az_null_to_string (const AZImplementation *impl, void *inst, unsigned char *d, unsigned int d_len);
+int64_t az_null_to_string (const AZImplementation *impl, void *inst, uint8_t *d, uint64_t d_len);
 
 #ifdef __cplusplus
 };

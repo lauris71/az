@@ -26,7 +26,7 @@ az_abstract_reference_of_get_type (void)
 	if (t) return t;
 	AZ_TYPES_LOCK();
 	if (!abstract_reference_of_type) {
-		az_register_type (&abstract_reference_of_type, (const unsigned char *) "AbstractReferenceOf", AZ_TYPE_REFERENCE, sizeof (AZReferenceOfClass), sizeof (AZReferenceOf), AZ_FLAG_ABSTRACT,
+		az_register_type (&abstract_reference_of_type, (const uint8_t *) "AbstractReferenceOf", AZ_TYPE_REFERENCE, sizeof (AZReferenceOfClass), sizeof (AZReferenceOf), AZ_FLAG_ABSTRACT,
 			0, 0,
 			NULL, NULL, NULL);
 	}
@@ -39,7 +39,7 @@ static void reference_of_class_init (AZReferenceOfClass *klass, uintptr_t instan
 static void reference_of_instance_init (AZReferenceOfClass *klass, AZReferenceOf *ref_of);
 static void reference_of_instance_finalize (AZReferenceOfClass *klass, AZReferenceOf *ref_of);
 /* AZClass implementation */
-static unsigned int reference_of_to_string (const AZImplementation* impl, void *instance, unsigned char *buf, unsigned int len);
+static int64_t reference_of_to_string (const AZImplementation* impl, void *instance, uint8_t *buf, uint64_t len);
 
 unsigned int
 az_reference_of_get_type (unsigned int instance_type)
@@ -58,7 +58,7 @@ az_reference_of_get_type (unsigned int instance_type)
 		/* Only value types; the instance typecode is passed as data and resolved at
 		 * class construction (sizes and name are derived there), so reserving the
 		 * composite type does not force construction of the instance type */
-		az_register_composite_type (&subtypes[AZ_TYPE_INDEX(instance_type)], (const unsigned char *) "ReferenceOf", AZ_TYPE_ABSTRACT_REFERENCE_OF, sizeof (AZReferenceOfClass), sizeof (AZReferenceOf), AZ_FLAG_FINAL,
+		az_register_composite_type (&subtypes[AZ_TYPE_INDEX(instance_type)], (const uint8_t *) "ReferenceOf", AZ_TYPE_ABSTRACT_REFERENCE_OF, sizeof (AZReferenceOfClass), sizeof (AZReferenceOf), AZ_FLAG_FINAL,
 			0, 0,
 			(void (*) (AZClass *, void *)) reference_of_class_init,
 			(void (*) (const AZImplementation *, void *)) reference_of_instance_init,
@@ -140,7 +140,7 @@ reference_of_class_init (AZReferenceOfClass *klass, uintptr_t instance_type)
 	 * this composite by anything but typecode) */
 	AZClass *inst_class = az_type_get_class ((unsigned int) instance_type);
 	unsigned int len = (unsigned int) strlen ((const char *) inst_class->name);
-	unsigned char *name = (unsigned char *) malloc (len + 12);
+	uint8_t *name = (uint8_t *) malloc (len + 12);
 	snprintf ((char *) name, len + 12, "ReferenceOf%s", inst_class->name);
 	((AZClass *) klass)->name = name;
 	unsigned int pos = (sizeof (AZReferenceOf) + inst_class->alignment) & ~(inst_class->alignment);
@@ -165,19 +165,19 @@ reference_of_instance_finalize (AZReferenceOfClass *klass, AZReferenceOf *ref_of
 	az_instance_finalize_by_type (az_reference_of_get_instance (klass, ref_of), klass->instance_type);
 }
 
-static unsigned int
-reference_of_to_string (const AZImplementation* impl, void *instance, unsigned char *buf, unsigned int len)
+static int64_t
+reference_of_to_string (const AZImplementation* impl, void *instance, uint8_t *buf, uint64_t len)
 {
 	AZReferenceOfClass *ref_class = (AZReferenceOfClass *) impl;
 	AZClass* inst_class = AZ_CLASS_FROM_TYPE(ref_class->instance_type);
 	unsigned int pos;
 	/* Nothing is written when destination is NULL */
 	if (!buf) len = 0;
-	pos = arikkei_memcpy_str (buf, len, (const unsigned char *) "Reference of ");
+	pos = arikkei_memcpy_str (buf, len, (const uint8_t *) "Reference of ");
 	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, inst_class->name);
-	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) " (");
+	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const uint8_t *) " (");
 	pos += az_instance_to_string (&inst_class->impl, az_reference_of_get_instance (ref_class, instance), buf + pos, (len > pos) ? len - pos : 0);
-	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const unsigned char *) ")");
+	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const uint8_t *) ")");
 	if (buf && (pos < len)) buf[pos] = 0;
 	return pos;
 }

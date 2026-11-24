@@ -51,8 +51,8 @@ az_value_set_from_inst (const AZImplementation *impl, AZValue *dst, void *inst)
 	}
 }
 
-unsigned int
-az_value_deserialize (const AZImplementation *impl, AZValue *val, const unsigned char *s, unsigned int slen, AZContext *ctx)
+int64_t
+az_value_deserialize (const AZImplementation *impl, AZValue *val, const uint8_t *s, uint64_t slen)
 {
 	AZClass *klass;
 #ifdef AZ_SAFETY_CHECKS
@@ -63,7 +63,7 @@ az_value_deserialize (const AZImplementation *impl, AZValue *val, const unsigned
 #ifdef AZ_SAFETY_CHECKS
 	arikkei_return_val_if_fail (klass != NULL, 0);
 #endif
-	return (klass->deserialize) ? klass->deserialize (impl, val, s, slen, ctx) : 0;
+	return (klass->deserialize) ? klass->deserialize (impl, val, s, slen) : 0;
 }
 
 unsigned int
@@ -317,7 +317,7 @@ az_value_convert_in_place_autobox (const AZImplementation **impl, AZValue *val, 
 }
 
 unsigned int
-az_value_to_string_autobox (const AZImplementation *impl, const AZValue *val, unsigned char *d, unsigned int dlen)
+az_value_to_string_autobox (const AZImplementation *impl, const AZValue *val, uint8_t *d, unsigned int dlen)
 {
 	if (!impl) {
 		if (d && dlen) d[0] = 0;
