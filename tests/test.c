@@ -30,6 +30,7 @@
 #include <az/collections/array.h>
 #include <az/classes/array-object.h>
 #include <az/collections/hash-map.h>
+#include <az/io/buffer-output-stream.h>
 #include <az/collections/hash-set.h>
 #include <az/classes/value-array.h>
 #include <az/classes/static-array-of.h>
@@ -49,6 +50,7 @@ static void test_circular_reference();
 static void test_strings_mt();
 static void test_boxed_interface_conversion();
 static void test_packed_value_conversion();
+static void test_iteration();
 static void test_value_array();
 static void test_delegation();
 
@@ -107,6 +109,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_boxed_interface_conversion);
         } else if (!strcmp(argv[i], "packed-value-conversion")) {
             RUN_TEST(test_packed_value_conversion);
+        } else if (!strcmp(argv[i], "iteration")) {
+            RUN_TEST(test_iteration);
         } else if (!strcmp(argv[i], "value-array")) {
             RUN_TEST(test_value_array);
         } else if (!strcmp(argv[i], "delegation")) {
@@ -1761,6 +1765,84 @@ test_packed_value_conversion()
     TEST_ASSERT (from.v.double_v == 42.0);
     az_packed_value_clear (&from);
     az_string_unref (str);
+}
+
+typedef struct { unsigned int count; unsigned int stop_at; } IterCtx;
+
+static int
+iter_count_prop (const AZClass *def_class, unsigned int prop_idx, const AZImplementation *impl, void *inst, void *data)
+{
+    IterCtx *ctx = (IterCtx *) data;
+    ctx->count += 1;
+    if (ctx->stop_at && (ctx->count >= ctx->stop_at)) return AZ_ITERATION_STOP;
+    return AZ_OK;
+}
+
+static int
+iter_fail_prop (const AZClass *def_class, unsigned int prop_idx, const AZImplementation *impl, void *inst, void *data)
+{
+    ((IterCtx *) data)->count += 1;
+    return AZ_NOT_FOUND;
+}
+
+static int
+iter_count_iface (const AZImplementation *iface_impl, void *iface_inst, unsigned int if_type, unsigned int level, void *data)
+{
+    IterCtx *ctx = (IterCtx *) data;
+    ctx->count += 1;
+    if (ctx->stop_at && (ctx->count >= ctx->stop_at)) return AZ_ITERATION_STOP;
+    return AZ_OK;
+}
+
+static int
+iter_fail_iface (const AZImplementation *iface_impl, void *iface_inst, unsigned int if_type, unsigned int level, void *data)
+{
+    ((IterCtx *) data)->count += 1;
+    return AZ_NOT_FOUND;
+}
+
+static void
+test_iteration(void)
+{
+    az_init();
+    /* A buffer output stream sees the 3 interface methods (write/print/printLn) as properties */
+    AZBufferOutputStream *bostream = (AZBufferOutputStream *) az_instance_new(AZ_TYPE_BUFFER_OUTPUT_STREAM);
+    const AZImplementation *impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BUFFER_OUTPUT_STREAM);
+
+    /* Full enumeration returns AZ_OK */
+    IterCtx ctx = { 0, 0 };
+    TEST_ASSERT_EQUAL_INT(AZ_OK, az_instance_foreach_property(impl, bostream, iter_count_prop, &ctx));
+    TEST_ASSERT(ctx.count >= 3);
+    /* Early stop echoes the token */
+    ctx.count = 0;
+    ctx.stop_at = 2;
+    TEST_ASSERT_EQUAL_INT(AZ_ITERATION_STOP, az_instance_foreach_property(impl, bostream, iter_count_prop, &ctx));
+    TEST_ASSERT_EQUAL_UINT(2, ctx.count);
+    /* Errors are propagated */
+    ctx.count = 0;
+    TEST_ASSERT_EQUAL_INT(AZ_NOT_FOUND, az_instance_foreach_property(impl, bostream, iter_fail_prop, &ctx));
+    TEST_ASSERT_EQUAL_UINT(1, ctx.count);
+
+    /* Same contract for interface enumeration */
+    ctx.count = 0;
+    ctx.stop_at = 0;
+    TEST_ASSERT_EQUAL_INT(AZ_OK, az_instance_foreach_interface(impl, bostream, iter_count_iface, &ctx));
+    TEST_ASSERT(ctx.count >= 1);
+    ctx.count = 0;
+    ctx.stop_at = 1;
+    TEST_ASSERT_EQUAL_INT(AZ_ITERATION_STOP, az_instance_foreach_interface(impl, bostream, iter_count_iface, &ctx));
+    TEST_ASSERT_EQUAL_UINT(1, ctx.count);
+    ctx.count = 0;
+    TEST_ASSERT_EQUAL_INT(AZ_NOT_FOUND, az_instance_foreach_interface(impl, bostream, iter_fail_iface, &ctx));
+    TEST_ASSERT_EQUAL_UINT(1, ctx.count);
+
+    /* Type-level wrappers behave the same */
+    ctx.count = 0;
+    ctx.stop_at = 2;
+    TEST_ASSERT_EQUAL_INT(AZ_ITERATION_STOP, az_class_foreach_property(AZ_CLASS_FROM_TYPE(AZ_TYPE_BUFFER_OUTPUT_STREAM), iter_count_prop, &ctx));
+    TEST_ASSERT_EQUAL_UINT(2, ctx.count);
+
+    az_instance_delete(AZ_TYPE_BUFFER_OUTPUT_STREAM, bostream);
 }
 
 /*

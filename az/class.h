@@ -115,7 +115,12 @@ struct _AZIFEntry {
 	uint16_t inst_offset;
 };
 
-/* Both callback types return AZ_OK to continue the iteration, nonzero to stop */
+/*
+ * Iteration callbacks return AZ_OK to continue, a positive value to stop the
+ * iteration early (AZ_ITERATION_STOP is the generic token) or a negative error
+ * code. The iteration function echoes the value: AZ_OK if everything was
+ * iterated, the callback's stop token or the error code.
+ */
 typedef int (*AZPropertyForeachFunc) (const AZClass *def_class, unsigned int prop_idx, const AZImplementation *impl, void *inst, void *data);
 typedef int (*AZInterfaceForeachFunc) (const AZImplementation *iface_impl, void *iface_inst, unsigned int if_type, unsigned int level, void *data);
 
@@ -388,9 +393,9 @@ int az_class_lookup_function (const AZClass *klass, const AZImplementation *impl
  *
  * @param impl the implementation (and class) to enumerate
  * @param inst the instance (may be NULL for type-level enumeration)
- * @param cb the callback (return 0 to stop)
+ * @param cb the callback (AZ_OK to continue, positive to stop, negative error)
  * @param data user data passed to the callback
- * @return AZ_OK if the enumeration ran to completion, any other value if stopped by the callback
+ * @return AZ_OK if the enumeration ran to completion, the callback's positive stop token, or the negative error code
  */
 int az_instance_foreach_property (const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data);
 /**
@@ -406,9 +411,9 @@ int az_instance_foreach_property (const AZImplementation *impl, void *inst, AZPr
  *
  * @param impl the implementation (and class) to enumerate
  * @param inst the instance (may be NULL for type-level enumeration)
- * @param cb the callback (return 0 to stop)
+ * @param cb the callback (AZ_OK to continue, positive to stop, negative error)
  * @param data user data passed to the callback
- * @return AZ_OK if the enumeration ran to completion, any other value if stopped by the callback
+ * @return AZ_OK if the enumeration ran to completion, the callback's positive stop token, or the negative error code
  */
 int az_instance_foreach_interface (const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data);
 /* Type-level convenience wrappers (inst locations reported as NULL) */

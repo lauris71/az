@@ -635,7 +635,7 @@ az_foreach_property_default (const AZClass *klass, const AZImplementation *impl,
 			const AZImplementation *sub_impl = (impl) ? (const AZImplementation *) ((const char *) impl + ifentry->impl_offset) : NULL;
 			void *sub_inst = (inst) ? (void *) ((char *) inst + ifentry->inst_offset) : NULL;
 			int result = az_foreach_property_default (if_class, sub_impl, sub_inst, cb, data);
-			return result;
+			if (result) return result;
 		}
 		ifentry += 1;
 	}

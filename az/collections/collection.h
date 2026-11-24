@@ -54,7 +54,7 @@ az_collection_contains (const AZCollectionImplementation *coll_impl, AZCollectio
 	return coll_impl->contains (coll_impl, coll_inst, val_impl, val_inst);
 }
 
-/* Return 0 if unsuccessful */
+/* Return NULL if unsuccessful */
 static inline const AZImplementation *
 az_collection_get_iterator (const AZCollectionImplementation *coll_impl, AZCollection *coll_inst, AZValue *iter)
 {

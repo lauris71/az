@@ -316,8 +316,8 @@ az_value_convert_in_place_autobox (const AZImplementation **impl, AZValue *val, 
 	return az_value_convert_internal (impl, val, size, *impl, val, to_type, conversion_type, 1, 1);
 }
 
-unsigned int
-az_value_to_string_autobox (const AZImplementation *impl, const AZValue *val, uint8_t *d, unsigned int dlen)
+int64_t
+az_value_to_string_autobox (const AZImplementation *impl, const AZValue *val, uint8_t *d, uint64_t dlen)
 {
 	if (!impl) {
 		if (d && dlen) d[0] = 0;
@@ -331,8 +331,10 @@ az_value_to_string_autobox (const AZImplementation *impl, const AZValue *val, ui
 uint8_t *
 az_value_to_string_autobox_new (const AZImplementation *impl, const AZValue *val)
 {
-	unsigned int dlen = az_value_to_string_autobox(impl, val, NULL, 0) + 1;
-	uint8_t *buf = (uint8_t *) malloc(dlen);
-	az_value_to_string_autobox(impl, val, buf, dlen);
+	int64_t dlen = az_value_to_string_autobox(impl, val, NULL, 0);
+	if (dlen < 0) return NULL;
+	uint8_t *buf = (uint8_t *) malloc((size_t) dlen + 1);
+	if (!buf) return NULL;
+	az_value_to_string_autobox(impl, val, buf, (uint64_t) dlen + 1);
 	return buf;
 }

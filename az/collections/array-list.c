@@ -140,54 +140,60 @@ az_array_list_clear(AZArrayList *alist)
 	alist->size = 0;
 }
 
-unsigned int
+int
 az_array_list_set_element (AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst)
 {
-	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->element_type), 0);
-	arikkei_return_val_if_fail(idx < alist->size, 0);
+	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->element_type), AZ_INVALID_TYPE);
+	arikkei_return_val_if_fail(idx < alist->size, AZ_INVALID_VALUE);
 	AZArrayListEntry *entry = az_array_list_get_entry(alist, idx);
 	az_value_clear(entry->impl, (AZValue *) entry->val);
 	entry->impl = az_value_set_from_inst_autobox(impl, (AZValue *) entry->val, alist->val_size, inst);
-	return 1;
+	return AZ_OK;
 }
 
-unsigned int
+int
 az_array_list_append(AZArrayList *alist, const AZImplementation *impl, void *inst)
 {
-	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->element_type), 0);
+	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->element_type), AZ_INVALID_TYPE);
 	if (alist->size >= alist->data_size) {
-		alist->data_size = (alist->data_size) ? alist->data_size << 1 : 8;
-		alist->data = (AZArrayListEntry *) realloc(alist->data, alist->data_size * az_array_list_entry_size(alist));
+		unsigned int new_size = (alist->data_size) ? alist->data_size << 1 : 8;
+		AZArrayListEntry *ndata = (AZArrayListEntry *) realloc(alist->data, new_size * az_array_list_entry_size(alist));
+		if (!ndata) return AZ_OUT_OF_MEMORY;
+		alist->data = ndata;
+		alist->data_size = new_size;
 	}
 	AZArrayListEntry *entry = az_array_list_get_entry(alist, alist->size);
 	entry->impl = az_value_set_from_inst_autobox(impl, (AZValue *) entry->val, alist->val_size, inst);
 	alist->size += 1;
-	return 1;
+	return AZ_OK;
 }
 
-unsigned int
+int
 az_array_list_insert(AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst)
 {
-	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->element_type), 0);
-	arikkei_return_val_if_fail(idx <= alist->size, 0);
+	arikkei_return_val_if_fail(!impl || az_type_is_a(AZ_IMPL_TYPE(impl), alist->element_type), AZ_INVALID_TYPE);
+	arikkei_return_val_if_fail(idx <= alist->size, AZ_INVALID_VALUE);
 	if (alist->size >= alist->data_size) {
-		alist->data_size = (alist->data_size) ? alist->data_size << 1 : 8;
-		alist->data = (AZArrayListEntry *) realloc(alist->data, alist->data_size * az_array_list_entry_size(alist));
+		unsigned int new_size = (alist->data_size) ? alist->data_size << 1 : 8;
+		AZArrayListEntry *ndata = (AZArrayListEntry *) realloc(alist->data, new_size * az_array_list_entry_size(alist));
+		if (!ndata) return AZ_OUT_OF_MEMORY;
+		alist->data = ndata;
+		alist->data_size = new_size;
 	}
 	AZArrayListEntry *entry = az_array_list_get_entry(alist, idx);
 	memmove((char *) entry + az_array_list_entry_size(alist), (char *) entry, (alist->size - idx) * az_array_list_entry_size(alist));
 	entry->impl = az_value_set_from_inst_autobox(impl, (AZValue *) entry->val, alist->val_size, inst);
 	alist->size += 1;
-	return 1;
+	return AZ_OK;
 }
 
-unsigned int
+int
 az_array_list_remove(AZArrayList *alist, unsigned int idx)
 {
-	arikkei_return_val_if_fail(idx < alist->size, 0);
+	arikkei_return_val_if_fail(idx < alist->size, AZ_INVALID_VALUE);
 	AZArrayListEntry *entry = az_array_list_get_entry(alist, idx);
 	az_value_clear(entry->impl, (AZValue *) entry->val);
 	memmove((char *) entry, (char *) entry + az_array_list_entry_size(alist), (alist->size - idx - 1) * az_array_list_entry_size(alist));
 	alist->size -= 1;
-	return 1;
+	return AZ_OK;
 }

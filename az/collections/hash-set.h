@@ -59,7 +59,17 @@ void az_hash_set_insert(const AZHashSetImplementation *impl, AZHashSet *hset, vo
 unsigned int az_hash_set_remove(const AZHashSetImplementation *impl, AZHashSet *hset, const void *elem);
 void az_hash_set_clear(const AZHashSetImplementation *impl, AZHashSet *hset);
 unsigned int az_hash_set_contains(const AZHashSetImplementation *impl, AZHashSet *hset, const void *elem);
-unsigned int az_hash_set_forall (const AZHashSetImplementation *impl, AZHashSet *hset, unsigned int (* forall) (const void *, void *), void *data);
+/**
+ * Iterate over all elements. The callback returns AZ_OK to continue, a positive
+ * value to stop early (AZ_ITERATION_STOP) or a negative error code; the
+ * iteration echoes the value (AZ_OK if everything was iterated).
+ */
+int az_hash_set_forall (const AZHashSetImplementation *impl, AZHashSet *hset, int (* forall) (const void *, void *), void *data);
+/**
+ * Remove all elements for which the predicate returns nonzero.
+ *
+ * @return the number of removed elements
+ */
 unsigned int az_hash_set_remove_all (const AZHashSetImplementation *impl, AZHashSet *hset, unsigned int (*remove) (const void *, void *), void *data);
 
 #ifdef __cplusplus

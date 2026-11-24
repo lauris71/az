@@ -103,6 +103,17 @@ enum AZErrorCode {
 	AZ_INTERNAL_INCONSISTENCY = -1000000000
 };
 
+/**
+ * @brief Generic early stop token for iteration callbacks
+ *
+ * Iteration callbacks and the iteration functions echoing them return:
+ * - AZ_OK - continue (callback) or iterated everything (function)
+ * - negative AZErrorCode - error, propagated by the iteration
+ * - positive - early stop; AZ_ITERATION_STOP is the generic token and
+ *   callers may define their own positive values to pass data along
+ */
+#define AZ_ITERATION_STOP 1
+
 /** @ingroup types
  * @brief Type flags
  * 

@@ -151,6 +151,48 @@ test_insert_remove_all(const AZHashSetImplementation *impl, int32_t *elems, unsi
     az_instance_finalize((const AZImplementation *) impl, &hset);
 }
 
+typedef struct { unsigned int count; unsigned int stop_at; } ForallCtx;
+
+static int
+count_elems (const void *elem, void *data)
+{
+    ForallCtx *ctx = (ForallCtx *) data;
+    ctx->count += 1;
+    if (ctx->stop_at && (ctx->count >= ctx->stop_at)) return AZ_ITERATION_STOP;
+    return AZ_OK;
+}
+
+static int
+fail_elems (const void *elem, void *data)
+{
+    ((ForallCtx *) data)->count += 1;
+    return AZ_NOT_FOUND;
+}
+
+static void
+test_forall(const AZHashSetImplementation *impl, int32_t *elems, unsigned int n_entries)
+{
+    AZHashSet hset;
+    az_instance_init((const AZImplementation *) impl, &hset);
+    for (unsigned int i = 0; i < n_entries; i++) {
+        az_hash_set_insert(impl, &hset, &elems[i]);
+    }
+    /* Full iteration returns AZ_OK */
+    ForallCtx ctx = { 0, 0 };
+    TEST_ASSERT_EQUAL_INT(AZ_OK, az_hash_set_forall(impl, &hset, count_elems, &ctx));
+    TEST_ASSERT_EQUAL_UINT(n_entries, ctx.count);
+    /* Early stop echoes the token */
+    ctx.count = 0;
+    ctx.stop_at = 3;
+    TEST_ASSERT_EQUAL_INT(AZ_ITERATION_STOP, az_hash_set_forall(impl, &hset, count_elems, &ctx));
+    TEST_ASSERT_EQUAL_UINT(3, ctx.count);
+    /* Errors are propagated */
+    ctx.count = 0;
+    TEST_ASSERT_EQUAL_INT(AZ_NOT_FOUND, az_hash_set_forall(impl, &hset, fail_elems, &ctx));
+    TEST_ASSERT_EQUAL_UINT(1, ctx.count);
+    az_instance_finalize((const AZImplementation *) impl, &hset);
+}
+
 static void
 test_iterator(const AZHashSetImplementation *impl, int32_t *elems, unsigned int n_entries)
 {
@@ -226,6 +268,7 @@ test_hash_set(void)
     test_insert_remove(&impl, elems, NUM_ENTRIES);
     test_insert_duplicate(&impl, elems, NUM_ENTRIES);
     test_insert_remove_all(&impl, elems, NUM_ENTRIES);
+    test_forall(&impl, elems, NUM_ENTRIES);
     test_iterator(&impl, elems, NUM_ENTRIES);
     test_collection_interface(&impl, elems, NUM_ENTRIES);
 }

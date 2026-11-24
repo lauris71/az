@@ -65,10 +65,14 @@ az_array_list_get_element (AZArrayList *alist, unsigned int idx, AZValue *val, u
 }
 
 void az_array_list_clear(AZArrayList *alist);
-unsigned int az_array_list_set_element (AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst);
-unsigned int az_array_list_append(AZArrayList *alist, const AZImplementation *impl, void *inst);
-unsigned int az_array_list_insert(AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst);
-unsigned int az_array_list_remove(AZArrayList *alist, unsigned int idx);
+/** Returns AZ_OK or a negative error code */
+int az_array_list_set_element (AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst);
+/** Returns AZ_OK or a negative error code */
+int az_array_list_append(AZArrayList *alist, const AZImplementation *impl, void *inst);
+/** Returns AZ_OK or a negative error code */
+int az_array_list_insert(AZArrayList *alist, unsigned int idx, const AZImplementation *impl, void *inst);
+/** Returns AZ_OK or a negative error code */
+int az_array_list_remove(AZArrayList *alist, unsigned int idx);
 
 static inline AZArrayListEntry *
 az_array_list_get_entry(AZArrayList *alist, unsigned int idx)

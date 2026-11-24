@@ -34,7 +34,11 @@ extern "C" {
 struct _AZAttribDictImplementation {
 	AZMapImplementation map_impl;
 	const AZImplementation *(*lookup) (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, const AZString *key, AZValue *val, int size, unsigned int *flags);
-	unsigned int (*set) (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
+	/**
+	 * Returns AZ_OK or a negative error code (e.g. AZ_VALUE_IS_FINAL when the
+	 * entry is read-only and cannot be replaced). A NULL @c impl removes the entry.
+	 */
+	int (*set) (const AZAttribDictImplementation *aa_impl, AZAttribDict *aa_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags);
 };
 
 struct _AZAttribDictClass {
@@ -50,7 +54,7 @@ az_attrib_dict_lookup (const AZAttribDictImplementation *attrd_impl, AZAttribDic
 	return impl;
 }
 
-static inline unsigned int
+static inline int
 az_attrib_dict_set (const AZAttribDictImplementation *attrd_impl, AZAttribDict *attrd_inst, AZString *key, const AZImplementation *impl, void *inst, unsigned int flags)
 {
 	return attrd_impl->set (attrd_impl, attrd_inst, key, impl, inst, flags);

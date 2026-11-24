@@ -66,7 +66,7 @@ test_array_list()
     AZArrayList *alist = az_array_list_new(AZ_TYPE_ANY, 16);
     for (unsigned int i = 0; i < 10; i++) {
         uint32_t inst = i;
-        TEST_ASSERT(az_array_list_append(alist, &AZUint32Klass.impl, &inst));
+        TEST_ASSERT_EQUAL_INT(AZ_OK, az_array_list_append(alist, &AZUint32Klass.impl, &inst));
     }
     for (unsigned int i = 0; i < 10; i++) {
         AZValue val;
@@ -82,7 +82,7 @@ test_array_list()
         /* Fill it with objects 0..9 */
         for (unsigned int i = 0; i < 10; i++) {
             memset(buf, (char) i, 256);
-            TEST_ASSERT(az_array_list_append(alist, AZ_IMPL_FROM_TYPE(types[i]), &buf));
+            TEST_ASSERT_EQUAL_INT(AZ_OK, az_array_list_append(alist, AZ_IMPL_FROM_TYPE(types[i]), &buf));
         }
         //print_list(alist, stdout);
         /* Verify */
@@ -91,7 +91,7 @@ test_array_list()
         /* Insert 9..0 into position 5 */
         for (unsigned int i = 0; i < 10; i++) {
             memset(buf, (char) i, 256);
-            TEST_ASSERT(az_array_list_insert(alist, 5, AZ_IMPL_FROM_TYPE(types[i]), &buf));
+            TEST_ASSERT_EQUAL_INT(AZ_OK, az_array_list_insert(alist, 5, AZ_IMPL_FROM_TYPE(types[i]), &buf));
         }
         //print_list(alist, stdout);
         /* Verify */
@@ -99,7 +99,7 @@ test_array_list()
         verify_list(alist, idx, types);
         /* Delete positions 1,3,5...*/
         for (unsigned int i = 0; i < 10; i++) {
-            az_array_list_remove(alist, i + 1);
+            TEST_ASSERT_EQUAL_INT(AZ_OK, az_array_list_remove(alist, i + 1));
         }
         //print_list(alist, stdout);
         idx = (unsigned int[]) {0, 2, 4, 8, 6, 4, 2, 0, 6, 8};
@@ -107,7 +107,7 @@ test_array_list()
         /* Replace */
         for (unsigned int i = 0; i < 10; i++) {
             memset(buf, (char) (9 - i), 256);
-            az_array_list_set_element(alist, i, AZ_IMPL_FROM_TYPE(types[9 - i]), &buf);
+            TEST_ASSERT_EQUAL_INT(AZ_OK, az_array_list_set_element(alist, i, AZ_IMPL_FROM_TYPE(types[9 - i]), &buf));
         }
         //print_list(alist, stdout);
         idx = (unsigned int[]) {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};

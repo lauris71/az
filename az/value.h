@@ -480,7 +480,7 @@ AZConversionResult az_value_convert_in_place (const AZImplementation **impl, AZV
  */
 AZConversionResult az_value_convert_in_place_autobox (const AZImplementation **impl, AZValue *val, unsigned int size, unsigned int to_type, AZConversionType conversion_type);
 
-unsigned int az_value_to_string_autobox (const AZImplementation *impl, const AZValue *val, uint8_t *d, unsigned int dlen);
+int64_t az_value_to_string_autobox (const AZImplementation *impl, const AZValue *val, uint8_t *d, uint64_t dlen);
 uint8_t *az_value_to_string_autobox_new (const AZImplementation *impl, const AZValue *val);
 
 /**
@@ -497,7 +497,7 @@ uint8_t *az_value_to_string_autobox_new (const AZImplementation *impl, const AZV
  * @param ... 
  * @return unsigned int 
  */
-unsigned int az_value_invoke_by_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
+int az_value_invoke_by_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
 
 #ifdef __cplusplus
 };

@@ -320,21 +320,23 @@ az_hash_set_contains(const AZHashSetImplementation *impl, AZHashSet *hset, const
 	return 0;
 }
 
-unsigned int
-az_hash_set_forall (const AZHashSetImplementation *impl, AZHashSet *hset, unsigned int (* forall) (const void *, void *), void *data)
+int
+az_hash_set_forall (const AZHashSetImplementation *impl, AZHashSet *hset, int (* forall) (const void *, void *), void *data)
 {
 	for (unsigned int hval = 0; hval < hset->root_size; hval++) {
 		AZHashSetEntry *root_entry = entry_ptr(impl, hset->entries, hval);
 		if (root_entry->next == EMPTY) continue;
-		if (!forall(elem_inst(impl, root_entry), data)) return 0;
+		int result = forall(elem_inst(impl, root_entry), data);
+		if (result) return result;
 		unsigned int pos = root_entry->next;
 		while (pos != END) {
 			AZHashSetEntry *entry = entry_ptr(impl, hset->entries, pos);
-			if (!forall(elem_inst(impl, entry), data)) return 0;
+			result = forall(elem_inst(impl, entry), data);
+			if (result) return result;
 			pos = entry->next;
 		}
 	}
-	return 1;
+	return AZ_OK;
 }
 
 unsigned int

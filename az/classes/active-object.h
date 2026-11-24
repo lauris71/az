@@ -68,16 +68,29 @@ struct _AZActiveObjectClass {
 
 unsigned int az_active_object_get_type (void);
 
-unsigned int az_active_object_get_attribute (AZActiveObject *aobj, AZString *key, const AZImplementation **impl, AZValue64 *val);
-unsigned int az_active_object_set_attribute (AZActiveObject *aobj, AZString *key, const AZImplementation *impl, const AZValue *val);
-unsigned int az_active_object_clear_attribute (AZActiveObject *aobj, AZString *key);
+/**
+ * @brief Get an attribute value
+ *
+ * Frontend to az_attrib_dict_lookup.
+ *
+ * @param aobj the active object
+ * @param key the attribute key
+ * @param val the destination value (uninitialized)
+ * @param val_size the size of the destination value storage
+ * @return the implementation of the stored value or NULL if there is no such attribute
+ */
+const AZImplementation *az_active_object_get_attribute (AZActiveObject *aobj, AZString *key, AZValue *val, unsigned int val_size);
+/** Returns AZ_OK or a negative error code */
+int az_active_object_set_attribute (AZActiveObject *aobj, AZString *key, const AZImplementation *impl, const AZValue *val);
+/** Returns AZ_OK if the attribute was removed, AZ_NOT_FOUND if there is no such attribute */
+int az_active_object_clear_attribute (AZActiveObject *aobj, AZString *key);
 
 void az_active_object_add_listener (AZActiveObject *aobj, const AZObjectEventVector *vector, unsigned int size, void *data);
 void az_active_object_remove_listener_by_data (AZActiveObject *aobj, void *data);
 
 /* Helpers */
-unsigned int az_active_object_set_attribute_i32 (AZActiveObject *aobj, const unsigned char *key, int value);
-unsigned int az_active_object_set_attribute_object (AZActiveObject *aobj, const unsigned char *key, AZObject *value);
+int az_active_object_set_attribute_i32 (AZActiveObject *aobj, const unsigned char *key, int value);
+int az_active_object_set_attribute_object (AZActiveObject *aobj, const unsigned char *key, AZObject *value);
 
 #ifdef __cplusplus
 };

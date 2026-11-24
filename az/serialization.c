@@ -11,7 +11,7 @@
 
 #include <az/serialization.h>
 
-unsigned int
+int64_t
 az_serialize_block (unsigned char *d, unsigned int dlen, const void *s, unsigned int slen)
 {
 	if ((slen <= dlen) && d) memcpy (d, s, slen);
@@ -26,7 +26,7 @@ az_deserialize_block (void *d, unsigned int dlen, const unsigned char *s, unsign
 	return dlen;
 }
 
-unsigned int
+int64_t
 az_serialize_int (unsigned char *d, unsigned int dlen, const void *inst, unsigned int size)
 {
 	if ((dlen >= size) && d) {
@@ -49,7 +49,7 @@ az_deserialize_int (void *value, unsigned int size, const unsigned char *s, unsi
 	return size;
 }
 
-unsigned int
+int64_t
 az_serialize_ints(unsigned char* d, unsigned int dlen, const void* inst, unsigned int size, unsigned int n_values)
 {
 	if (dlen >= (n_values * size)) {

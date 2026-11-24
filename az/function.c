@@ -230,11 +230,11 @@ function_build_arguments(const AZFunctionSignature *sig, va_list ap, AZStoreElem
 	return val_idx;
 }
 
-unsigned int
+int
 az_function_invoke_by_signature_va (const AZFunctionImplementation *f_impl, void *f_inst, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
 {
-	arikkei_return_val_if_fail (f_impl != NULL, 0);
-	arikkei_return_val_if_fail (sig->n_params < 32, 0);
+	arikkei_return_val_if_fail (f_impl != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (sig->n_params < 32, AZ_INVALID_VALUE);
 
 	AZStoreElement elems[32];
 	AZValue vals[64];
@@ -246,23 +246,25 @@ az_function_invoke_by_signature_va (const AZFunctionImplementation *f_impl, void
 	if (n_vals <= 64) {
 		return az_function_invoke(f_impl, f_inst, AZ_SIGNATURE_N_ARGS(sig), elems, vals, ret_impl, &ret_val->value, 64, ctx);
 	}
+	/* The values did not fit into the stack buffer - rebuild into a heap one */
 	AZValue *vptr = (AZValue *) arikkei_aligned_alloc(16, n_vals * sizeof(AZValue));
+	if (!vptr) return AZ_OUT_OF_MEMORY;
 	va_start(ap, ret_val);
-	n_vals = function_build_arguments (sig, ap, elems, vals, 64);
+	function_build_arguments (sig, ap, elems, vptr, n_vals);
 	va_end(ap);
-	int result = az_function_invoke(f_impl, f_inst, AZ_SIGNATURE_N_ARGS(sig), elems, vals, ret_impl, &ret_val->value, 64, ctx);
+	int result = az_function_invoke(f_impl, f_inst, AZ_SIGNATURE_N_ARGS(sig), elems, vptr, ret_impl, &ret_val->value, 64, ctx);
 	arikkei_aligned_free(vptr);
 	return result;
 }
 
-unsigned int
+int
 az_value_invoke_by_signature_va(const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
 {
-	arikkei_return_val_if_fail (impl != NULL, 0);
-	arikkei_return_val_if_fail (sig->n_params < 32, 0);
+	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (sig->n_params < 32, AZ_INVALID_VALUE);
 	AZFunctionInstance *f_inst;
 	AZFunctionImplementation *f_impl = (AZFunctionImplementation *) az_instance_get_interface (impl, az_value_get_inst(impl, val), AZ_TYPE_FUNCTION, (void **) &f_inst);
-	arikkei_return_val_if_fail (f_impl != NULL, 0);
+	arikkei_return_val_if_fail (f_impl != NULL, AZ_INVALID_TYPE);
 
 	AZStoreElement elems[32];
 	AZValue vals[64];
@@ -274,11 +276,13 @@ az_value_invoke_by_signature_va(const AZImplementation *impl, const AZValue *val
 	if (n_vals <= 64) {
 		return az_function_invoke(f_impl, f_inst, AZ_SIGNATURE_N_ARGS(sig), elems, vals, ret_impl, &ret_val->value, 64, ctx);
 	}
+	/* The values did not fit into the stack buffer - rebuild into a heap one */
 	AZValue *vptr = (AZValue *) arikkei_aligned_alloc(16, n_vals * sizeof(AZValue));
+	if (!vptr) return AZ_OUT_OF_MEMORY;
 	va_start(ap, ret_val);
-	n_vals = function_build_arguments (sig, ap, elems, vals, 64);
+	function_build_arguments (sig, ap, elems, vptr, n_vals);
 	va_end(ap);
-	int result = az_function_invoke(f_impl, f_inst, AZ_SIGNATURE_N_ARGS(sig), elems, vals, ret_impl, &ret_val->value, 64, ctx);
+	int result = az_function_invoke(f_impl, f_inst, AZ_SIGNATURE_N_ARGS(sig), elems, vptr, ret_impl, &ret_val->value, 64, ctx);
 	arikkei_aligned_free(vptr);
 	return result;
 }
@@ -286,11 +290,11 @@ az_value_invoke_by_signature_va(const AZImplementation *impl, const AZValue *val
 int
 az_packed_value_invoke_by_signature_va (const AZPackedValue *pval, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...)
 {
-	arikkei_return_val_if_fail (pval != NULL, 0);
-	arikkei_return_val_if_fail (sig->n_params < 32, 0);
+	arikkei_return_val_if_fail (pval != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (sig->n_params < 32, AZ_INVALID_VALUE);
 	AZFunctionInstance *f_inst;
 	AZFunctionImplementation *f_impl = (AZFunctionImplementation *) az_instance_get_interface (pval->impl, az_value_get_inst(pval->impl, &pval->v), AZ_TYPE_FUNCTION, (void **) &f_inst);
-	arikkei_return_val_if_fail (f_impl != NULL, 0);
+	arikkei_return_val_if_fail (f_impl != NULL, AZ_INVALID_TYPE);
 
 	AZStoreElement elems[32];
 	AZValue vals[64];
@@ -302,11 +306,13 @@ az_packed_value_invoke_by_signature_va (const AZPackedValue *pval, const AZFunct
 	if (n_vals <= 64) {
 		return az_function_invoke(f_impl, f_inst, AZ_SIGNATURE_N_ARGS(sig), elems, vals, ret_impl, &ret_val->value, 64, ctx);
 	}
+	/* The values did not fit into the stack buffer - rebuild into a heap one */
 	AZValue *vptr = (AZValue *) arikkei_aligned_alloc(16, n_vals * sizeof(AZValue));
+	if (!vptr) return AZ_OUT_OF_MEMORY;
 	va_start(ap, ret_val);
-	n_vals = function_build_arguments (sig, ap, elems, vals, 64);
+	function_build_arguments (sig, ap, elems, vptr, n_vals);
 	va_end(ap);
-	int result = az_function_invoke(f_impl, f_inst, AZ_SIGNATURE_N_ARGS(sig), elems, vals, ret_impl, &ret_val->value, 64, ctx);
+	int result = az_function_invoke(f_impl, f_inst, AZ_SIGNATURE_N_ARGS(sig), elems, vptr, ret_impl, &ret_val->value, 64, ctx);
 	arikkei_aligned_free(vptr);
 	return result;
 }

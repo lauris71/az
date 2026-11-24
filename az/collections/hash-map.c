@@ -411,21 +411,23 @@ az_hash_map_lookup(const AZHashMapImplementation *impl, AZHashMap *hmap, const v
 	return NULL;
 }
 
-unsigned int
-az_hash_map_forall (const AZHashMapImplementation *impl, AZHashMap *hmap, unsigned int (* forall) (const void *, const void *, void *), void *data)
+int
+az_hash_map_forall (const AZHashMapImplementation *impl, AZHashMap *hmap, int (* forall) (const void *, const void *, void *), void *data)
 {
 	for (unsigned int hval = 0; hval < hmap->root_size; hval++) {
 		AZHashMapEntry *root_entry = entry_ptr(impl, hmap->entries, hval);
 		if (root_entry->next == EMPTY) continue;
-		if (!forall(key_inst(impl, root_entry), val_inst(impl, root_entry), data)) return 0;
+		int result = forall(key_inst(impl, root_entry), val_inst(impl, root_entry), data);
+		if (result) return result;
 		unsigned int pos = root_entry->next;
 		while (pos != END) {
 			AZHashMapEntry *entry = entry_ptr(impl, hmap->entries, pos);
-			if (!forall(key_inst(impl, entry), val_inst(impl, entry), data)) return 0;
+			result = forall(key_inst(impl, entry), val_inst(impl, entry), data);
+			if (result) return result;
 			pos = entry->next;
 		}
 	}
-	return 1;
+	return AZ_OK;
 }
 
 unsigned int

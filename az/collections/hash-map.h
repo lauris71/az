@@ -64,7 +64,17 @@ void az_hash_map_clear(const AZHashMapImplementation *impl, AZHashMap *hmap);
 unsigned int az_hash_map_exists(const AZHashMapImplementation *impl, AZHashMap *hmap, const void *key);
 unsigned int az_hash_map_exists_val(const AZHashMapImplementation *impl, AZHashMap *hmap, const void *val);
 const void *az_hash_map_lookup(const AZHashMapImplementation *impl, AZHashMap *hmap, const void *key);
-unsigned int az_hash_map_forall (const AZHashMapImplementation *impl, AZHashMap *hmap, unsigned int (* forall) (const void *, const void *, void *), void *data);
+/**
+ * Iterate over all entries. The callback returns AZ_OK to continue, a positive
+ * value to stop early (AZ_ITERATION_STOP) or a negative error code; the
+ * iteration echoes the value (AZ_OK if everything was iterated).
+ */
+int az_hash_map_forall (const AZHashMapImplementation *impl, AZHashMap *hmap, int (* forall) (const void *, const void *, void *), void *data);
+/**
+ * Remove all entries for which the predicate returns nonzero.
+ *
+ * @return the number of removed entries
+ */
 unsigned int az_hash_map_remove_all (const AZHashMapImplementation *impl, AZHashMap *hmap, unsigned int (*remove) (const void *, const void *, void *), void *data);
 
 #ifdef __cplusplus

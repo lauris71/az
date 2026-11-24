@@ -114,7 +114,7 @@ extern const AZInstanceAllocator *az_allocators[AZ_MAX_CLASS_ALLOCATORS];
  * @brief Register a class allocator
  *
  * @param allocator the allocator (has to stay valid for the program lifetime)
- * @return the allocator index for AZClass::allocator_idx (0 on error/exhaustion)
+ * @return the allocator index for AZClass::allocator_idx (>= 1; slot 0 is reserved)
  */
 unsigned int az_register_allocator (const AZInstanceAllocator *allocator);
 
@@ -161,7 +161,7 @@ extern const AZClassDelegate *az_delegates[AZ_MAX_CLASS_DELEGATES];
  * @brief Register a class delegate
  *
  * @param delegate the delegate (has to stay valid for the program lifetime)
- * @return the delegate index for AZClass::delegate_idx (0 on error/exhaustion)
+ * @return the delegate index for AZClass::delegate_idx (>= 1; slot 0 is reserved)
  */
 unsigned int az_register_delegate (const AZClassDelegate *delegate);
 

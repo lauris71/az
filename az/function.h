@@ -123,7 +123,7 @@ int az_function_invoke (const AZFunctionImplementation *impl, void *inst, unsign
  * @param ... Variadic arguments for the function
  * @return unsigned int 
  */
-unsigned int az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
+int az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
 
 /** @ingroup function
  * @brief Call a native C function with az arguments

@@ -199,6 +199,48 @@ test_overwrite_remove_val(const AZHashMapImplementation *impl, int32_t *keys, in
     az_instance_finalize((const AZImplementation *) impl, &hmap);
 }
 
+typedef struct { unsigned int count; unsigned int stop_at; } ForallCtx;
+
+static int
+count_pairs (const void *key, const void *val, void *data)
+{
+    ForallCtx *ctx = (ForallCtx *) data;
+    ctx->count += 1;
+    if (ctx->stop_at && (ctx->count >= ctx->stop_at)) return AZ_ITERATION_STOP;
+    return AZ_OK;
+}
+
+static int
+fail_pairs (const void *key, const void *val, void *data)
+{
+    ((ForallCtx *) data)->count += 1;
+    return AZ_NOT_FOUND;
+}
+
+static void
+test_forall(const AZHashMapImplementation *impl, int32_t *keys, int32_t *vals, unsigned int n_entries)
+{
+    AZHashMap hmap;
+    az_instance_init((const AZImplementation *) impl, &hmap);
+    for (unsigned int i = 0; i < n_entries; i++) {
+        az_hash_map_insert(impl, &hmap, &keys[i], &vals[i]);
+    }
+    /* Full iteration returns AZ_OK */
+    ForallCtx ctx = { 0, 0 };
+    TEST_ASSERT_EQUAL_INT(AZ_OK, az_hash_map_forall(impl, &hmap, count_pairs, &ctx));
+    TEST_ASSERT_EQUAL_UINT(n_entries, ctx.count);
+    /* Early stop echoes the token */
+    ctx.count = 0;
+    ctx.stop_at = 3;
+    TEST_ASSERT_EQUAL_INT(AZ_ITERATION_STOP, az_hash_map_forall(impl, &hmap, count_pairs, &ctx));
+    TEST_ASSERT_EQUAL_UINT(3, ctx.count);
+    /* Errors are propagated */
+    ctx.count = 0;
+    TEST_ASSERT_EQUAL_INT(AZ_NOT_FOUND, az_hash_map_forall(impl, &hmap, fail_pairs, &ctx));
+    TEST_ASSERT_EQUAL_UINT(1, ctx.count);
+    az_instance_finalize((const AZImplementation *) impl, &hmap);
+}
+
 static void
 test_iterator(const AZHashMapImplementation *impl, int32_t *keys, int32_t *vals, unsigned int n_entries)
 {
@@ -309,6 +351,8 @@ test_hash_map(void)
     test_insert_remove(&impl, keys, vals, NUM_ENTRIES);
 
     test_iterator(&impl, keys, vals, NUM_ENTRIES);
+
+    test_forall(&impl, keys, vals, NUM_ENTRIES);
 
     test_keyset(&impl, keys, vals, NUM_ENTRIES);
 
