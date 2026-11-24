@@ -17,7 +17,7 @@
 
 /* AZInterface implementation */
 static void collection_class_init (AZCollectionClass* klass);
-static unsigned int collection_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
+static const AZImplementation *collection_get_property (const AZImplementation *impl, void *inst, unsigned int idx, AZValue *prop_val, unsigned int val_size);
 
 enum {
 	FUNC_CONTAINS,
@@ -87,13 +87,12 @@ collection_class_init (AZCollectionClass *klass)
 	klass->iface_class.klass.get_property = collection_get_property;
 }
 
-static unsigned int
-collection_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx)
+static const AZImplementation *
+collection_get_property (const AZImplementation *impl, void *inst, unsigned int idx, AZValue *prop_val, unsigned int val_size)
 {
 	if (idx == PROP_SIZE) {
-		*prop_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_UINT64);
 		prop_val->uint64_v = az_collection_get_size ((const AZCollectionImplementation *) impl, inst);
-		return 1;
+		return AZ_IMPL_FROM_TYPE(AZ_TYPE_UINT64);
 	}
-	return 0;
+	return NULL;
 }

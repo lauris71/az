@@ -107,7 +107,7 @@ class_to_string (const AZImplementation* impl, void *inst, uint8_t *buf, unsigne
 	return pos;
 }
 
-static unsigned int class_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
+static const AZImplementation *class_get_property (const AZImplementation *impl, void *inst, unsigned int idx, AZValue *prop_val, unsigned int val_size);
 
 AZ_CLASS_ALIGN AZClass AZStructKlass = {
 	.impl = { .flags = AZ_FLAG_ABSTRACT | AZ_FLAG_IMPL_IS_CLASS, .type = AZ_TYPE_STRUCT },
@@ -253,16 +253,15 @@ az_construct_base_classes (void)
 	az_class_define_property (&AZClassKlass, CLASS_PROP_PROPERTIES, (const uint8_t *) "properties", AZ_TYPE_LIST, 1, AZ_FIELD_CLASS, AZ_FIELD_READ_METHOD, 0, 0, NULL, NULL);
 }
 
-static unsigned int
-class_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx)
+static const AZImplementation *
+class_get_property (const AZImplementation *impl, void *inst, unsigned int idx, AZValue *prop_val, unsigned int val_size)
 {
 	AZClass *klass = (AZClass *) inst;
 	switch (idx) {
 		case CLASS_PROP_PROPERTIES:
-			*prop_impl = &prop_list_impl.collection_impl.impl;
 			prop_val->block = klass;
-			return 1;
+			return &prop_list_impl.collection_impl.impl;
 		default:
-			return 0;
+			return NULL;
 	}
 }

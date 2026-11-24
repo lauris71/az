@@ -317,22 +317,19 @@ enum {
 	ANY_NUM_PROPS
 };
 
-static unsigned int
-any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx)
+static const AZImplementation *
+any_get_property (const AZImplementation *impl, void *inst, unsigned int idx, AZValue *prop_val, unsigned int val_size)
 {
 	switch (idx) {
 		case ANY_PROP_TYPE:
-			*prop_impl = &AZUint32Klass.impl;
 			prop_val->uint32_v = AZ_IMPL_TYPE(impl);
-			break;
+			return &AZUint32Klass.impl;
 		case ANY_PROP_CLASS:
-			*prop_impl = &AZClassKlass.impl;
 			prop_val->block = AZ_CLASS_FROM_IMPL(impl);
-			break;
+			return &AZClassKlass.impl;
 		default:
-			return 0;
+			return NULL;
 	}
-	return 1;
 }
 
 static unsigned char zero_val[16] = { 0 };

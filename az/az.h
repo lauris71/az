@@ -25,65 +25,70 @@ enum AZErrorCode {
 	 */
 	AZ_OK = 0,
 	/**
+	 * @brief The requested item was not found
+	 * 
+	 */
+	AZ_NOT_FOUND = -1,
+	/**
 	 * @brief Function is not supported by given class
 	 * 
 	 */
-	AZ_NOT_IMPLEMENTED = -1,
+	AZ_NOT_IMPLEMENTED = -2,
 	/**
 	 * @brief Memory allocation returned NULL
 	 * 
 	 */
-	AZ_OUT_OF_MEMORY = -2,
+	AZ_OUT_OF_MEMORY = -3,
 	/**
 	 * @brief Generic IO error
 	 * 
 	 */
-	AZ_IO_ERROR = -3,
+	AZ_IO_ERROR = -4,
 	/**
 	 * @brief The destination address is NULL
 	 * 
 	 */
-	AZ_NULL_DESTINATION = -4,
+	AZ_NULL_DESTINATION = -5,
 	/**
 	 * @brief The type is not valid for given operation
 	 * 
 	 */
-	AZ_INVALID_TYPE = -5,
+	AZ_INVALID_TYPE = -6,
 	/**
 	 * @brief The value is not valid for given operation
 	 * 
 	 */
-	AZ_INVALID_VALUE = -6,
+	AZ_INVALID_VALUE = -7,
 	/**
 	 * @brief The provided value is NULL
 	 * 
 	 */
-	AZ_NULL_VALUE = -7,
+	AZ_NULL_VALUE = -8,
 	/**
 	 * @brief The property with given name does not exist
 	 * 
 	 */
-	AZ_NO_SUCH_PROPERTY = -8,
+	AZ_NO_SUCH_PROPERTY = -9,
 	/**
 	 * @brief The property value is not readable
 	 * 
 	 */
-	AZ_VALUE_NOT_READABLE = -9,
+	AZ_VALUE_NOT_READABLE = -10,
 	/**
 	 * @brief The property value is not writable
 	 * 
 	 */
-	AZ_VALUE_NOT_WRITABLE = -10,
+	AZ_VALUE_NOT_WRITABLE = -11,
 	/**
 	 * @brief The property value is final
 	 * 
 	 */
-	AZ_VALUE_IS_FINAL = -11,
+	AZ_VALUE_IS_FINAL = -12,
 	/**
 	 * @brief A caller signature does not match the function
 	 * 
 	 */
-	AZ_SIGNATURE_MISMATCH = -12,
+	AZ_SIGNATURE_MISMATCH = -13,
 	/**
 	 * @brief Internal inconsistency of az data
 	 * 

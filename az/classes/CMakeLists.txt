@@ -5,7 +5,6 @@ SET(SOURCES
     interface-list.c interface-list.h
     object-interface-list.c object-interface-list.h
     object-list.c object-list.h
-    packed-value-array.c packed-value-array.h
     static-array-of.c static-array-of.h
     value-array.c value-array.h
     weak-object-list.c weak-object-list.h)

@@ -223,22 +223,30 @@ struct _AZClass {
 
 	/**
 	* @brief Get property value
+	*
+	* Property is returned by value.
+	* Any and non-final value type properties should accept NULL as prop_val to read exact type
+	*
 	* @param impl An implementation of query instance
 	* @param inst A query instance
 	* @param idx An index of the property as declared in query class
-	* @param prop_impl The returned implementation
 	* @param prop_val The returned value
+	* @param val_size The size of the value container
 	* @param ctx The execution context
-	* @return 1 on success, 0 on error
-	*
-	* Get indexed property of the instance.
-	* Property is returned by value.
-	* Any and non-final value type properties should accept NULL value to read exact type
+	* @return The implementation of the property value (may be boxed)
 	*/
-	unsigned int (*get_property) (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation **prop_impl, AZValue *prop_val, AZContext *ctx);
-	/* Property is set by instance */
-	/* Returns 1 on success, 0 if property cannot be set */
-	unsigned int (*set_property) (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation *prop_impl, void *prop_inst, AZContext *ctx);
+	const AZImplementation *(*get_property) (const AZImplementation *impl, void *inst, unsigned int idx, AZValue *prop_val, unsigned int val_size);
+	/**
+	 * @brief Set property value
+	 * 
+	 * @param impl An implementation of query instance
+	 * @param inst A query instance
+	 * @param idx An index of the property as declared in query class
+	 * @param prop_impl An implementation of the property value
+	 * @param prop_inst A property value instance
+	 * @param ctx The execution context
+	 */
+	int (*set_property) (const AZImplementation *impl, void *inst, unsigned int idx, const AZImplementation *prop_impl, void *prop_inst);
 
 	/* Constructors and destructors */
 	union {

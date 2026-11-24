@@ -548,7 +548,7 @@ az_instance_set_property_by_id (const AZClass *def_klass, const AZClass *klass, 
 		}
 		az_packed_value_set_from_impl_instance (val, prop_impl, prop_inst);
 	} else if (AZ_FIELD_WRITE(prop) == AZ_FIELD_WRITE_METHOD) {
-		return !def_klass->set_property (impl, inst, idx, prop_impl, prop_inst, NULL);
+		return def_klass->set_property (impl, inst, idx, prop_impl, prop_inst);
 	}
 	return AZ_OK;
 }
@@ -659,7 +659,8 @@ az_instance_get_property_by_id(const AZClass *def_klass, const AZClass *klass, c
 			}
 			return AZ_OK;
 		case AZ_FIELD_READ_METHOD:
-			return !def_klass->get_property (impl, inst, idx, prop_impl, prop_val, NULL);
+			*prop_impl = def_klass->get_property (impl, inst, idx, prop_val, val_size);
+			return (*prop_impl) ? AZ_OK : AZ_INTERNAL_INCONSISTENCY;
 		default:
 			/* Not readable, should be handled before */
 			break;
