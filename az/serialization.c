@@ -18,10 +18,10 @@ az_serialize_block (unsigned char *d, unsigned int dlen, const void *s, unsigned
 	return slen;
 }
 
-unsigned int
+int64_t
 az_deserialize_block (void *d, unsigned int dlen, const unsigned char *s, unsigned int slen)
 {
-	if (dlen > slen) return 0;
+	if (dlen > slen) return AZ_INSUFFICIENT_SPACE;
 	memcpy (d, s, dlen);
 	return dlen;
 }
@@ -38,11 +38,11 @@ az_serialize_int (unsigned char *d, unsigned int dlen, const void *inst, unsigne
 	return size;
 }
 
-unsigned int
+int64_t
 az_deserialize_int (void *value, unsigned int size, const unsigned char *s, unsigned int slen)
 {
 	unsigned int i;
-	if (slen < size) return 0;
+	if (slen < size) return AZ_INSUFFICIENT_SPACE;
 	for (i = 0; i < size; i++) {
 		*((unsigned char *) value + i) = s[size - 1 - i];
 	}
@@ -52,18 +52,18 @@ az_deserialize_int (void *value, unsigned int size, const unsigned char *s, unsi
 unsigned int
 az_serialize_ints(unsigned char* d, unsigned int dlen, const void* inst, unsigned int size, unsigned int n_values)
 {
-	if (dlen > (n_values * size)) {
+	if (dlen >= (n_values * size)) {
 		uint64_t i;
 		for (i = 0; i < n_values; i++) az_serialize_int(d + size * i, size, (const unsigned char *) inst + size * i, size);
 	}
 	return n_values * size;
 }
 
-unsigned int
+int64_t
 az_deserialize_ints(void* value, unsigned int size, unsigned int n_values, const unsigned char* s, unsigned int slen)
 {
 	uint64_t i;
-	if (slen < n_values * size) return 0;
+	if (slen < n_values * size) return AZ_INSUFFICIENT_SPACE;
 	for (i = 0; i < n_values; i++) az_deserialize_int((unsigned char *) value + size * i, size, s + size * i, size);
 	return n_values * size;
 }

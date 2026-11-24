@@ -28,6 +28,8 @@ struct _AZBufferOutputStream {
 	uint8_t *buffer;
 	uint64_t allocated;
 	uint64_t pos;
+	/* Last operation error (AZ_OK or negative AZErrorCode) */
+	int32_t err;
 };
 
 struct _AZBufferOutputStreamClass {

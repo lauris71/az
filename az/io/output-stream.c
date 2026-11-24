@@ -76,6 +76,8 @@ ostream_print(unsigned int n_args, AZStoreElement *args, AZValue *vals, const AZ
 		if (ret < 0) return ret;
 		total += ret;
 	}
+	int state = az_output_stream_state (os_impl, os_inst);
+	if (state < 0) return state;
 	if (ret_impl) {
 		*ret_impl = &AZInt64Klass.impl;
 		ret_val->int64_v = total;
@@ -101,6 +103,8 @@ ostream_println(unsigned int n_args, AZStoreElement *args, AZValue *vals, const 
 	int64_t ret = az_output_stream_write (os_impl, os_inst, "\n", 1);
 	if (ret < 0) return ret;
 	total += ret;
+	int state = az_output_stream_state (os_impl, os_inst);
+	if (state < 0) return state;
 	if (ret_impl) {
 		*ret_impl = &AZInt64Klass.impl;
 		ret_val->int64_v = total;
@@ -124,16 +128,17 @@ az_output_stream_write_inst(const AZOutputStreamImplementation *impl, AZOutputSt
 {
     if (!data_impl || !data_inst) return 0;
 	uint8_t d[1024];
-	unsigned int dlen = az_instance_serialize (data_impl, data_inst, d, sizeof(d));
-	if (dlen > sizeof(d)) {
-		unsigned char *buf = (unsigned char *) malloc(dlen);
-		if (!buf) return -1;
+	int64_t dlen = az_instance_serialize (data_impl, data_inst, d, sizeof(d));
+	if (dlen < 0) return dlen;
+	if (dlen > (int64_t) sizeof(d)) {
+		unsigned char *buf = (unsigned char *) malloc((size_t) dlen);
+		if (!buf) return AZ_OUT_OF_MEMORY;
 		dlen = az_instance_serialize (data_impl, data_inst, buf, dlen);
-		int64_t ret = az_output_stream_write(impl, inst, buf, dlen);
+		int64_t ret = az_output_stream_write(impl, inst, buf, (uint64_t) dlen);
 		free(buf);
 		return ret;
 	}
-	return az_output_stream_write(impl, inst, d, dlen);
+	return az_output_stream_write(impl, inst, d, (uint64_t) dlen);
 }
 
 int64_t
@@ -141,14 +146,15 @@ az_output_stream_print_inst(const AZOutputStreamImplementation *impl, AZOutputSt
 {
 	if (!data_impl || !data_inst) return 0;
 	unsigned char d[1024];
-	unsigned int dlen = az_instance_to_string (data_impl, data_inst, d, sizeof(d));
-	if (dlen > sizeof(d)) {
-		unsigned char *buf = (unsigned char *) malloc(dlen);
-		if (!buf) return -1;
-		dlen = az_instance_to_string (data_impl, data_inst, buf, dlen);
-		int64_t ret = az_output_stream_write(impl, inst, buf, dlen);
+	int64_t dlen = az_instance_to_string (data_impl, data_inst, d, sizeof(d));
+	if (dlen < 0) return dlen;
+	if (dlen > (int64_t) sizeof(d)) {
+		unsigned char *buf = (unsigned char *) malloc((size_t) dlen);
+		if (!buf) return AZ_OUT_OF_MEMORY;
+		dlen = az_instance_to_string (data_impl, data_inst, buf, (uint64_t) dlen);
+		int64_t ret = az_output_stream_write(impl, inst, buf, (uint64_t) dlen);
 		free(buf);
 		return ret;
 	}
-	return az_output_stream_write (impl, inst, d, dlen);
+	return az_output_stream_write (impl, inst, d, (uint64_t) dlen);
 }

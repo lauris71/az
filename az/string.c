@@ -155,12 +155,12 @@ deserialize_string (const AZImplementation *impl, AZValue *value, const uint8_t 
 	unsigned int len;
 	if (slen < 5) {
 		*str = NULL;
-		return 0;
+		return AZ_INSUFFICIENT_SPACE;
 	}
 	az_deserialize_int (&len, 4, s, slen);
 	if ((5 + len) > slen) {
 		*str = NULL;
-		return 0;
+		return AZ_INSUFFICIENT_SPACE;
 	}
 	*str = az_string_new_length (s + 4, len);
 	return 5 + len;

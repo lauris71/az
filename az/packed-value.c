@@ -97,73 +97,28 @@ az_packed_value_set_reference (AZPackedValue *val, unsigned int type, AZReferenc
 	if (ref) az_reference_ref (ref);
 }
 
-#define AZ_VALUE_IS_NULL(val) ((AZ_IMPL_TYPE((val)->impl) == AZ_TYPE_STRUCT) && ((val)->v.block == NULL))
-
 unsigned int
-az_packed_value_can_convert (unsigned int to_type, const AZPackedValue *from)
+az_packed_value_can_convert (const AZPackedValue *from, unsigned int to_type, AZConversionType conversion_type)
 {
-	/* Nothing can be converted to None */
-	if (!to_type) return 0;
-	/* None can be converted to NULL block */
-	if (!from->impl) {
-		AZClass *klass = az_type_get_class (to_type);
-		return AZ_CLASS_IS_REFERENCE(klass) != 0;
-	}
-	/* Anything can be converted to supertype */
-	if (az_type_is_a(AZ_PACKED_VALUE_TYPE(from), to_type)) return 1;
-	/* Primitive table */
-	if ((AZ_TYPE_INDEX(to_type) <= AZ_TYPE_IDX_POINTER) && (AZ_TYPE_INDEX(AZ_PACKED_VALUE_TYPE(from)) <= AZ_TYPE_IDX_POINTER)) {
-		return az_primitive_can_convert (to_type, AZ_PACKED_VALUE_TYPE(from)) <= AZ_CONVERT_CONDITIONAL;
-	}
-	/* No other automatic conversions possible */
-	/* fixme: Sort out NULL pointer */
-	if (AZ_VALUE_IS_NULL(from)) {
-		return 1;
-	}
-	return 0;
+	/* Untyped null has no implementation - the type table handles it as NONE */
+	unsigned int from_type = (from->impl) ? AZ_PACKED_VALUE_TYPE (from) : AZ_TYPE_NONE;
+	return az_type_get_conversion_to (from_type, to_type) <= conversion_type;
 }
 
-unsigned int
-az_packed_value_convert (AZPackedValue *dst, unsigned int to_type, const AZPackedValue *from)
+AZConversionResult
+az_packed_value_convert (AZPackedValue *dst, const AZPackedValue *from, unsigned int to_type, AZConversionType conversion_type)
 {
-	/* Nothing can be converted to None */
-	if (!to_type) return 0;
-	/* None can be converted to NULL reference */
-	if (!from->impl) {
-		AZClass *klass = az_type_get_class (to_type);
-		if (AZ_CLASS_IS_REFERENCE(klass)) {
-			az_packed_value_clear (dst);
-			return 1;
-		}
-		return 0;
+	if (dst == from) {
+		/* In-place conversion consumes the old content */
+		return az_value_convert_in_place_autobox (&dst->impl, &dst->v, sizeof (dst->v), to_type, conversion_type);
 	}
-	/* Anything can be converted to supertype (this includes Any) */
-	if (az_type_is_a (AZ_PACKED_VALUE_TYPE(from), to_type)) {
-		az_packed_value_copy (dst, from);
-		return 1;
-	}
-	/* Booleans cannot be converted automatically */
-	if (to_type == AZ_TYPE_BOOLEAN) {
-		return 0;
-	}
-	if (AZ_PACKED_VALUE_TYPE(from) == AZ_TYPE_BOOLEAN) {
-		return 0;
-	}
-	/* Arithemtic types */
-	if (AZ_TYPE_IS_ARITHMETIC (to_type) && AZ_TYPE_IS_ARITHMETIC(AZ_PACKED_VALUE_TYPE(from))) {
-		if (az_primitive_can_convert (to_type, AZ_PACKED_VALUE_TYPE(from)) <= AZ_CONVERT_CONDITIONAL) {
-			if (dst != from) az_packed_value_clear (dst);
-			az_convert_arithmetic_type (to_type, &dst->v, AZ_PACKED_VALUE_TYPE(from), &from->v);
-			dst->impl = AZ_IMPL_FROM_TYPE(to_type);
-			return 1;
-		}
-		return 0;
-	}
-	/* fixme: Sort out NULL pointer */
-	if (AZ_VALUE_IS_NULL(from)) {
-		az_packed_value_clear (dst);
-		//dst->impl = &az_classes[to_type]->implementation;
-		return 1;
-	}
-	return 0;
+	/* Convert into scratch storage so dst is untouched unless the conversion succeeds */
+	AZPackedValue tmp;
+	const AZImplementation *tmp_impl;
+	AZConversionResult result = az_value_convert_autobox (&tmp_impl, &tmp.v, sizeof (tmp.v), from->impl, &from->v, to_type, conversion_type);
+	if (result == AZ_CONVERSION_FAILED) return result;
+	az_packed_value_clear (dst);
+	dst->impl = tmp_impl;
+	dst->v = tmp.v;
+	return result;
 }

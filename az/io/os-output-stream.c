@@ -15,7 +15,8 @@
 
 static void osostream_class_init (AZOSOutputStreamClass *klass);
 static int64_t osostream_write (const AZOutputStreamImplementation *impl, AZOutputStream *inst, const void *data, uint64_t size);
-static int64_t osostream_close (const AZOutputStreamImplementation *impl, AZOutputStream *inst);
+static int osostream_close (const AZOutputStreamImplementation *impl, AZOutputStream *inst);
+static int osostream_state (const AZOutputStreamImplementation *impl, AZOutputStream *inst);
 
 unsigned int osostream_type = 0;
 AZOSOutputStreamClass *osostream_class = NULL;
@@ -45,20 +46,33 @@ osostream_class_init (AZOSOutputStreamClass *klass)
 	az_class_declare_interface ((AZClass *) klass, 0, AZ_TYPE_OUTPUT_STREAM, ARIKKEI_OFFSET (AZOSOutputStreamClass, ostream_impl), 0);
 	klass->ostream_impl.write = osostream_write;
 	klass->ostream_impl.close = osostream_close;
+	klass->ostream_impl.state = osostream_state;
 }
 
 static int64_t
 osostream_write (const AZOutputStreamImplementation *impl, AZOutputStream *inst, const void *data, uint64_t size)
 {
 	AZOSOutputStream *osostream = (AZOSOutputStream *) inst;
+	if (!osostream->file) return 0;
 	size_t written = fwrite (data, 1, size, osostream->file);
-	if (written < size && ferror (osostream->file)) return -1;
 	return (int64_t) written;
 }
 
-static int64_t
+static int
 osostream_close (const AZOutputStreamImplementation *impl, AZOutputStream *inst)
 {
 	AZOSOutputStream *osostream = (AZOSOutputStream *) inst;
-	return (int64_t) fclose (osostream->file);
+	if (!osostream->file) return AZ_OK;
+	FILE *file = osostream->file;
+	osostream->file = NULL;
+	return (fclose (file)) ? AZ_IO_ERROR : AZ_OK;
+}
+
+static int
+osostream_state (const AZOutputStreamImplementation *impl, AZOutputStream *inst)
+{
+	AZOSOutputStream *osostream = (AZOSOutputStream *) inst;
+	if (!osostream->file) return AZ_STREAM_STATE_CLOSED;
+	if (ferror (osostream->file)) return AZ_IO_ERROR;
+	return AZ_STREAM_STATE_OK;
 }

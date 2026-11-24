@@ -18,16 +18,30 @@ az_stream_copy (const AZInputStreamImplementation *in_impl, AZInputStream *in_in
 {
 	uint8_t buf[COPY_BUFFER_SIZE];
 	uint64_t remaining = size;
+	uint64_t total = 0;
 
 	while (remaining) {
 		uint64_t chunk = (remaining < COPY_BUFFER_SIZE) ? remaining : COPY_BUFFER_SIZE;
 		int64_t nread = az_input_stream_read (in_impl, in_inst, buf, chunk);
-		if (nread <= 0) return nread;
-		int64_t nwritten = az_output_stream_write (out_impl, out_inst, buf, (uint64_t) nread);
-		if (nwritten < nread) return nwritten;
-		remaining -= (uint64_t) nwritten;
+		if (nread > 0) {
+			int64_t nwritten = az_output_stream_write (out_impl, out_inst, buf, (uint64_t) nread);
+			total += (uint64_t) nwritten;
+			remaining -= (uint64_t) nwritten;
+			if (nwritten < nread) {
+				/* Output boundary or failure */
+				int state = az_output_stream_state (out_impl, out_inst);
+				if (state < 0) return state;
+				break;
+			}
+		}
+		if (nread < (int64_t) chunk) {
+			/* Input boundary or failure */
+			int state = az_input_stream_state (in_impl, in_inst);
+			if (state < 0) return state;
+			break;
+		}
 	}
-	return (int64_t) size;
+	return (int64_t) total;
 }
 
 int64_t
@@ -38,12 +52,22 @@ az_stream_copy_all (const AZInputStreamImplementation *in_impl, AZInputStream *i
 
 	while (1) {
 		int64_t nread = az_input_stream_read (in_impl, in_inst, buf, COPY_BUFFER_SIZE);
-		if (nread < 0) return nread;
-		if (nread == 0) break;
-		int64_t nwritten = az_output_stream_write (out_impl, out_inst, buf, (uint64_t) nread);
-		if (nwritten < 0) return nwritten;
-		if (nwritten < nread) return AZ_IO_ERROR;
-		total += nwritten;
+		if (nread > 0) {
+			int64_t nwritten = az_output_stream_write (out_impl, out_inst, buf, (uint64_t) nread);
+			total += (uint64_t) nwritten;
+			if (nwritten < nread) {
+				/* Output boundary or failure */
+				int state = az_output_stream_state (out_impl, out_inst);
+				if (state < 0) return state;
+				break;
+			}
+		}
+		if (nread < (int64_t) COPY_BUFFER_SIZE) {
+			/* Input boundary or failure */
+			int state = az_input_stream_state (in_impl, in_inst);
+			if (state < 0) return state;
+			break;
+		}
 	}
 	return (int64_t) total;
 }

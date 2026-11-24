@@ -84,7 +84,7 @@ serialize_boolean (const AZImplementation *impl, void *inst, uint8_t *d, uint64_
 static int64_t
 deserialize_boolean (const AZImplementation *impl, AZValue *value, const uint8_t *s, uint64_t slen)
 {
-	if (!slen) return 0;
+	if (!slen) return AZ_INSUFFICIENT_SPACE;
     value->uint32_v = *s;
 	return 1;
 }
@@ -237,7 +237,7 @@ serialize_complex_float (const AZImplementation *impl, void *inst, uint8_t *d, u
 static int64_t
 deserialize_complex_float (const AZImplementation *impl, AZValue *value, const uint8_t *s, uint64_t slen)
 {
-	if (slen < 8) return 0;
+	if (slen < 8) return AZ_INSUFFICIENT_SPACE;
 	az_deserialize_int (&value->cfloat_v.r, 4, s, slen);
 	az_deserialize_int (&value->cfloat_v.i, 4, s + 4, slen - 4);
 	return 8;
@@ -274,7 +274,7 @@ serialize_complex_double (const AZImplementation *impl, void *inst, uint8_t *d, 
 static int64_t
 deserialize_complex_double (const AZImplementation *impl, AZValue *value, const uint8_t *s, uint64_t slen)
 {
-	if (slen < 16) return 0;
+	if (slen < 16) return AZ_INSUFFICIENT_SPACE;
 	az_deserialize_int (&value->cdouble_v.r, 8, s, slen);
 	az_deserialize_int (&value->cdouble_v.i, 8, s + 8, slen - 8);
 	return 16;

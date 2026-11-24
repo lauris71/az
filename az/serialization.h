@@ -14,16 +14,16 @@ extern "C" {
 #endif
 
 /* All serialization methods accept NULL as destination */
-/* Returns the total number of bytes that would have been written (regardless of destination length) */
+/* Serialize returns the total number of bytes that would have been written (regardless of destination length) */
 unsigned int az_serialize_block (unsigned char *d, unsigned int dlen, const void *s, unsigned int slen);
-/* Return the number of bytes consumed (0 on error) */
-unsigned int az_deserialize_block (void *d, unsigned int dlen, const unsigned char *s, unsigned int slen);
+/* Deserialize returns the number of bytes consumed or a negative error code (AZ_INSUFFICIENT_SPACE) */
+int64_t az_deserialize_block (void *d, unsigned int dlen, const unsigned char *s, unsigned int slen);
 
 /* Size is in bytes */
 unsigned int az_serialize_int (unsigned char *d, unsigned int dlen, const void *inst, unsigned int size);
-unsigned int az_deserialize_int (void *value, unsigned int size, const unsigned char *s, unsigned int slen);
+int64_t az_deserialize_int (void *value, unsigned int size, const unsigned char *s, unsigned int slen);
 unsigned int az_serialize_ints (unsigned char *d, unsigned int dlen, const void *inst, unsigned int size, unsigned int n_values);
-unsigned int az_deserialize_ints (void *value, unsigned int size, unsigned int n_values, const unsigned char *s, unsigned int slen);
+int64_t az_deserialize_ints (void *value, unsigned int size, unsigned int n_values, const unsigned char *s, unsigned int slen);
 
 #define az_serialize_float(d,dlen,inst) az_serialize_int (d, dlen, inst, 4)
 #define az_serialize_double(d,dlen,inst) az_serialize_int (d, dlen, inst, 8)

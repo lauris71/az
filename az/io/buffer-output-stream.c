@@ -20,7 +20,8 @@ static void bostream_class_init (AZBufferOutputStreamClass *klass);
 static void bostream_finalize (AZBufferOutputStreamClass *klass, AZBufferOutputStream *bostream);
 static int64_t bostream_to_string(const AZImplementation *impl, void *inst, uint8_t *d, uint64_t dlen);
 static int64_t bostream_write (const AZOutputStreamImplementation *impl, AZOutputStream *inst, const void *data, uint64_t size);
-static int64_t bostream_close (const AZOutputStreamImplementation *impl, AZOutputStream *inst);
+static int bostream_close (const AZOutputStreamImplementation *impl, AZOutputStream *inst);
+static int bostream_state (const AZOutputStreamImplementation *impl, AZOutputStream *inst);
 
 unsigned int bostream_type = 0;
 AZBufferOutputStreamClass *bostream_class = NULL;
@@ -52,6 +53,7 @@ bostream_class_init (AZBufferOutputStreamClass *klass)
 	klass->klass.to_string = bostream_to_string;
 	klass->ostream_impl.write = bostream_write;
 	klass->ostream_impl.close = bostream_close;
+	klass->ostream_impl.state = bostream_state;
 }
 
 static void
@@ -83,21 +85,41 @@ bostream_write (const AZOutputStreamImplementation *impl, AZOutputStream *inst, 
 		if (alloc < MIN_ALLOC) alloc = MIN_ALLOC;
 		while (alloc < needed) alloc *= 2;
 		uint8_t *nbuf = (uint8_t *) realloc (bostream->buffer, alloc);
-		if (!nbuf) return AZ_OUT_OF_MEMORY;
+		if (!nbuf) {
+			bostream->err = AZ_OUT_OF_MEMORY;
+			return 0;
+		}
 		bostream->buffer = nbuf;
 		bostream->allocated = alloc;
 	}
 	memcpy (bostream->buffer + bostream->pos, data, size);
 	bostream->pos += size;
+	bostream->err = AZ_OK;
 	return (int64_t) size;
 }
 
-static int64_t
+static int
 bostream_close (const AZOutputStreamImplementation *impl, AZOutputStream *inst)
 {
 	AZBufferOutputStream *bostream = (AZBufferOutputStream *) inst;
-	bostream->buffer = (uint8_t *) realloc (bostream->buffer, bostream->pos);
-	if (!bostream->buffer) return AZ_OUT_OF_MEMORY;
-	bostream->allocated = bostream->pos;
+	if (bostream->pos) {
+		/* Trim to size - a failed shrink is harmless, the buffer stays valid */
+		uint8_t *nbuf = (uint8_t *) realloc (bostream->buffer, bostream->pos);
+		if (nbuf) {
+			bostream->buffer = nbuf;
+			bostream->allocated = bostream->pos;
+		}
+	} else {
+		free (bostream->buffer);
+		bostream->buffer = NULL;
+		bostream->allocated = 0;
+	}
 	return AZ_OK;
+}
+
+static int
+bostream_state (const AZOutputStreamImplementation *impl, AZOutputStream *inst)
+{
+	AZBufferOutputStream *bostream = (AZBufferOutputStream *) inst;
+	return bostream->err;
 }

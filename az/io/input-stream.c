@@ -38,15 +38,17 @@ int64_t
 az_input_stream_skip (const AZInputStreamImplementation *impl, AZInputStream *inst, uint64_t n_bytes)
 {
 	if (impl->skip) return impl->skip (impl, inst, n_bytes);
-	while (n_bytes) {
+	uint64_t total = 0;
+	while (total < n_bytes) {
 		uint8_t buf[1024];
-		uint64_t n = n_bytes;
+		uint64_t n = n_bytes - total;
 		if (n > sizeof (buf)) n = sizeof (buf);
-		n = az_input_stream_read (impl, inst, buf, n);
-		if (n <= 0) return n;
-		n_bytes -= n;
+		int64_t nread = az_input_stream_read (impl, inst, buf, n);
+		total += (uint64_t) nread;
+		/* Short read - boundary or failure, state() tells */
+		if (nread < (int64_t) n) break;
 	}
-	return AZ_OK;
+	return (int64_t) total;
 }
 
 #define COPY_BUFFER_SIZE 4096
@@ -70,12 +72,16 @@ az_input_stream_read_all (const AZInputStreamImplementation *impl, AZInputStream
 			buf = nbuf;
 		}
 		int64_t nread = az_input_stream_read (impl, inst, buf + total, allocated - total);
-		if (nread < 0) {
-			free (buf);
-			return nread;
+		if (nread <= 0) {
+			int state = az_input_stream_state (impl, inst);
+			if (state < 0) {
+				free (buf);
+				return state;
+			}
+			/* End of data (or other benign boundary) */
+			break;
 		}
-		if (nread == 0) break;
-		total += nread;
+		total += (uint64_t) nread;
 	}
 	*data = buf;
 	return (int64_t) total;

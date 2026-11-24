@@ -138,10 +138,13 @@ array_get_element (const AZListImplementation *list_impl, void *list_inst, unsig
 int64_t
 az_array_deserialize (const AZArrayImplementation *array_impl, AZArray *array, const uint8_t *s, uint64_t slen)
 {
-	unsigned int len = az_value_deserialize(&AZUint64Klass.impl, (AZValue *) &array->size, s, slen);
+	int64_t len = az_value_deserialize(&AZUint64Klass.impl, (AZValue *) &array->size, s, slen);
+	if (len < 0) return len;
 	array->values = az_value_new_array(array_impl->elem_impl, array->size);
 	for (uint64_t i = 0; i < array->size; i++) {
-		len += az_value_deserialize(array_impl->elem_impl, az_array_value_at(array_impl, array, i), s + len, (len <= slen) ? slen - len : 0);
+		int64_t n = az_value_deserialize(array_impl->elem_impl, az_array_value_at(array_impl, array, i), s + len, (len <= (int64_t) slen) ? slen - len : 0);
+		if (n < 0) return n;
+		len += n;
 	}
 	return len;
 }

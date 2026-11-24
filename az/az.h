@@ -90,6 +90,13 @@ enum AZErrorCode {
 	 */
 	AZ_SIGNATURE_MISMATCH = -13,
 	/**
+	 * @brief The buffer is too small
+	 *
+	 * The source buffer is too small for the value being deserialized
+	 * (the serialization family - serialize reports the required size instead)
+	 */
+	AZ_INSUFFICIENT_SPACE = -14,
+	/**
 	 * @brief Internal inconsistency of az data
 	 * 
 	 */

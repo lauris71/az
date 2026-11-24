@@ -48,6 +48,7 @@ static void test_masked_field_widths();
 static void test_circular_reference();
 static void test_strings_mt();
 static void test_boxed_interface_conversion();
+static void test_packed_value_conversion();
 static void test_value_array();
 static void test_delegation();
 
@@ -104,6 +105,8 @@ main(int argc, const char *argv[])
             RUN_TEST(test_interface);
         } else if (!strcmp(argv[i], "boxed-interface-conversion")) {
             RUN_TEST(test_boxed_interface_conversion);
+        } else if (!strcmp(argv[i], "packed-value-conversion")) {
+            RUN_TEST(test_packed_value_conversion);
         } else if (!strcmp(argv[i], "value-array")) {
             RUN_TEST(test_value_array);
         } else if (!strcmp(argv[i], "delegation")) {
@@ -1696,6 +1699,68 @@ test_boxed_interface_conversion()
     TEST_ASSERT (out->inst == &minst.keys_data);
     az_boxed_interface_unref (out);
     az_boxed_interface_unref (box);
+}
+
+static void
+test_packed_value_conversion()
+{
+    az_init();
+    AZPackedValue from = {0};
+    AZPackedValue dst = {0};
+    int32_t i32 = 42;
+    az_packed_value_set (&from, AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32), &i32);
+
+    /* can_convert is az_type_get_conversion_to gated by the conversion category */
+    TEST_ASSERT_FALSE (az_packed_value_can_convert (&from, AZ_TYPE_FLOAT, AZ_CONVERT_AUTO));
+    TEST_ASSERT_TRUE (az_packed_value_can_convert (&from, AZ_TYPE_FLOAT, AZ_CONVERT_CONDITIONAL));
+    TEST_ASSERT_TRUE (az_packed_value_can_convert (&from, AZ_TYPE_DOUBLE, AZ_CONVERT_AUTO));
+    TEST_ASSERT_TRUE (az_packed_value_can_convert (&from, AZ_TYPE_ANY, AZ_CONVERT_AUTO));
+    TEST_ASSERT_FALSE (az_packed_value_can_convert (&from, AZ_TYPE_NONE, AZ_CONVERT_EXPLICIT));
+    TEST_ASSERT_FALSE (az_packed_value_can_convert (&from, AZ_TYPE_STRING, AZ_CONVERT_EXPLICIT));
+
+    /* Numeric conversion */
+    TEST_ASSERT_EQUAL_INT (AZ_CONVERSION_EXACT,
+        az_packed_value_convert (&dst, &from, AZ_TYPE_DOUBLE, AZ_CONVERT_CONDITIONAL));
+    TEST_ASSERT_EQUAL_UINT (AZ_TYPE_DOUBLE, AZ_PACKED_VALUE_TYPE (&dst));
+    TEST_ASSERT (dst.v.double_v == 42.0);
+    az_packed_value_clear (&dst);
+
+    /* Failed conversion leaves dst untouched */
+    AZString *str = az_string_new ((const uint8_t *) "test");
+    az_packed_value_set_reference (&dst, AZ_TYPE_STRING, &str->reference);
+    TEST_ASSERT_EQUAL_UINT (2, str->reference.refcount);
+    TEST_ASSERT_EQUAL_INT (AZ_CONVERSION_FAILED,
+        az_packed_value_convert (&dst, &from, AZ_TYPE_STRING, AZ_CONVERT_CONDITIONAL));
+    TEST_ASSERT_EQUAL_UINT (AZ_TYPE_STRING, AZ_PACKED_VALUE_TYPE (&dst));
+    TEST_ASSERT (dst.v.string == str);
+    TEST_ASSERT_EQUAL_UINT (2, str->reference.refcount);
+
+    /* Upcast copies the reference (src keeps its own) */
+    az_packed_value_set_reference (&from, AZ_TYPE_STRING, &str->reference);
+    TEST_ASSERT_EQUAL_INT (AZ_CONVERSION_EXACT,
+        az_packed_value_convert (&dst, &from, AZ_TYPE_ANY, AZ_CONVERT_AUTO));
+    TEST_ASSERT (dst.v.reference == &str->reference);
+    TEST_ASSERT_EQUAL_UINT (3, str->reference.refcount);
+    az_packed_value_clear (&dst);
+    az_packed_value_clear (&from);
+    TEST_ASSERT_EQUAL_UINT (1, str->reference.refcount);
+
+    /* Untyped null converts to typed null of block types */
+    TEST_ASSERT_TRUE (az_packed_value_can_convert (&dst, AZ_TYPE_STRING, AZ_CONVERT_AUTO));
+    TEST_ASSERT_FALSE (az_packed_value_can_convert (&dst, AZ_TYPE_INT32, AZ_CONVERT_AUTO));
+    TEST_ASSERT_EQUAL_INT (AZ_CONVERSION_EXACT,
+        az_packed_value_convert (&dst, &dst, AZ_TYPE_STRING, AZ_CONVERT_AUTO));
+    TEST_ASSERT_EQUAL_UINT (AZ_TYPE_STRING, AZ_PACKED_VALUE_TYPE (&dst));
+    TEST_ASSERT (dst.v.block == NULL);
+
+    /* In-place conversion consumes the old content */
+    az_packed_value_set (&from, AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32), &i32);
+    TEST_ASSERT_EQUAL_INT (AZ_CONVERSION_EXACT,
+        az_packed_value_convert (&from, &from, AZ_TYPE_DOUBLE, AZ_CONVERT_CONDITIONAL));
+    TEST_ASSERT_EQUAL_UINT (AZ_TYPE_DOUBLE, AZ_PACKED_VALUE_TYPE (&from));
+    TEST_ASSERT (from.v.double_v == 42.0);
+    az_packed_value_clear (&from);
+    az_string_unref (str);
 }
 
 /*

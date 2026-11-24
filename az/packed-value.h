@@ -13,6 +13,7 @@ typedef struct _AZPackedValue64 AZPackedValue64;
 #include <stdio.h>
 
 #include <az/types.h>
+#include <az/convert.h>
 #include <az/value.h>
 
 #ifdef __cplusplus
@@ -268,8 +269,32 @@ az_packed_value_transfer_string (AZPackedValue *value, AZString *str)
 	value->v.string = str;
 }
 
-unsigned int az_packed_value_can_convert (unsigned int to, const AZPackedValue *from);
-unsigned int az_packed_value_convert (AZPackedValue *dst, unsigned int type, const AZPackedValue *from);
+/**
+ * @brief Check whether a packed value can be converted to the given type
+ *
+ * Frontend to az_type_get_conversion_to - the conversion is allowed when
+ * az_type_get_conversion_to (from_type, to_type) <= @c conversion_type.
+ *
+ * @param from the source value (NULL implementation = untyped null)
+ * @param to_type the target type
+ * @param conversion_type the maximum allowed conversion category
+ * @return non-zero if the conversion is allowed
+ */
+unsigned int az_packed_value_can_convert (const AZPackedValue *from, unsigned int to_type, AZConversionType conversion_type);
+/**
+ * @brief Convert a packed value to the given type
+ *
+ * Frontend to az_value_convert_autobox. The old content of @c dst is released
+ * and @c dst is left untouched if the conversion fails. In-place conversion
+ * (@c dst == @c from) consumes the old content.
+ *
+ * @param dst the destination value
+ * @param from the source value (NULL implementation = untyped null)
+ * @param to_type the target type
+ * @param conversion_type the maximum allowed conversion category
+ * @return the conversion result (AZ_CONVERSION_EXACT/ROUNDED/CLAMPED/FAILED)
+ */
+AZConversionResult az_packed_value_convert (AZPackedValue *dst, const AZPackedValue *from, unsigned int to_type, AZConversionType conversion_type);
 
 static inline void
 az_packed_value_set_from_type_value (AZPackedValue *dst, unsigned int type, const AZValue *val)

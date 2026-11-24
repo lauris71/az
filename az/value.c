@@ -56,14 +56,14 @@ az_value_deserialize (const AZImplementation *impl, AZValue *val, const uint8_t 
 {
 	AZClass *klass;
 #ifdef AZ_SAFETY_CHECKS
-	arikkei_return_val_if_fail (impl != NULL, 0);
-	arikkei_return_val_if_fail (val != NULL, 0);
+	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (val != NULL, AZ_NULL_VALUE);
 #endif
 	klass = AZ_CLASS_FROM_IMPL(impl);
 #ifdef AZ_SAFETY_CHECKS
-	arikkei_return_val_if_fail (klass != NULL, 0);
+	arikkei_return_val_if_fail (klass != NULL, AZ_NULL_VALUE);
 #endif
-	return (klass->deserialize) ? klass->deserialize (impl, val, s, slen) : 0;
+	return (klass->deserialize) ? klass->deserialize (impl, val, s, slen) : AZ_NOT_IMPLEMENTED;
 }
 
 unsigned int

@@ -5,6 +5,7 @@ SET(SOURCES
     memory-output-stream.c memory-output-stream.h
     os-output-stream.c os-output-stream.h
     output-stream.c output-stream.h
+    stream.h
     stream-utils.c stream-utils.h
 )
 

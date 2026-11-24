@@ -1,5 +1,6 @@
 #define __AZ_PRIVATE_C__
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,8 +25,9 @@ static unsigned int az_num_allocators = 1;
 unsigned int
 az_register_allocator (const AZInstanceAllocator *allocator)
 {
-	arikkei_return_val_if_fail (allocator != NULL, 0);
-	arikkei_return_val_if_fail (az_num_allocators < AZ_MAX_CLASS_ALLOCATORS, 0);
+	/* Library internal - a failure here is a programming error */
+	assert (allocator != NULL);
+	assert (az_num_allocators < AZ_MAX_CLASS_ALLOCATORS);
 	unsigned int idx = az_num_allocators++;
 	az_allocators[idx] = allocator;
 	return idx;
@@ -38,8 +40,9 @@ static unsigned int az_num_delegates = 1;
 unsigned int
 az_register_delegate (const AZClassDelegate *delegate)
 {
-	arikkei_return_val_if_fail (delegate != NULL, 0);
-	arikkei_return_val_if_fail (az_num_delegates < AZ_MAX_CLASS_DELEGATES, 0);
+	/* Library internal - a failure here is a programming error */
+	assert (delegate != NULL);
+	assert (az_num_delegates < AZ_MAX_CLASS_DELEGATES);
 	unsigned int idx = az_num_delegates++;
 	az_delegates[idx] = delegate;
 	return idx;
