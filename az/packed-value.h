@@ -312,11 +312,12 @@ az_packed_value_set_from_type_value (AZPackedValue *dst, unsigned int type, cons
  * @param sig The caller signature (how varargs will be interpreted)
  * @param ctx The excution context
  * @param ret_impl A pointer to the implementation of the returned value
- * @param ret_val A pointer to the returned value
+ * @param ret_val A pointer to the returned value buffer
+ * @param ret_size The size of the return value buffer (larger results are boxed)
  * @param ... 
  * @return AZ_OK or error/exception code
  */
-int az_packed_value_invoke_by_signature_va (const AZPackedValue *pval, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
+int az_packed_value_invoke_by_signature_va (const AZPackedValue *pval, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, ...);
 
 #ifdef __cplusplus
 };

@@ -191,6 +191,33 @@ const AZImplementation *az_instance_get_interface(const AZImplementation *impl, 
  */
 const AZImplementation *az_instance_get_interface_autobox(const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
 
+/**
+ * @brief Get the first interface of given type from value (naked)
+ *
+ * Value-level frontend to az_instance_get_interface. Boxed values/interfaces are
+ * seen through to their content.
+ *
+ * @param impl The value implementation
+ * @param val The value
+ * @param if_type The interface type
+ * @param if_inst The output value for interface instance
+ * @return The implementation of an interface
+ */
+const AZImplementation *az_value_get_interface(const AZImplementation *impl, const AZValue *val, unsigned int if_type, void **if_inst);
+/**
+ * @brief Get the first interface of given type from value as boxed interface, if boxing is possible
+ *
+ * Value-level frontend to az_instance_get_interface_autobox. Boxed values/interfaces
+ * are seen through to their content.
+ *
+ * @param impl The value implementation
+ * @param val The value
+ * @param if_type The interface type
+ * @param if_inst The output value for interface instance
+ * @return The implementation of an interface
+ */
+const AZImplementation *az_value_get_interface_autobox(const AZImplementation *impl, const AZValue *val, unsigned int if_type, void **if_inst);
+
 static inline const AZImplementation *
 az_instance_get_interface_from_type (unsigned int type, void *inst, unsigned int if_type, void **if_inst)
 {
@@ -210,7 +237,7 @@ az_instance_get_interface_from_type (unsigned int type, void *inst, unsigned int
  * @param dst_size The available result size
  * @return AZ_OK or error code
  */
-int az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZImplementation **dst_impl, AZValue64 *dst_val, unsigned int dst_size);
+int az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size);
 int az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size);
 /**
  * @brief Set property by key and instance

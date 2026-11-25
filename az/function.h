@@ -119,11 +119,12 @@ int az_function_invoke (const AZFunctionImplementation *impl, void *inst, unsign
  * @param sig The function signature
  * @param ctx The context
  * @param ret_impl The return implementation pointer (NULL to ignore return)
- * @param ret_val The return value buffer
+ * @param ret_val The return value buffer (NULL to ignore return)
+ * @param ret_size The size of the return value buffer (larger results are boxed)
  * @param ... Variadic arguments for the function
  * @return unsigned int 
  */
-int az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
+int az_function_invoke_by_signature_va (const AZFunctionImplementation *impl, void *inst, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, ...);
 
 /** @ingroup function
  * @brief Call a native C function with az arguments

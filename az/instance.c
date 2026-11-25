@@ -364,8 +364,20 @@ az_instance_get_interface (const AZImplementation *impl, void *inst, unsigned in
 	return NULL;
 }
 
+const AZImplementation *
+az_value_get_interface (const AZImplementation *impl, const AZValue *val, unsigned int if_type, void **if_inst)
+{
+	return az_instance_get_interface (impl, az_value_get_inst (impl, val), if_type, if_inst);
+}
+
+const AZImplementation *
+az_value_get_interface_autobox (const AZImplementation *impl, const AZValue *val, unsigned int if_type, void **if_inst)
+{
+	return az_instance_get_interface_autobox (impl, az_value_get_inst (impl, val), if_type, if_inst);
+}
+
 int
-az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZImplementation **dst_impl, AZValue64 *dst_val, unsigned int dst_size)
+az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size)
 {
 	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (key != NULL, AZ_NULL_VALUE);
@@ -376,7 +388,7 @@ az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const
 	int idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, inst, str, &sub_class, &sub_impl, &sub_inst);
 	az_string_unref(str);
 	if (idx < 0) return idx;
-	return az_instance_get_property_by_id (sub_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, sub_inst, idx, dst_impl, &dst_val->value, dst_size);
+	return az_instance_get_property_by_id (sub_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, sub_inst, idx, dst_impl, dst_val, dst_size);
 }
 
 int

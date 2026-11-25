@@ -494,10 +494,11 @@ uint8_t *az_value_to_string_autobox_new (const AZImplementation *impl, const AZV
  * @param ctx The execution context
  * @param ret_impl Pointer to the return implementation (NULL to ignore return)
  * @param ret_val Pointer to the return value buffer (NULL to ignore return)
+ * @param ret_size The size of the return value buffer (larger results are boxed)
  * @param ... 
  * @return unsigned int 
  */
-int az_value_invoke_by_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue64 *ret_val, ...);
+int az_value_invoke_by_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, ...);
 
 #ifdef __cplusplus
 };

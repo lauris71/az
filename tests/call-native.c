@@ -114,7 +114,7 @@ static uint64_t native_fval_sig (const AZFunctionValue *fv)
 }
 
 static unsigned int
-call_native (void (*func) (void), unsigned int ret_type, unsigned int n_args, const unsigned int *arg_types, const AZImplementation **ret_impl, AZValue64 *ret_val, const AZImplementation **arg_impls, const AZValue **arg_vals)
+call_native (void (*func) (void), unsigned int ret_type, unsigned int n_args, const unsigned int *arg_types, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, const AZImplementation **arg_impls, const AZValue **arg_vals)
 {
     const AZFunctionSignature *sig = az_function_signature_new(0, ret_type, n_args, arg_types);
     AZStoreElement elems[32];
@@ -123,7 +123,7 @@ call_native (void (*func) (void), unsigned int ret_type, unsigned int n_args, co
     for (unsigned int i = 0; i < n_args; i++) {
         val_idx += az_value_store_set (elems, i, vals, val_idx, arg_impls[i], az_value_get_inst(arg_impls[i], arg_vals[i]));
     }
-    return az_function_invoke_native(func, sig, n_args, elems, vals, ret_impl, &ret_val->value, 64, NULL) == AZ_OK;
+    return az_function_invoke_native(func, sig, n_args, elems, vals, ret_impl, ret_val, ret_size, NULL) == AZ_OK;
 }
 
 void
@@ -144,7 +144,7 @@ test_call_native()
         b.int32_v = 25;
         ret_impl = NULL;
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_add_i32, AZ_TYPE_INT32, 2, types, &ret_impl, &ret_val, impls, vals));
+        TEST_ASSERT (call_native ((void (*) (void)) native_add_i32, AZ_TYPE_INT32, 2, types, &ret_impl, &ret_val.value, sizeof (AZValue64), impls, vals));
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32));
         TEST_ASSERT_EQUAL_INT32 (42, ret_val.value.int32_v);
     }
@@ -157,7 +157,7 @@ test_call_native()
         a.float_v = 1.5f;
         b.float_v = 2.25f;
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_add_f, AZ_TYPE_FLOAT, 2, types, &ret_impl, &ret_val, impls, vals));
+        TEST_ASSERT (call_native ((void (*) (void)) native_add_f, AZ_TYPE_FLOAT, 2, types, &ret_impl, &ret_val.value, sizeof (AZValue64), impls, vals));
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_FLOAT));
         TEST_ASSERT_EQUAL_FLOAT (3.75f, ret_val.value.float_v);
     }
@@ -170,7 +170,7 @@ test_call_native()
         a.double_v = 1.5;
         b.double_v = 2.25;
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_add_d, AZ_TYPE_DOUBLE, 2, types, &ret_impl, &ret_val, impls, vals));
+        TEST_ASSERT (call_native ((void (*) (void)) native_add_d, AZ_TYPE_DOUBLE, 2, types, &ret_impl, &ret_val.value, sizeof (AZValue64), impls, vals));
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_DOUBLE));
         TEST_ASSERT_EQUAL_DOUBLE (3.75, ret_val.value.double_v);
     }
@@ -185,7 +185,7 @@ test_call_native()
         c.int64_v = 3;
         d.float_v = 4.9f;
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_mixed, AZ_TYPE_INT64, 4, types, &ret_impl, &ret_val, impls, vals));
+        TEST_ASSERT (call_native ((void (*) (void)) native_mixed, AZ_TYPE_INT64, 4, types, &ret_impl, &ret_val.value, sizeof (AZValue64), impls, vals));
         TEST_ASSERT_EQUAL_INT64 (10, ret_val.value.int64_v);
     }
     /* complex float (complex float, complex float) - HFA arguments and return */
@@ -199,7 +199,7 @@ test_call_native()
         b.cfloat_v.r = 3.0f;
         b.cfloat_v.i = 4.0f;
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_add_cf, AZ_TYPE_COMPLEX_FLOAT, 2, types, &ret_impl, &ret_val, impls, vals));
+        TEST_ASSERT (call_native ((void (*) (void)) native_add_cf, AZ_TYPE_COMPLEX_FLOAT, 2, types, &ret_impl, &ret_val.value, sizeof (AZValue64), impls, vals));
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_COMPLEX_FLOAT));
         TEST_ASSERT_EQUAL_FLOAT (4.0f, ret_val.value.cfloat_v.r);
         TEST_ASSERT_EQUAL_FLOAT (6.0f, ret_val.value.cfloat_v.i);
@@ -215,7 +215,7 @@ test_call_native()
         b.cdouble_v.r = 3.25;
         b.cdouble_v.i = 4.75;
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_add_cd, AZ_TYPE_COMPLEX_DOUBLE, 2, types, &ret_impl, &ret_val, impls, vals));
+        TEST_ASSERT (call_native ((void (*) (void)) native_add_cd, AZ_TYPE_COMPLEX_DOUBLE, 2, types, &ret_impl, &ret_val.value, sizeof (AZValue64), impls, vals));
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_COMPLEX_DOUBLE));
         TEST_ASSERT_EQUAL_DOUBLE (4.75, ret_val.value.cdouble_v.r);
         TEST_ASSERT_EQUAL_DOUBLE (7.25, ret_val.value.cdouble_v.i);
@@ -233,7 +233,7 @@ test_call_native()
             vals[k] = &v[k];
         }
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_sum10, AZ_TYPE_INT64, 10, types, &ret_impl, &ret_val, impls, vals));
+        TEST_ASSERT (call_native ((void (*) (void)) native_sum10, AZ_TYPE_INT64, 10, types, &ret_impl, &ret_val.value, sizeof (AZValue64), impls, vals));
         TEST_ASSERT_EQUAL_INT64 (385, ret_val.value.int64_v);
     }
     /* double (10 x double) - FPR stack spill */
@@ -249,7 +249,7 @@ test_call_native()
             vals[k] = &v[k];
         }
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_sum10d, AZ_TYPE_DOUBLE, 10, types, &ret_impl, &ret_val, impls, vals));
+        TEST_ASSERT (call_native ((void (*) (void)) native_sum10d, AZ_TYPE_DOUBLE, 10, types, &ret_impl, &ret_val.value, sizeof (AZValue64), impls, vals));
         TEST_ASSERT_EQUAL_DOUBLE (55.0, ret_val.value.double_v);
     }
     /* double (7 x double, complex float) - HFA passed on the stack */
@@ -270,7 +270,7 @@ test_call_native()
         v[7].cfloat_v.i = 9.0f;
         vals[7] = &v[7];
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_7d_cf, AZ_TYPE_DOUBLE, 8, types, &ret_impl, &ret_val, impls, vals));
+        TEST_ASSERT (call_native ((void (*) (void)) native_7d_cf, AZ_TYPE_DOUBLE, 8, types, &ret_impl, &ret_val.value, sizeof (AZValue64), impls, vals));
         TEST_ASSERT_EQUAL_DOUBLE (45.0, ret_val.value.double_v);
     }
     /* string (string) - final block argument, returned by pointer */
@@ -282,7 +282,7 @@ test_call_native()
         const AZValue *vals[1] = {&a};
         a.block = str;
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_id_ptr, AZ_TYPE_STRING, 1, types, &ret_impl, &ret_val, impls, vals));
+        TEST_ASSERT (call_native ((void (*) (void)) native_id_ptr, AZ_TYPE_STRING, 1, types, &ret_impl, &ret_val.value, sizeof (AZValue64), impls, vals));
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_STRING));
         TEST_ASSERT (ret_val.value.block == str);
         az_string_unref (str);
@@ -298,7 +298,7 @@ test_call_native()
         nf_arg_impl = impls[0];
         nf_arg_inst = str;
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_nonfinal_arg, AZ_TYPE_INT64, 1, types, &ret_impl, &ret_val, impls, vals));
+        TEST_ASSERT (call_native ((void (*) (void)) native_nonfinal_arg, AZ_TYPE_INT64, 1, types, &ret_impl, &ret_val.value, sizeof (AZValue64), impls, vals));
         TEST_ASSERT_EQUAL_INT64 (7, ret_val.value.int64_v);
         az_string_unref (str);
     }
@@ -308,7 +308,7 @@ test_call_native()
         nf_ret_ptr = str;
         ret_impl = NULL;
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_ret_nonfinal_block, AZ_TYPE_BLOCK, 0, NULL, &ret_impl, &ret_val, NULL, NULL));
+        TEST_ASSERT (call_native ((void (*) (void)) native_ret_nonfinal_block, AZ_TYPE_BLOCK, 0, NULL, &ret_impl, &ret_val.value, sizeof (AZValue64), NULL, NULL));
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_STRING));
         TEST_ASSERT (ret_val.value.block == str);
         az_string_unref (str);
@@ -317,7 +317,7 @@ test_call_native()
     {
         ret_impl = NULL;
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_ret_any_value, AZ_TYPE_ANY, 0, NULL, &ret_impl, &ret_val, NULL, NULL));
+        TEST_ASSERT (call_native ((void (*) (void)) native_ret_any_value, AZ_TYPE_ANY, 0, NULL, &ret_impl, &ret_val.value, sizeof (AZValue64), NULL, NULL));
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (AZ_TYPE_INT32));
         TEST_ASSERT_EQUAL_INT32 (4242, ret_val.value.int32_v);
     }
@@ -326,7 +326,7 @@ test_call_native()
         unsigned int fv_type = az_function_value_get_type();
         ret_impl = NULL;
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_make_fval, fv_type, 0, NULL, &ret_impl, &ret_val, NULL, NULL));
+        TEST_ASSERT (call_native ((void (*) (void)) native_make_fval, fv_type, 0, NULL, &ret_impl, &ret_val.value, sizeof (AZValue64), NULL, NULL));
         TEST_ASSERT (ret_impl == AZ_IMPL_FROM_TYPE (fv_type));
         TEST_ASSERT (((AZFunctionValue *) &ret_val.value)->signature == (AZFunctionSignature *) (uintptr_t) 0xdeadbeef);
         TEST_ASSERT (((AZFunctionValue *) &ret_val.value)->invoke == NULL);
@@ -342,7 +342,7 @@ test_call_native()
         fv->signature = (const AZFunctionSignature *) (uintptr_t) 0xdeadbeef;
         fv->invoke = NULL;
         memset (&ret_val, 0, sizeof (AZValue64));
-        TEST_ASSERT (call_native ((void (*) (void)) native_fval_sig, AZ_TYPE_UINT64, 1, types, &ret_impl, &ret_val, impls, vals));
+        TEST_ASSERT (call_native ((void (*) (void)) native_fval_sig, AZ_TYPE_UINT64, 1, types, &ret_impl, &ret_val.value, sizeof (AZValue64), impls, vals));
         TEST_ASSERT_EQUAL_UINT64 (0xdeadbeef, ret_val.value.uint64_v);
     }
     /* AZFunctionNative - native function invoked through the AZFunction interface */

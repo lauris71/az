@@ -28,7 +28,8 @@ extern "C" {
  * the containing instance is destroyed. Thus storing these in containers is prone to use-after-free bugs.
  *
  * The content value may extend past the end of the struct (the allocation has
- * room for it - see az_boxed_interface_new).
+ * room for it; the box owns a copy of value containers and a reference to
+ * reference containers).
  */
 struct _AZBoxedInterface {
 	AZReference reference;
@@ -44,34 +45,6 @@ struct _AZBoxedInterface {
 
 extern AZBoxedInterfaceClass AZBoxedInterfaceKlass;
 
-/**
- * @brief Create a boxed interface from the containing instance and resolved interface implementation/instance
- * 
- * The containing instance has to be block.
- * 
- * @param impl The containing implementation
- * @param inst The containing instance
- * @param if_impl The interface implementation
- * @param if_inst The interface instance
- * @return A boxed interface 
- */
-AZBoxedInterface *az_boxed_interface_new (const AZImplementation *impl, void *inst, const AZImplementation *if_impl, void *if_inst);
-AZBoxedInterface *az_boxed_interface_new_from_impl_value (const AZImplementation *impl, const AZValue *val, unsigned int type);
-AZBoxedInterface *az_boxed_interface_new_from_impl_instance (const AZImplementation *impl, void *inst, unsigned int type);
-AZBoxedInterface *az_boxed_interface_new_from_object (AZObject *obj, unsigned int type);
-/**
- * @brief Create a boxed interface from plain value, boxed value or boxed interface
- * 
- * This is the only method that allows boxing sub-interfaces of an another interface - if the source is a boxed interface,
- * the containing value is copied to the new boxed interface and the sub-interface of the source interface is used.
- * 
- * @param impl The source implementation
- * @param val The source value
- * @param type The type of the interface
- * @return A new boxed interface
- */
-AZBoxedInterface *az_boxed_interface_new_from_impl_value_autobox (const AZImplementation *impl, const AZValue *val, unsigned int type);
-
 ARIKKEI_INLINE void
 az_boxed_interface_ref(AZBoxedInterface *astr)
 {
@@ -84,20 +57,28 @@ az_boxed_interface_unref(AZBoxedInterface *astr)
 	az_reference_unref (&AZBoxedInterfaceKlass, &astr->reference);
 }
 
-static inline const AZImplementation *
-az_value_set_interface_autobox(const AZImplementation *impl, AZValue *dst, void *inst, unsigned int type)
-{
-	AZBoxedInterface *boxed = az_boxed_interface_new_from_impl_instance(impl, inst, type);
-	az_value_transfer_reference(dst, &boxed->reference);
-	return AZ_BOXED_INTERFACE_IMPL;
-}
-
 ARIKKEI_INLINE void
 az_boxed_interface_unbox(const AZImplementation **impl, void **inst) {
 	AZBoxedInterface *boxed = (AZBoxedInterface *) *inst;
 	*impl = boxed->impl;
 	*inst = boxed->inst;
 }
+
+/**
+ * @brief Set a value to an interface handle of the instance (boxing if possible)
+ *
+ * If the interface can be boxed (value or reference container - the box owns the
+ * container lifecycle), the value is set to a new boxed interface. Otherwise
+ * (plain block container or naked interface) the naked view is stored and the
+ * caller keeps managing the lifecycle.
+ *
+ * @param impl The containing implementation
+ * @param dst The destination value
+ * @param inst The containing instance
+ * @param type The interface type
+ * @return The implementation stored in the value (AZ_BOXED_INTERFACE_IMPL if boxed, else the interface implementation), or NULL if there is no such interface
+ */
+const AZImplementation *az_value_set_interface_autobox (const AZImplementation *impl, AZValue *dst, void *inst, unsigned int type);
 
 #ifdef __cplusplus
 };

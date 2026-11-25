@@ -12,6 +12,7 @@
 
 #include <az/types.h>
 #include <az/class.h>
+#include <az/boxed-interface.h>
 
 #define AZ_TYPE_VALUE_SIZE(t) az_class_value_size(az_type_get_class(t))
 
@@ -142,6 +143,24 @@ struct _AZTypeConstraint {
 	uint32_t is_a;
 	uint32_t implements_a;
 };
+
+/*
+ * Boxed interface construction (internal)
+ *
+ * The public interface-extraction frontends are az_instance_get_interface[_autobox],
+ * az_value_get_interface[_autobox] and az_value_set_interface_autobox.
+ *
+ * All constructors enforce the Law B invariant: the container must be a value
+ * (copied into the box) or a reference (reffed by it) - a box always owns its
+ * container's lifetime. Plain blocks are caller-managed and are delivered as
+ * naked interfaces instead. Boxed values/interfaces are not valid containers
+ * (the frontends see through them).
+ */
+AZBoxedInterface *az_boxed_interface_new (const AZImplementation *impl, void *inst, const AZImplementation *if_impl, void *if_inst);
+AZBoxedInterface *az_boxed_interface_new_from_impl_value (const AZImplementation *impl, const AZValue *val, unsigned int type);
+AZBoxedInterface *az_boxed_interface_new_from_impl_instance (const AZImplementation *impl, void *inst, unsigned int type);
+AZBoxedInterface *az_boxed_interface_new_from_object (AZObject *obj, unsigned int type);
+AZBoxedInterface *az_boxed_interface_new_from_impl_value_autobox (const AZImplementation *impl, const AZValue *val, unsigned int type);
 
 #ifdef __cplusplus
 }

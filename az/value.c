@@ -259,7 +259,8 @@ az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, 
 	}
 	/* Anything can be converted to implemented interface */
 	if (AZ_TYPE_IS_INTERFACE(to_type) && az_type_implements (src_type, to_type)) {
-		if (autobox) {
+		if (autobox && (AZ_TYPE_IS_VALUE(src_type) || AZ_TYPE_IS_REFERENCE(src_type))) {
+			/* The box owns the container (Law B) */
 			AZBoxedInterface *new_box = az_boxed_interface_new_from_impl_value (src_impl, src_val, to_type);
 			if (transfer) {
 				/* The slot's old content is consumed by the box */
@@ -270,9 +271,9 @@ az_value_convert_internal (const AZImplementation **dst_impl, AZValue *dst_val, 
 			*dst_impl = AZ_IMPL_FROM_TYPE(AZ_TYPE_BOXED_INTERFACE);
 			return AZ_CONVERSION_EXACT;
 		}
-		/* Plain (borrowed) interface: the caller has to keep an additional reference
-		 * to the containing instance alive; on transfer the slot's own reference is
-		 * consumed (no hidden leaked reference) */
+		/* Plain (borrowed) interface: non-autobox, or no box is possible (plain block
+		 * or naked interface container - the lifetime is caller-managed); on transfer
+		 * the slot's own reference is consumed (no hidden leaked reference) */
 		void *sub_inst;
 		const AZImplementation *sub_impl = az_instance_get_interface (src_impl, az_value_get_inst (src_impl, src_val), to_type, &sub_inst);
 		if (!sub_impl) return AZ_CONVERSION_FAILED;
