@@ -121,8 +121,6 @@ struct _AZIFEntry {
  * code. The iteration function echoes the value: AZ_OK if everything was
  * iterated, the callback's stop token or the error code.
  */
-typedef int (*AZPropertyForeachFunc) (const AZClass *def_class, unsigned int prop_idx, const AZImplementation *impl, void *inst, void *data);
-typedef int (*AZInterfaceForeachFunc) (const AZImplementation *iface_impl, void *iface_inst, unsigned int if_type, unsigned int level, void *data);
 
 /*
  * Class construction and circular type references
@@ -357,68 +355,6 @@ static inline AZClass *
 az_class_parent(const AZClass *klass) {
 	return klass->parent;
 }
-
-/**
- * @brief get the index, the containing class and corresponding implementation and instance of a property
- * 
- * Searches class and interface definitions recursively for a property.
- * The order is class->interface[0]->superinterfaces->interface[1]...->superclasses
- * If the index is >= 0, the property definition is def_class->props_self[index] 
- * 
- * @param klass current class (either the the class of the impl or a superclass)
- * @param impl type implementation (can be null for static properties)
- * @param inst type instance (can be null for static or implementation properties)
- * @param key the property key
- * @param def_class result: the actual class where the property is defined
- * @param sub_impl result: the actual implementation (either impl or sub-implementation, can be null)
- * @param sub_inst result: the actual instance (either inst or sub-interface, can be null)
- * @return the property index in def_class or error code
- */
-int az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
-int az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
-
-/**
- * @brief Iterate over all visible properties of an instance or type
- *
- * Enumerates the properties in lookup order: own properties, then interface
- * properties (recursively), then the parent class. The callback receives the
- * defining class and the index within it (the property identity - there is no
- * flat props_all), plus the impl/inst location the property is accessed
- * through (the base instance or one of the interface views; inst locations are
- * NULL for type-level calls). A property belongs to an interface iff its
- * impl/inst matches that interface view from az_instance_foreach_interface.
- *
- * Duplicates are not suppressed: a property reachable by multiple paths is
- * reported once per path, with the respective location.
- *
- * @param impl the implementation (and class) to enumerate
- * @param inst the instance (may be NULL for type-level enumeration)
- * @param cb the callback (AZ_OK to continue, positive to stop, negative error)
- * @param data user data passed to the callback
- * @return AZ_OK if the enumeration ran to completion, the callback's positive stop token, or the negative error code
- */
-int az_instance_foreach_property (const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data);
-/**
- * @brief Iterate over all visible interfaces of an instance or type
- *
- * Enumerates the interface tree in pre-order: direct interfaces (level 0),
- * then under each its declared sub-interfaces and super-interfaces (increasing
- * levels). The callback receives the resolved interface view
- * (iface_impl/iface_inst; inst locations are NULL for type-level calls).
- * Super-interfaces share the impl/inst of the sub-interface (offset 0).
- * The same interface type may appear multiple times through different paths;
- * the occurrences are distinguished by their locations.
- *
- * @param impl the implementation (and class) to enumerate
- * @param inst the instance (may be NULL for type-level enumeration)
- * @param cb the callback (AZ_OK to continue, positive to stop, negative error)
- * @param data user data passed to the callback
- * @return AZ_OK if the enumeration ran to completion, the callback's positive stop token, or the negative error code
- */
-int az_instance_foreach_interface (const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data);
-/* Type-level convenience wrappers (inst locations reported as NULL) */
-int az_class_foreach_property (const AZClass *klass, AZPropertyForeachFunc cb, void *data);
-int az_class_foreach_interface (const AZClass *klass, AZInterfaceForeachFunc cb, void *data);
 
 /**
  * @brief Print class registry statistics to stdout

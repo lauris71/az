@@ -19,6 +19,7 @@
 #include <arikkei/arikkei-strlib.h>
 
 #include <az/base.h>
+#include <az/properties.h>
 #include <az/class.h>
 #include <az/extend.h>
 #include <az/function-native.h>
@@ -478,7 +479,7 @@ void az_class_define_static_method_native_va (AZClass *klass, unsigned int idx, 
 /* The default (non-delegating) recursive worker: never consults delegate_idx,
  * so recursion into interfaces and parents does not re-enter delegation */
 static int
-az_class_lookup_property_default (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+az_lookup_property_default (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
 	for (uint16_t i = 0; i < klass->n_props_self; i++) {
 		if (az_string_equals(key, klass->props_self[i].key)) {
@@ -491,7 +492,7 @@ az_class_lookup_property_default (const AZClass *klass, const AZImplementation *
 	/* Superclass */
 	/* NB! Superclass properties come before interface ones, otherwise 'class' and 'type' pick up the first superclass */
 	if (klass->parent) {
-		int result = az_class_lookup_property_default (klass->parent, impl, inst, key, def_class, sub_impl, sub_inst);
+		int result = az_lookup_property_default (klass->parent, impl, inst, key, def_class, sub_impl, sub_inst);
 		if (result >= 0) return result;
 	}
 	/* interfaces */
@@ -503,32 +504,33 @@ az_class_lookup_property_default (const AZClass *klass, const AZImplementation *
 		AZImplementation *if_impl = (impl) ? (AZImplementation *) ((char *) impl + ifentry->impl_offset) : NULL;
 		void *if_inst = (inst) ? (void *) ((char *) inst + ifentry->inst_offset) : NULL;
 		/* Check properties of this interface */
-		int result = az_class_lookup_property_default (if_class, if_impl, if_inst, key, def_class, sub_impl, sub_inst);
+		int result = az_lookup_property_default (if_class, if_impl, if_inst, key, def_class, sub_impl, sub_inst);
 		if (result >= 0) return result;
 	}
 	return AZ_NO_SUCH_PROPERTY;
 }
 
 int
-az_class_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+az_lookup_property (const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
-	arikkei_return_val_if_fail (klass != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (key != NULL, AZ_NULL_VALUE);
+	const AZClass *klass = AZ_CLASS_FROM_IMPL (impl);
 	/* Delegating classes answer for their content first, own members are the fallback */
 	if (klass->delegate_idx) {
 		const AZClassDelegate *delegate = az_delegates[klass->delegate_idx];
 		if (delegate->lookup_property) {
-			int result = delegate->lookup_property (klass, impl, inst, key, def_class, sub_impl, sub_inst);
+			int result = delegate->lookup_property (impl, inst, key, def_class, sub_impl, sub_inst);
 			if (result >= 0) return result;
 		}
 	}
-	return az_class_lookup_property_default (klass, impl, inst, key, def_class, sub_impl, sub_inst);
+	return az_lookup_property_default (klass, impl, inst, key, def_class, sub_impl, sub_inst);
 }
 
 #define noVERBOSE
 
 static int
-az_class_lookup_function_default (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+az_lookup_function_default (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
 	int result;
 #ifdef VERBOSE
@@ -576,7 +578,7 @@ az_class_lookup_function_default (const AZClass *klass, const AZImplementation *
 #endif
 	/* Superclass */
 	if (klass->parent) {
-		result = az_class_lookup_function_default (klass->parent, impl, inst, key, sig, def_class, sub_impl, sub_inst);
+		result = az_lookup_function_default (klass->parent, impl, inst, key, sig, def_class, sub_impl, sub_inst);
 		if (result >= 0) return result;
 	}
 	/* interfaces */
@@ -588,31 +590,32 @@ az_class_lookup_function_default (const AZClass *klass, const AZImplementation *
 		AZImplementation *if_impl = (impl) ? (AZImplementation *) ((char *) impl + ifentry->impl_offset) : NULL;
 		void *if_inst = (inst) ? (void *) ((char *) inst + ifentry->inst_offset) : NULL;
 		/* Check properties of this interface */
-		result = az_class_lookup_function_default (if_class, if_impl, if_inst, key, sig, def_class, sub_impl, sub_inst);
+		result = az_lookup_function_default (if_class, if_impl, if_inst, key, sig, def_class, sub_impl, sub_inst);
 		if (result >= 0) return result;
 	}
 	return AZ_NO_SUCH_PROPERTY;
 }
 
 int
-az_class_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+az_lookup_function (const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
-	arikkei_return_val_if_fail (klass != NULL, AZ_NULL_VALUE);
+	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (key != NULL, AZ_NULL_VALUE);
+	const AZClass *klass = AZ_CLASS_FROM_IMPL (impl);
 	/* Delegating classes answer for their content first, own members are the fallback */
 	if (klass->delegate_idx) {
 		const AZClassDelegate *delegate = az_delegates[klass->delegate_idx];
 		if (delegate->lookup_function) {
-			int result = delegate->lookup_function (klass, impl, inst, key, sig, def_class, sub_impl, sub_inst);
+			int result = delegate->lookup_function (impl, inst, key, sig, def_class, sub_impl, sub_inst);
 			if (result >= 0) return result;
 		}
 	}
-	return az_class_lookup_function_default (klass, impl, inst, key, sig, def_class, sub_impl, sub_inst);
+	return az_lookup_function_default (klass, impl, inst, key, sig, def_class, sub_impl, sub_inst);
 }
 
 /* Instance/type enumeration
  *
- * The default workers mirror az_class_lookup_property/function traversal
+ * The default workers mirror az_lookup_property/function traversal
  * (self, then interfaces with their sub-views, then parent), so enumeration
  * and lookup always agree about locations. They never consult delegate_idx.
  */
@@ -694,7 +697,7 @@ az_foreach_interface_default (const AZClass *klass, const AZImplementation *impl
 }
 
 int
-az_instance_foreach_property (const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data)
+az_foreach_property (const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data)
 {
 	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (cb != NULL, AZ_NULL_VALUE);
@@ -708,7 +711,7 @@ az_instance_foreach_property (const AZImplementation *impl, void *inst, AZProper
 }
 
 int
-az_instance_foreach_interface (const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data)
+az_foreach_interface (const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data)
 {
 	arikkei_return_val_if_fail (impl != NULL, AZ_NULL_VALUE);
 	arikkei_return_val_if_fail (cb != NULL, AZ_NULL_VALUE);
@@ -720,16 +723,3 @@ az_instance_foreach_interface (const AZImplementation *impl, void *inst, AZInter
 	return az_foreach_interface_default (klass, impl, inst, cb, data);
 }
 
-int
-az_class_foreach_property (const AZClass *klass, AZPropertyForeachFunc cb, void *data)
-{
-	arikkei_return_val_if_fail (klass != NULL, AZ_NULL_VALUE);
-	return az_instance_foreach_property (&klass->impl, NULL, cb, data);
-}
-
-int
-az_class_foreach_interface (const AZClass *klass, AZInterfaceForeachFunc cb, void *data)
-{
-	arikkei_return_val_if_fail (klass != NULL, AZ_NULL_VALUE);
-	return az_instance_foreach_interface (&klass->impl, NULL, cb, data);
-}

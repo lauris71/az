@@ -13,6 +13,7 @@
 #include <arikkei/arikkei-strlib.h>
 
 #include <az/private.h>
+#include <az/properties.h>
 #include <az/extend.h>
 
 #include <az/reference-of.h>
@@ -89,21 +90,21 @@ reference_of_delegate_get_interface (const AZClass *klass, const AZImplementatio
 }
 
 static int
-reference_of_delegate_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+reference_of_delegate_lookup_property (const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
-	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) klass;
+	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) AZ_CLASS_FROM_IMPL (impl);
 	AZClass *inst_class = AZ_CLASS_FROM_TYPE (ref_class->instance_type);
 	void *content_inst = (inst) ? az_reference_of_get_instance ((AZReferenceOfClass *) ref_class, (AZReferenceOf *) inst) : NULL;
-	return az_class_lookup_property (inst_class, &inst_class->impl, content_inst, key, def_class, sub_impl, sub_inst);
+	return az_lookup_property (&inst_class->impl, content_inst, key, def_class, sub_impl, sub_inst);
 }
 
 static int
-reference_of_delegate_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+reference_of_delegate_lookup_function (const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
-	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) klass;
+	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) AZ_CLASS_FROM_IMPL (impl);
 	AZClass *inst_class = AZ_CLASS_FROM_TYPE (ref_class->instance_type);
 	void *content_inst = (inst) ? az_reference_of_get_instance ((AZReferenceOfClass *) ref_class, (AZReferenceOf *) inst) : NULL;
-	return az_class_lookup_function (inst_class, &inst_class->impl, content_inst, key, sig, def_class, sub_impl, sub_inst);
+	return az_lookup_function (&inst_class->impl, content_inst, key, sig, def_class, sub_impl, sub_inst);
 }
 
 static int
@@ -112,7 +113,7 @@ reference_of_delegate_foreach_property (const AZClass *klass, const AZImplementa
 	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) klass;
 	AZClass *inst_class = AZ_CLASS_FROM_TYPE (ref_class->instance_type);
 	void *sub_inst = (inst) ? az_reference_of_get_instance ((AZReferenceOfClass *) ref_class, (AZReferenceOf *) inst) : NULL;
-	return az_instance_foreach_property (&inst_class->impl, sub_inst, cb, data);
+	return az_foreach_property (&inst_class->impl, sub_inst, cb, data);
 }
 
 static int
@@ -121,7 +122,7 @@ reference_of_delegate_foreach_interface (const AZClass *klass, const AZImplement
 	const AZReferenceOfClass *ref_class = (const AZReferenceOfClass *) klass;
 	AZClass *inst_class = AZ_CLASS_FROM_TYPE (ref_class->instance_type);
 	void *sub_inst = (inst) ? az_reference_of_get_instance ((AZReferenceOfClass *) ref_class, (AZReferenceOf *) inst) : NULL;
-	return az_instance_foreach_interface (&inst_class->impl, sub_inst, cb, data);
+	return az_foreach_interface (&inst_class->impl, sub_inst, cb, data);
 }
 
 static const AZClassDelegate az_reference_of_delegate = {

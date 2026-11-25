@@ -500,6 +500,34 @@ uint8_t *az_value_to_string_autobox_new (const AZImplementation *impl, const AZV
  */
 int az_value_invoke_by_signature_va (const AZImplementation *impl, const AZValue *val, const AZFunctionSignature *sig, AZContext *ctx, const AZImplementation **ret_impl, AZValue *ret_val, unsigned int ret_size, ...);
 
+/**
+ * @brief Get the first interface of given type from value (naked)
+ *
+ * Value-level frontend to az_instance_get_interface. Boxed values/interfaces are
+ * seen through to their content.
+ *
+ * @param impl The value implementation
+ * @param val The value
+ * @param if_type The interface type
+ * @param if_inst The output value for interface instance
+ * @return The implementation of an interface
+ */
+const AZImplementation *az_value_get_interface(const AZImplementation *impl, const AZValue *val, unsigned int if_type, void **if_inst);
+/**
+ * @brief Get the first interface of given type from value as a boxed interface handle value, if boxing is possible
+ *
+ * Value-level frontend to az_instance_get_interface_autobox. Boxed values/interfaces
+ * are seen through to their content.
+ *
+ * @param impl The value implementation
+ * @param val The value
+ * @param if_type The interface type
+ * @param dst The destination value for the interface handle (has to be cleared by the caller)
+ * @return The implementation stored in dst (AZ_BOXED_INTERFACE_IMPL if boxed), or NULL if there is no such interface
+ */
+const AZImplementation *az_value_get_interface_autobox(const AZImplementation *impl, const AZValue *val, unsigned int if_type, AZValue *dst);
+
+
 #ifdef __cplusplus
 };
 #endif

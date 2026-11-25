@@ -64,22 +64,6 @@ az_boxed_interface_unbox(const AZImplementation **impl, void **inst) {
 	*inst = boxed->inst;
 }
 
-/**
- * @brief Set a value to an interface handle of the instance (boxing if possible)
- *
- * If the interface can be boxed (value or reference container - the box owns the
- * container lifecycle), the value is set to a new boxed interface. Otherwise
- * (plain block container or naked interface) the naked view is stored and the
- * caller keeps managing the lifecycle.
- *
- * @param impl The containing implementation
- * @param dst The destination value
- * @param inst The containing instance
- * @param type The interface type
- * @return The implementation stored in the value (AZ_BOXED_INTERFACE_IMPL if boxed, else the interface implementation), or NULL if there is no such interface
- */
-const AZImplementation *az_value_set_interface_autobox (const AZImplementation *impl, AZValue *dst, void *inst, unsigned int type);
-
 #ifdef __cplusplus
 };
 #endif

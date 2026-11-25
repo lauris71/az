@@ -111,6 +111,25 @@ void az_field_setup_function (AZField *prop, const unsigned char *key, unsigned 
 void az_field_setup_function_packed (AZField *prop, const unsigned char *key, unsigned int is_final,
 	unsigned int spec, unsigned int read, unsigned int write, const AZFunctionSignature *sig, unsigned int offset);
 
+/*
+ * Property specification (class construction)
+ */
+/* Define property with AZ_FIELD_READ_VALUE */
+AZField *az_class_define_property_value (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,
+	unsigned int is_final, unsigned int spec, unsigned int write, unsigned int offset);
+/* Define property with AZ_FIELD_READ_PACKED */
+void az_class_define_property_packed (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,
+	unsigned int is_final, unsigned int spec, unsigned int write, unsigned int offset);
+void az_class_define_property (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int type,
+	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset,
+	const AZImplementation *impl, void *inst);
+void az_class_define_property_function_val (AZClass *klass, unsigned int idx, const unsigned char *key,
+	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write,
+	const AZFunctionSignature *sig, const AZImplementation *impl, void *inst);
+void az_class_define_property_function_packed (AZClass *klass, unsigned int idx, const unsigned char *key,
+	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset, const AZFunctionSignature *sig);
+
+
 #ifdef __cplusplus
 };
 #endif

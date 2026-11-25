@@ -171,8 +171,13 @@ lifetime?** (Law B) — not an input-shape special case:
   for naked interfaces — both are caller-managed.
 - The plain `az_instance_get_interface` remains the borrowed-view worker
   (result valid while the caller's `inst` lives) — that is the "we know the
-  lifecycle" case (R3). The `_autobox` suffix is retained only in this family
-  with the meaning defined here.
+  lifecycle" case (R3). Its `void **if_inst` result is always a naked pointer;
+  the `_autobox` frontend instead fills a provided **`AZValue *dst`** — the
+  handle may hold a reference (the box), so the output type itself tells the
+  API user the result has to be cleared. This is the R3 output-slot convention
+  applied to interface handles (`az_value_set_interface_autobox` is folded into
+  this signature — identical semantics). The `_autobox` suffix is retained only
+  in this family with the meaning defined here.
 
 ### R7. Parallel frontends — `az_instance_*` and `az_value_*` side by side
 
@@ -240,11 +245,9 @@ itself.
 
 ## Rework list
 
-1. **`boxed_interface_to_string` breaks Law A** (az/boxed-interface.c:35): prints
-   the `"Boxed <iface> in <container>"` label instead of the presented view's
-   string. A boxed handle must render like its unboxed content (the boxed value
-   already forwards). Fix: forward to `az_instance_to_string(boxed->impl,
-   boxed->inst)`; the label belongs in a debug dump, if anywhere.
+1. **`boxed_interface_to_string` breaks Law A** — done: it now forwards to
+   `az_instance_to_string(boxed->impl, boxed->inst)` (the presented view), like
+   the boxed value does; the `"Boxed <iface> in <container>"` label is gone.
 2. **`az_value_equals_autobox` / `az_value_equals_instance_autobox` break Law A
    for interfaces** (az/value.c): they unbox values but compare boxed interfaces
    by box identity, so two boxes presenting the same view compare unequal.

@@ -147,8 +147,9 @@ struct _AZTypeConstraint {
 /*
  * Boxed interface construction (internal)
  *
- * The public interface-extraction frontends are az_instance_get_interface[_autobox],
- * az_value_get_interface[_autobox] and az_value_set_interface_autobox.
+ * The public interface-extraction frontends are az_instance_get_interface[_autobox]
+ * and az_value_get_interface[_autobox] (the value-setting helper is folded into
+ * az_instance_get_interface_autobox).
  *
  * All constructors enforce the Law B invariant: the container must be a value
  * (copied into the box) or a reference (reffed by it) - a box always owns its

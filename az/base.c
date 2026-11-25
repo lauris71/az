@@ -9,6 +9,7 @@
 #include <arikkei/arikkei-strlib.h>
 
 #include <az/base.h>
+#include <az/properties.h>
 #include <az/class.h>
 #include <az/private.h>
 #include <az/value.h>
@@ -172,7 +173,7 @@ impl_call_setStaticProperty (unsigned int n_args, AZStoreElement *elems, AZValue
 	const AZClass *def_class;
 	const AZImplementation *sub_impl;
 	void *sub_inst;
-	int prop_idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &def_class, &sub_impl, &sub_inst);
+	int prop_idx = az_lookup_property (impl, NULL, key, &def_class, &sub_impl, &sub_inst);
 	arikkei_return_val_if_fail (prop_idx >= 0, AZ_EXCEPTION_INVALID_VALUE);
 	AZField *prop = &def_class->props_self[prop_idx];
 	arikkei_return_val_if_fail (AZ_FIELD_SPEC(prop) == AZ_FIELD_CLASS, AZ_EXCEPTION_INVALID_VALUE);
@@ -180,7 +181,7 @@ impl_call_setStaticProperty (unsigned int n_args, AZStoreElement *elems, AZValue
 	arikkei_return_val_if_fail (AZ_FIELD_WRITE(prop) != AZ_FIELD_WRITE_NONE, AZ_EXCEPTION_INVALID_VALUE);
 	const AZImplementation *val_impl = elems[2].impl;
 	void *val_inst = az_value_store_instance_at(elems, 2, vals);
-	return az_instance_set_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, val_impl, val_inst);
+	return az_set_property_by_id (def_class, sub_impl, NULL, prop_idx, val_impl, val_inst);
 }
 
 static int
@@ -193,12 +194,12 @@ impl_call_getstaticProperty (unsigned int n_args, AZStoreElement *elems, AZValue
 	const AZClass *def_class;
 	const AZImplementation *sub_impl;
 	void *sub_inst;
-	int prop_idx = az_class_lookup_property (AZ_CLASS_FROM_IMPL(impl), impl, NULL, key, &def_class, &sub_impl, &sub_inst);
+	int prop_idx = az_lookup_property (impl, NULL, key, &def_class, &sub_impl, &sub_inst);
 	arikkei_return_val_if_fail (prop_idx >= 0, AZ_EXCEPTION_INVALID_VALUE);
 	AZField *prop = &def_class->props_self[prop_idx];
 	arikkei_return_val_if_fail (AZ_FIELD_SPEC(prop) == AZ_FIELD_CLASS, AZ_EXCEPTION_INVALID_VALUE);
 	arikkei_return_val_if_fail (AZ_FIELD_READ(prop) != AZ_FIELD_READ_NONE, AZ_EXCEPTION_INVALID_VALUE);
-	return az_instance_get_property_by_id (def_class, AZ_CLASS_FROM_IMPL(sub_impl), sub_impl, NULL, prop_idx, ret_impl, ret_val, ret_size);
+	return az_get_property_by_id (def_class, sub_impl, NULL, prop_idx, ret_impl, ret_val, ret_size);
 }
 
 AZListImplementation prop_list_impl;

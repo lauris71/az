@@ -11,6 +11,7 @@
 
 #include <az/class.h>
 #include <az/field.h>
+#include <az/properties.h>
 #include <az/value-store.h>
 
 #ifdef __cplusplus
@@ -149,8 +150,8 @@ typedef struct _AZClassDelegate AZClassDelegate;
 
 struct _AZClassDelegate {
 	const AZImplementation *(*get_interface) (const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
-	int (*lookup_property) (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
-	int (*lookup_function) (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
+	int (*lookup_property) (const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
+	int (*lookup_function) (const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst);
 	int (*foreach_property) (const AZClass *klass, const AZImplementation *impl, void *inst, AZPropertyForeachFunc cb, void *data);
 	int (*foreach_interface) (const AZClass *klass, const AZImplementation *impl, void *inst, AZInterfaceForeachFunc cb, void *data);
 };
@@ -167,21 +168,6 @@ unsigned int az_register_delegate (const AZClassDelegate *delegate);
 
 /* To be called from class constructors */
 void az_class_declare_interface (AZClass *klass, unsigned int idx, unsigned int type, unsigned int impl_offset, unsigned int inst_offset);
-
-/* Define property with AZ_FIELD_READ_VALUE */
-AZField *az_class_define_property_value (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,
-	unsigned int is_final, unsigned int spec, unsigned int write, unsigned int offset);
-/* Define property with AZ_FIELD_READ_PACKED */
-void az_class_define_property_packed (AZClass *klass, unsigned int idx, const uint8_t *key, unsigned int type,
-	unsigned int is_final, unsigned int spec, unsigned int write, unsigned int offset);
-void az_class_define_property (AZClass *klass, unsigned int idx, const unsigned char *key, unsigned int type,
-	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset,
-	const AZImplementation *impl, void *inst);
-void az_class_define_property_function_val (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write,
-	const AZFunctionSignature *sig, const AZImplementation *impl, void *inst);
-void az_class_define_property_function_packed (AZClass *klass, unsigned int idx, const unsigned char *key,
-	unsigned int is_final, unsigned int spec, unsigned int read, unsigned int write, unsigned int offset, const AZFunctionSignature *sig);
 
 	/**
 	 * @brief Define a method (i.e. class-storage function property with this as the first argument)

@@ -15,6 +15,7 @@
 #include <arikkei/arikkei-utils.h>
 
 #include <az/boxed-interface.h>
+#include <az/properties.h>
 #include <az/boxed-value.h>
 #include <az/instance.h>
 #include <az/extend.h>
@@ -32,17 +33,8 @@ static int64_t
 boxed_interface_to_string (const AZImplementation *impl, void *inst, uint8_t *buf, uint64_t len)
 {
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
-	AZClass *klass = AZ_CLASS_FROM_IMPL(boxed->val_impl);
-	AZClass *iface_class = AZ_CLASS_FROM_IMPL(boxed->impl);
-	unsigned int pos;
-	/* Nothing is written when destination is NULL */
-	if (!buf) len = 0;
-	pos = arikkei_memcpy_str (buf, len, (const uint8_t *) "Boxed ");
-	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, iface_class->name);
-	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, (const uint8_t *) " in ");
-	pos += arikkei_memcpy_str (buf + pos, (len > pos) ? len - pos : 0, klass->name);
-	if (buf && (pos < len)) buf[pos] = 0;
-	return pos;
+	/* Boxing is a storage detail - render the presented view (Law A) */
+	return az_instance_to_string (boxed->impl, boxed->inst, buf, len);
 }
 
 /* The box answers interface and property queries on behalf of the boxed content */
@@ -56,19 +48,19 @@ boxed_interface_delegate_get_interface (const AZClass *klass, const AZImplementa
 }
 
 static int
-boxed_interface_delegate_lookup_property (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+boxed_interface_delegate_lookup_property (const AZImplementation *impl, void *inst, const AZString *key, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
 	if (!inst) return AZ_NULL_VALUE;
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
-	return az_class_lookup_property (AZ_CLASS_FROM_IMPL (boxed->impl), boxed->impl, boxed->inst, key, def_class, sub_impl, sub_inst);
+	return az_lookup_property (boxed->impl, boxed->inst, key, def_class, sub_impl, sub_inst);
 }
 
 static int
-boxed_interface_delegate_lookup_function (const AZClass *klass, const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
+boxed_interface_delegate_lookup_function (const AZImplementation *impl, void *inst, const AZString *key, const AZFunctionSignature *sig, const AZClass **def_class, const AZImplementation **sub_impl, void **sub_inst)
 {
 	if (!inst) return AZ_NULL_VALUE;
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
-	return az_class_lookup_function (AZ_CLASS_FROM_IMPL (boxed->impl), boxed->impl, boxed->inst, key, sig, def_class, sub_impl, sub_inst);
+	return az_lookup_function (boxed->impl, boxed->inst, key, sig, def_class, sub_impl, sub_inst);
 }
 
 static int
@@ -76,7 +68,7 @@ boxed_interface_delegate_foreach_property (const AZClass *klass, const AZImpleme
 {
 	if (!inst) return AZ_OK;
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
-	return az_instance_foreach_property (boxed->impl, boxed->inst, cb, data);
+	return az_foreach_property (boxed->impl, boxed->inst, cb, data);
 }
 
 static int
@@ -84,7 +76,7 @@ boxed_interface_delegate_foreach_interface (const AZClass *klass, const AZImplem
 {
 	if (!inst) return AZ_OK;
 	AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
-	return az_instance_foreach_interface (boxed->impl, boxed->inst, cb, data);
+	return az_foreach_interface (boxed->impl, boxed->inst, cb, data);
 }
 
 static const AZClassDelegate az_boxed_interface_delegate = {
@@ -240,12 +232,12 @@ AZBoxedInterface *
 az_boxed_interface_new_from_impl_value_autobox (const AZImplementation *impl, const AZValue *val, unsigned int type)
 {
 	/* Single decision table lives in az_instance_get_interface_autobox */
-	void *if_inst;
-	const AZImplementation *if_impl = az_instance_get_interface_autobox (impl, az_value_get_inst (impl, val), type, &if_inst);
+	AZValue dst;
+	const AZImplementation *if_impl = az_instance_get_interface_autobox (impl, az_value_get_inst (impl, val), type, &dst);
 	if (!if_impl) return NULL;
 	/* Not boxable (plain block container or naked interface) - no lifecycle to own */
 	if (AZ_IMPL_TYPE(if_impl) != AZ_TYPE_BOXED_INTERFACE) return NULL;
-	return (AZBoxedInterface *) if_inst;
+	return (AZBoxedInterface *) dst.reference;
 }
 
 AZBoxedInterface *
@@ -274,11 +266,15 @@ az_boxed_interface_new_from_object (AZObject *obj, unsigned int type)
 }
 
 const AZImplementation *
-az_instance_get_interface_autobox(const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst)
+az_instance_get_interface_autobox(const AZImplementation *impl, void *inst, unsigned int if_type, AZValue *dst)
 {
 	if (!AZ_IMPL_IS_CLASS(impl)) {
 		/* Naked interface, no boxing possible, return naked (sub)interface */
-		return az_instance_get_interface(impl, inst, if_type, if_inst);
+		void *sub_inst;
+		const AZImplementation *sub_impl = az_instance_get_interface(impl, inst, if_type, &sub_inst);
+		if (!sub_impl) return NULL;
+		az_value_set_from_inst (sub_impl, dst, sub_inst);
+		return sub_impl;
 	}
 	if (impl == &AZBoxedInterfaceKlass.klass.impl) {
 		/* Boxed interface, get naked (sub)interface of contained instance */
@@ -288,31 +284,24 @@ az_instance_get_interface_autobox(const AZImplementation *impl, void *inst, unsi
 		/* Interface is actually there */
 		AZBoxedInterface *boxed = (AZBoxedInterface *) inst;
 		if ((sub_impl == boxed->impl) && (sub_inst == boxed->inst)) {
-			/* The same as boxed, return the same box */
-			az_boxed_interface_ref(boxed);
-			*if_inst = inst;
+			/* The same as boxed, return a reference to the same box */
+			az_value_set_reference (dst, &boxed->reference);
 			return &AZBoxedInterfaceKlass.klass.impl;
-		} else {
-			/* Sub-interface */
-			if (AZ_IMPL_IS_VALUE(boxed->val_impl)) {
-				/* Container is value, sub_inst points to existing instance, need pointer magic */
-				AZBoxedInterface *new_box = boxed_iface_container_new(boxed->val_impl);
-				az_value_copy(boxed->val_impl, &new_box->val, &boxed->val);
-				new_box->impl = sub_impl;
-				ptrdiff_t delta = (char *) sub_inst - (char *) &boxed->val;
-				new_box->inst = (char *) &new_box->val + delta;
-				*if_inst = new_box;
-				return &AZBoxedInterfaceKlass.klass.impl;
-			} else {
-				/* Container is reference (shared), sub_inst is valid */
-				AZBoxedInterface *new_box = boxed_iface_container_new(boxed->val_impl);
-				az_value_copy(boxed->val_impl, &new_box->val, &boxed->val);
-				new_box->impl = sub_impl;
-				new_box->inst = sub_inst;
-				*if_inst = new_box;
-				return &AZBoxedInterfaceKlass.klass.impl;
-			}
 		}
+		/* Sub-interface */
+		AZBoxedInterface *new_box = boxed_iface_container_new(boxed->val_impl);
+		az_value_copy(boxed->val_impl, &new_box->val, &boxed->val);
+		new_box->impl = sub_impl;
+		if (AZ_IMPL_IS_VALUE(boxed->val_impl)) {
+			/* Container is value, sub_inst points to existing instance, need pointer magic */
+			ptrdiff_t delta = (char *) sub_inst - (char *) &boxed->val;
+			new_box->inst = (char *) &new_box->val + delta;
+		} else {
+			/* Container is reference (shared), sub_inst is valid */
+			new_box->inst = sub_inst;
+		}
+		az_value_transfer_reference (dst, &new_box->reference);
+		return &AZBoxedInterfaceKlass.klass.impl;
 	}
 	if (impl == &AZBoxedValueKlass.klass.impl) {
 		/* Boxed value, unbox first */
@@ -323,26 +312,14 @@ az_instance_get_interface_autobox(const AZImplementation *impl, void *inst, unsi
 	if (!AZ_TYPE_IS_VALUE(AZ_IMPL_TYPE(impl)) && !AZ_TYPE_IS_REFERENCE(AZ_IMPL_TYPE(impl))) {
 		/* Plain block - the lifetime is caller-managed (like a naked interface),
 		 * so a box would promise ownership it cannot deliver (Law B) */
-		return az_instance_get_interface(impl, inst, if_type, if_inst);
+		void *sub_inst;
+		const AZImplementation *sub_impl = az_instance_get_interface(impl, inst, if_type, &sub_inst);
+		if (!sub_impl) return NULL;
+		az_value_set_from_inst (sub_impl, dst, sub_inst);
+		return sub_impl;
 	}
 	AZBoxedInterface *boxed = az_boxed_interface_new_from_impl_instance(impl, inst, if_type);
 	if (!boxed) return NULL;
-	*if_inst = boxed;
+	az_value_transfer_reference (dst, &boxed->reference);
 	return &AZBoxedInterfaceKlass.klass.impl;
-}
-
-const AZImplementation *
-az_value_set_interface_autobox (const AZImplementation *impl, AZValue *dst, void *inst, unsigned int type)
-{
-	void *if_inst;
-	const AZImplementation *if_impl = az_instance_get_interface_autobox (impl, inst, type, &if_inst);
-	if (!if_impl) return NULL;
-	if (AZ_IMPL_TYPE(if_impl) == AZ_TYPE_BOXED_INTERFACE) {
-		/* Box owned - transfer the reference into the value */
-		az_value_transfer_reference (dst, &((AZBoxedInterface *) if_inst)->reference);
-	} else {
-		/* Naked (plain block container or naked interface) - store the borrowed view */
-		az_value_set_from_inst (if_impl, dst, if_inst);
-	}
-	return if_impl;
 }

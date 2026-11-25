@@ -245,27 +245,33 @@ test_interface(void)
     TEST_ASSERT_EQUAL_PTR(if456_inst, &s12.if123.if456);
     TEST_ASSERT_EQUAL_UINT32(AZ_IMPL_TYPE(if456_impl), TYPE_IF_456);
 
-    /* Get boxed interface from struct */
-    if_impl = az_instance_get_interface_autobox(AZ_IMPL_FROM_TYPE(TYPE_STRUCT_12), &s12, TYPE_IF_123, &if_inst);
+    /* Get boxed interface from struct (the handle value may hold a reference - clear it) */
+    AZValue if_val;
+    if_impl = az_instance_get_interface_autobox(AZ_IMPL_FROM_TYPE(TYPE_STRUCT_12), &s12, TYPE_IF_123, &if_val);
     TEST_ASSERT_NOT_NULL(if_impl);
-    TEST_ASSERT_NOT_NULL(if_inst);
-    TEST_ASSERT_EQUAL_PTR(((AZBoxedInterface *) if_inst)->inst, &((Struct12 *) &((AZBoxedInterface *) if_inst)->val)->if123);
     TEST_ASSERT_EQUAL_UINT32(AZ_IMPL_TYPE(if_impl), AZ_TYPE_BOXED_INTERFACE);
-    /* Get the same interface from boxed interface */
-    if123_impl = az_instance_get_interface_autobox(if_impl, if_inst, TYPE_IF_123, &if123_inst);
+    AZBoxedInterface *box = (AZBoxedInterface *) if_val.reference;
+    TEST_ASSERT_EQUAL_PTR(box->inst, &((Struct12 *) &box->val)->if123);
+    /* Get the same interface from boxed interface (a reference to the same box) */
+    AZValue if123_val;
+    if123_impl = az_instance_get_interface_autobox(if_impl, box, TYPE_IF_123, &if123_val);
     TEST_ASSERT_EQUAL_PTR(if123_impl, if_impl);
-    TEST_ASSERT_EQUAL_PTR(if123_inst, if_inst);
+    TEST_ASSERT_EQUAL_PTR(if123_val.reference, &box->reference);
     /* Get sub-interface from boxed interface */
-    if456_impl = az_instance_get_interface(if_impl, if_inst, TYPE_IF_456, &if456_inst);
+    if456_impl = az_instance_get_interface(if_impl, box, TYPE_IF_456, &if456_inst);
     TEST_ASSERT_NOT_NULL(if456_impl);
     TEST_ASSERT_NOT_NULL(if456_inst);
-    TEST_ASSERT_EQUAL_PTR(if456_inst, &((Struct12 *) &((AZBoxedInterface *) if_inst)->val)->if123.if456);
+    TEST_ASSERT_EQUAL_PTR(if456_inst, &((Struct12 *) &box->val)->if123.if456);
     TEST_ASSERT_EQUAL_UINT32(AZ_IMPL_TYPE(if456_impl), TYPE_IF_456);
     TEST_ASSERT_EQUAL_UINT32(((If456 *)if456_inst)->val, 12456);
     /* Get boxed sub-interface from boxed interface */
-    if456_impl = az_instance_get_interface_autobox(if_impl, if_inst, TYPE_IF_456, &if456_inst);
+    AZValue if456_val;
+    if456_impl = az_instance_get_interface_autobox(if_impl, box, TYPE_IF_456, &if456_val);
     TEST_ASSERT_NOT_NULL(if456_impl);
-    TEST_ASSERT_NOT_NULL(if456_inst);
     TEST_ASSERT_EQUAL_UINT32(AZ_IMPL_TYPE(if456_impl), AZ_TYPE_BOXED_INTERFACE);
-    TEST_ASSERT_EQUAL_UINT32(((If456 *) ((AZBoxedInterface *) if456_inst)->inst)->val, 12456);
+    AZBoxedInterface *box456 = (AZBoxedInterface *) if456_val.reference;
+    TEST_ASSERT_EQUAL_UINT32(((If456 *) box456->inst)->val, 12456);
+    az_value_clear (if456_impl, &if456_val);
+    az_value_clear (if123_impl, &if123_val);
+    az_value_clear (if_impl, &if_val);
 }

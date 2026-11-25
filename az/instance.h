@@ -30,6 +30,7 @@ extern "C" {
  * @param impl type implementation
  * @param inst uninitialized instance
  */
+/* Boxed values/interfaces: operates on the box itself - lifecycle is never forwarded to the content */
 void az_instance_init (const AZImplementation *impl, void *inst);
 /**
  * @brief destroy an instance
@@ -43,6 +44,7 @@ void az_instance_init (const AZImplementation *impl, void *inst);
  * @param impl type implementation
  * @param inst type instance
  */
+/* Boxed values/interfaces: operates on the box itself - lifecycle is never forwarded to the content */
 void az_instance_finalize (const AZImplementation *impl, void *inst);
 
 /**
@@ -176,47 +178,26 @@ uint8_t *az_instance_to_string_new (const AZImplementation *impl, void *inst);
  */
 const AZImplementation *az_instance_get_interface(const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
 /**
- * @brief Get the first interface of given type as boxed interface, if boxing is possible, otherwise as naked interface
- * 
+ * @brief Get the first interface of given type as a boxed interface handle value, if boxing is possible, otherwise as naked interface
+ *
+ * The destination value receives the interface handle: a boxed interface
+ * (AZ_BOXED_INTERFACE_IMPL + owned reference) when a box can own the container
+ * lifecycle, or the naked view (interface implementation + borrowed instance).
+ * The result may hold a reference and has to be cleared by the caller.
+ *
  * A sub or same interface of a naked interface remains naked
- * The same interface of the boxed interface return a reference to the same box
+ * The same interface of the boxed interface returns a reference to the same box
  * A subinterface of a boxed interface returns a new box
- * An interface of any non-interface type creates a new box
- * 
+ * An interface of a value or reference container creates a new box
+ * An interface of a plain block container remains naked (caller-managed lifetime)
+ *
  * @param impl The type implementation
  * @param inst The type instance
  * @param if_type The interface type
- * @param if_inst The output value for interface instance
- * @return The implementation of an interface
+ * @param dst The destination value for the interface handle (has to be cleared by the caller)
+ * @return The implementation stored in dst (AZ_BOXED_INTERFACE_IMPL if boxed), or NULL if there is no such interface
  */
-const AZImplementation *az_instance_get_interface_autobox(const AZImplementation *impl, void *inst, unsigned int if_type, void **if_inst);
-
-/**
- * @brief Get the first interface of given type from value (naked)
- *
- * Value-level frontend to az_instance_get_interface. Boxed values/interfaces are
- * seen through to their content.
- *
- * @param impl The value implementation
- * @param val The value
- * @param if_type The interface type
- * @param if_inst The output value for interface instance
- * @return The implementation of an interface
- */
-const AZImplementation *az_value_get_interface(const AZImplementation *impl, const AZValue *val, unsigned int if_type, void **if_inst);
-/**
- * @brief Get the first interface of given type from value as boxed interface, if boxing is possible
- *
- * Value-level frontend to az_instance_get_interface_autobox. Boxed values/interfaces
- * are seen through to their content.
- *
- * @param impl The value implementation
- * @param val The value
- * @param if_type The interface type
- * @param if_inst The output value for interface instance
- * @return The implementation of an interface
- */
-const AZImplementation *az_value_get_interface_autobox(const AZImplementation *impl, const AZValue *val, unsigned int if_type, void **if_inst);
+const AZImplementation *az_instance_get_interface_autobox(const AZImplementation *impl, void *inst, unsigned int if_type, AZValue *dst);
 
 static inline const AZImplementation *
 az_instance_get_interface_from_type (unsigned int type, void *inst, unsigned int if_type, void **if_inst)
@@ -224,57 +205,6 @@ az_instance_get_interface_from_type (unsigned int type, void *inst, unsigned int
 	return az_instance_get_interface(AZ_IMPL_FROM_TYPE(type), inst, if_type, if_inst);
 }
 
-/**
- * @brief Get property from instance
- * 
- * 
- * 
- * @param impl The type implementation
- * @param inst The type instance
- * @param key The property name
- * @param dst_impl The result implementation
- * @param dst_val The result value
- * @param dst_size The available result size
- * @return AZ_OK or error code
- */
-int az_instance_get_property_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size);
-int az_instance_get_function_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZFunctionSignature *sig, const AZImplementation **dst_impl, AZValue *dst_val, unsigned int dst_size);
-/**
- * @brief Set property by key and instance
- * 
- * The actual value must be assignable to the property type, no automatic conversion are performed.
- * 
- * @param impl The type implementation
- * @param inst The type instance
- * @param key The property name
- * @param prop_impl The value implementation
- * @param prop_inst The value instance
- * @return AZ_OK or error code
- */
-int az_instance_set_property_by_key (const AZImplementation *impl, void *inst, const uint8_t *key, const AZImplementation *prop_impl, void *prop_inst);
-
-/**
- * @brief Get property value by defining class and property index
- * 
- * This is the most generic method that can retrieve any kind of property given the defining class
- * and the class, implementation and instance of type. For static properties the instance and/or implementation
- * can be NULL.
- * The normal order of execution is to first call az_class_lookup property and, if the property is found, use
- * def_class, AZ_CLASS_FROM_IMPL(impl), impl, inst and index or, for pure statics, def_class, AZ_CLASS_FROM_TYPE(type) and index
- * to fetch the property value.
- * 
- * @param def_klass the class where property is defined
- * @param klass the actuqal class of the instance
- * @param impl the actual implementation of the instance (or NULL)
- * @param inst the actual instance (or NULL)
- * @param id property index in class
- * @param prop_impl result implementation
- * @param prop_val result value
- * @param val_size result value size (value is autoboxed if size is bigger)
- * @return AZ_OK or error code
- */
-int az_instance_get_property_by_id (const AZClass *def_klass, const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation **prop_impl, AZValue *prop_val, unsigned int val_size);
-int az_instance_set_property_by_id (const AZClass *def_klass, const AZClass *klass, const AZImplementation *impl, void *inst, unsigned int id, const AZImplementation *prop_impl, void *prop_inst);
 
 #ifdef __cplusplus
 }
