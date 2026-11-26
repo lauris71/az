@@ -1,0 +1,28 @@
+var boxed_interface_8c =
+[
+    [ "__AZ_BOXED_INTERFACE_C__", "boxed-interface_8c.html#acd599d15ab60fc14b12b0ee24e64b266", null ],
+    [ "AZ_BOXED_INTERFACE_POOL_SIZE", "boxed-interface_8c.html#ae8858fdb12da94b55b2c431141bebe52", null ],
+    [ "az_boxed_interface_new", "boxed-interface_8c.html#a8a6d886ca3d6410e5d5f4a046502b783", null ],
+    [ "az_boxed_interface_new_from_impl_instance", "boxed-interface_8c.html#ad3814363382a3e43156b0f41f6eaaaaf", null ],
+    [ "az_boxed_interface_new_from_impl_value", "boxed-interface_8c.html#a43e52a733ea2764053eccfc76403bc17", null ],
+    [ "az_boxed_interface_new_from_impl_value_autobox", "boxed-interface_8c.html#a394f4d4500f062ffc76956ba030f2a4b", null ],
+    [ "az_boxed_interface_new_from_object", "boxed-interface_8c.html#a81e686bb2768db774d73adfe4c67ad0b", null ],
+    [ "az_init_boxed_interface_class", "boxed-interface_8c.html#a0b2849e6e0a4e07a2faa4045beda84b8", null ],
+    [ "az_instance_get_interface_autobox", "boxed-interface_8c.html#a3c364080c7844791e91b599b07b03f5b", null ],
+    [ "boxed_iface_allocate", "boxed-interface_8c.html#adeabe2ff8ec0c77c2a04bb28b8d09d60", null ],
+    [ "boxed_iface_container_new", "boxed-interface_8c.html#a74f9729b8e35826c1b791c120076484f", null ],
+    [ "boxed_iface_free", "boxed-interface_8c.html#ace9775a5fd6f8f7cc87387e3b1907a89", null ],
+    [ "boxed_interface_delegate_foreach_interface", "boxed-interface_8c.html#a78f5f9e7dbd7d78cbb600de4ad0e5560", null ],
+    [ "boxed_interface_delegate_foreach_property", "boxed-interface_8c.html#a415a3202601f18e92e78059406ded8bb", null ],
+    [ "boxed_interface_delegate_get_interface", "boxed-interface_8c.html#a3fdf86b086a3aed6f9399d236fe57608", null ],
+    [ "boxed_interface_delegate_lookup_function", "boxed-interface_8c.html#a4b8ea5ddb7316ff198259a5013115f0b", null ],
+    [ "boxed_interface_delegate_lookup_property", "boxed-interface_8c.html#abb0fff02014f273e0de5e58785e0008a", null ],
+    [ "boxed_interface_finalize", "boxed-interface_8c.html#ad54ccc54be49886104d3abae00c53fb9", null ],
+    [ "boxed_interface_to_string", "boxed-interface_8c.html#a44c941953c5e5da8f651e86d2d200178", null ],
+    [ "serialize_boxed_interface", "boxed-interface_8c.html#aaf7427ad96c2b8603d6ddc4ed31031c6", null ],
+    [ "az_boxed_interface_delegate", "boxed-interface_8c.html#ac06ced785018ab0e5dfa37ca7c257dd2", null ],
+    [ "AZBoxedInterfaceKlass", "boxed-interface_8c.html#a5696d3b4f102fdae348bdb71eb30fb4f", null ],
+    [ "boxed_iface_allocator", "boxed-interface_8c.html#afa907b29439c273d679b18dd988d67da", null ],
+    [ "boxed_iface_pool", "boxed-interface_8c.html#a45d3d10475a8b169e7686bcd3eff0175", null ],
+    [ "boxed_iface_pool_mutex", "boxed-interface_8c.html#a70c3c77b26b743468f6a963f8d57f3f1", null ]
+];

@@ -1,0 +1,27 @@
+var boxed_value_8c =
+[
+    [ "__AZ_BOXED_VALUE_C__", "boxed-value_8c.html#af8e549bb19892bc5f9e775a04687609c", null ],
+    [ "DEBUG_BOXED_VALUE", "boxed-value_8c.html#a168cc084c1b4b871481474cac48491dd", null ],
+    [ "az_boxed_value_new", "boxed-value_8c.html#a834eb4aa33d661b1c41b8d0357eb675d", null ],
+    [ "az_boxed_value_new_from_inst", "boxed-value_8c.html#a2408c8bdf2fe6444e4bcb508c1019abc", null ],
+    [ "az_boxed_value_new_from_val", "boxed-value_8c.html#a6d897e4ae2e514486be3c35ee79ecda8", null ],
+    [ "az_init_boxed_value_class", "boxed-value_8c.html#a1add7aeedef65a3e2c62bbc34e6a8d5b", null ],
+    [ "az_value_copy_autobox", "boxed-value_8c.html#aef4e47585f079c8773d79f00c45264ce", null ],
+    [ "az_value_equals_autobox", "boxed-value_8c.html#aec5a58f2fd892ff5f1ed4ad296556c86", null ],
+    [ "az_value_equals_instance_autobox", "boxed-value_8c.html#a3e5176ab59a756485b9b4199434a68ca", null ],
+    [ "az_value_get_inst_autobox", "boxed-value_8c.html#a02b48310e58e542c2ad03490b91fea32", null ],
+    [ "az_value_init_autobox", "boxed-value_8c.html#ad0d6e547a948239e95dbebf839846c72", null ],
+    [ "az_value_set_from_inst_autobox", "boxed-value_8c.html#a5229cb3b049d4efcd1b72b81b9f0a520", null ],
+    [ "az_value_transfer_autobox", "boxed-value_8c.html#acd02f60c1ef8aee8786e47e100e5cd2a", null ],
+    [ "boxed_value_delegate_foreach_interface", "boxed-value_8c.html#a541e049334f088fae6c208b52784b402", null ],
+    [ "boxed_value_delegate_foreach_property", "boxed-value_8c.html#a90e139ec4017c8064b3d7f89268e4a71", null ],
+    [ "boxed_value_delegate_get_interface", "boxed-value_8c.html#afeda28d55002ebf94bced29eff7e05f2", null ],
+    [ "boxed_value_delegate_lookup_function", "boxed-value_8c.html#a5d96fc43242846c686dbbbc1b8ceb4f5", null ],
+    [ "boxed_value_delegate_lookup_property", "boxed-value_8c.html#a09c0919dc8fe9d0390f0608244ce95c4", null ],
+    [ "boxed_value_finalize", "boxed-value_8c.html#af54669e57c817f2a152ca94557f3ea79", null ],
+    [ "boxed_value_init", "boxed-value_8c.html#a6465aa25bf9b3265083d62d2e9654e6b", null ],
+    [ "boxed_value_to_string", "boxed-value_8c.html#a220020828bedc7fbca52692ecfac42d5", null ],
+    [ "serialize_boxed_value", "boxed-value_8c.html#a4b0fc4c6872659629ad65c75955fedc6", null ],
+    [ "az_boxed_value_delegate", "boxed-value_8c.html#a097f198a55ad31fef441fd06a65461b1", null ],
+    [ "AZBoxedValueKlass", "boxed-value_8c.html#af86d6fd8367be236d438ecdf560fea53", null ]
+];
