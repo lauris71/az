@@ -88,12 +88,17 @@ jobs:
   pages:
     name: Deploy pages
     if: github.repository == 'lauris71/az' && contains(github.ref, 'main')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+    - name: Checkout arikkei
+      uses: actions/checkout@v4
+      with:
+        repository: lauris71/arikkei
+        path: arikkei
     - name: Install dependencies
       run: sudo apt update -qq && sudo apt install --no-install-recommends -y doxygen
     - name: Build docs
